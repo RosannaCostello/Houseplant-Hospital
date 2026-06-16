@@ -14,8 +14,9 @@ This app uses [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) to ru
 
 1. Cloudflare Dashboard → **Workers & Pages** → **Create** → connect the GitHub repo
 2. Build settings (auto-detected for Next.js):
-   - **Build command:** `npm run build`
+   - **Build command:** `npm run build` (runs OpenNext — includes `next build`)
    - **Deploy command:** `npx wrangler deploy`
+   - Do **not** use plain `next build` as the build command; deploy needs the `.open-next/` output.
 3. **Worker name** must match `wrangler.jsonc` → currently `houseplanthospital` (Cloudflare strips hyphens from project names).
 4. Environment variables (Production + Preview):
    - `NEXT_PUBLIC_SUPABASE_URL`
@@ -24,6 +25,18 @@ This app uses [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) to ru
    - `APP_BASE_URL` (preview URL after first deploy)
 
 5. Deploy and verify admin login at the preview URL.
+
+## Fast path — deploy from your Mac (skip CI debugging)
+
+If Cloudflare CI keeps failing, you can deploy once from your machine to get a preview URL:
+
+```bash
+npx wrangler login
+cp .env.local .dev.vars
+npm run deploy
+```
+
+Env vars for production must still be set in the Cloudflare dashboard (**Workers & Pages → houseplanthospital → Settings → Variables**).
 
 ## Local preview
 
