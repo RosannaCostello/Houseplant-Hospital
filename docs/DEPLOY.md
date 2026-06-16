@@ -1,4 +1,4 @@
-# Deploy — Cloudflare Pages (Phase 1)
+# Deploy — Cloudflare Workers (Phase 1)
 
 Jack: confirm the correct GitHub repo/remote with the agent before pushing or connecting deploy.
 
@@ -8,25 +8,39 @@ Jack: confirm the correct GitHub repo/remote with the agent before pushing or co
 - Supabase `hh-dev` (or preview) project with migrations applied
 - Cloudflare account
 
-## Cloudflare Pages setup
+## Cloudflare Workers setup (OpenNext)
 
-1. Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
-2. Select the Houseplant Hospital GitHub repository
-3. Build settings:
-   - **Framework preset:** Next.js
+This app uses [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) to run Next.js on Cloudflare Workers.
+
+1. Cloudflare Dashboard → **Workers & Pages** → **Create** → connect the GitHub repo
+2. Build settings (auto-detected for Next.js):
    - **Build command:** `npm run build`
-   - **Build output:** `.next` (or use Cloudflare's detected Next.js settings)
-   - **Node version:** 20+
-
+   - **Deploy command:** `npx wrangler deploy`
+3. **Worker name** must match `wrangler.jsonc` → currently `houseplanthospital` (Cloudflare strips hyphens from project names).
 4. Environment variables (Production + Preview):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `APP_BASE_URL` (preview URL or production domain when known)
+   - `SUPABASE_SERVICE_ROLE_KEY` (encrypt)
+   - `APP_BASE_URL` (preview URL after first deploy)
 
 5. Deploy and verify admin login at the preview URL.
 
+## Local preview
+
+```bash
+cp .env.local .dev.vars   # OpenNext reads .dev.vars for local wrangler preview
+npm run preview
+```
+
+## Lockfile note
+
+Cloudflare CI uses **npm 10**. Regenerate `package-lock.json` with:
+
+```bash
+npx npm@10.9.2 install
+```
+
 ## Notes
 
-- Do not commit `.env.local` — use Cloudflare env vars per environment.
+- Do not commit `.env.local` or `.dev.vars` — use Cloudflare env vars per environment.
 - Production Supabase (`hh-prod`) is Phase 6; use `hh-dev` for previews until go-live.
