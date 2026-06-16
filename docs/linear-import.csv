@@ -1,0 +1,71 @@
+Title,Description,Labels,Priority
+GitHub private repo created and linked to this folder,Setup task S1. Repo exists and remote is configured.,phase-1;infra,3
+Supabase hh-dev project created,Setup task S2. Create project at supabase.com. Save URL and keys for .env.local.,phase-1;infra,2
+Cloudflare account ready (Pages later),Setup task S3. Account created; Pages hookup in issue 1.12.,phase-1;infra,3
+Mailchimp: confirm plan + record audience ID,Setup task S4. Document audience ID in SETUP.md (no API wiring yet).,phase-5;mailchimp,4
+Export XS–XL pricing from Zoho/spreadsheet,Setup task S5. Needed for pricing_rules seed.,phase-1,2
+Gather brand assets (logo SVG/PNG label refs),Setup task S6. For Phase 4 labels and Phase 6 brand.,phase-6;brand,3
+List staff emails for Supabase Auth,Setup task S7. Admin + staff accounts to create in Supabase.,phase-1;auth,3
+Mac Mini + Brother printer on shop WiFi (verify print),Setup task S8. Before Phase 4. Brother QL-820NWBc prints from macOS.,phase-4;printing,4
+"[Phase 1] Scaffold Next.js App Router + TypeScript + Tailwind + shadcn",Issue 1.1. Initialize app in repo root. See docs/linear-backlog.md.,phase-1;infra,2
+"[Phase 1] Supabase migration: core schema","Issue 1.2. customers visits plants plant_photos treatment_notes care_tips status_history pricing_adjustments pricing_rules mailchimp_events print_jobs profiles. Scope: Houseplant-Hospital-2.0-Scope.md",phase-1;infra,2
+"[Phase 1] Supabase migration: RLS + staff/admin roles",Issue 1.3. RLS-first; profiles.role admin|staff.,phase-1;auth,2
+"[Phase 1] Supabase migration: storage bucket plant-photos",Issue 1.4. Staff upload/read; signed URLs; no public bucket.,phase-1;infra,2
+"[Phase 1] Seed pricing_rules (XS–XL + bugs modifier)",Issue 1.5. Config-driven pricing; blocked by pricing export S5.,phase-1,3
+"[Phase 1] Supabase clients browser server admin",Issue 1.6. Service role server-only.,phase-1;infra,2
+"[Phase 1] Staff login (email + password)",Issue 1.7. Supabase Auth; iPad-friendly.,phase-1;auth,2
+"[Phase 1] Auth middleware + admin-only /settings",Issue 1.8. Unauthenticated redirect to login.,phase-1;auth,2
+"[Phase 1] App shell nav logout dashboard placeholder",Issue 1.9. Minimal neutral UI.,phase-1,3
+"[Phase 1] Settings page stub (admin-only)",Issue 1.10.,phase-1;auth,3
+"[Phase 1] .env.example + docs/SETUP.md",Issue 1.11. Env vars and first admin user steps.,phase-1;infra,3
+"[Phase 1] Cloudflare Pages deploy + first preview",Issue 1.12. Connect GitHub repo.,phase-1;infra,2
+"[Phase 1] Verification: admin login on preview URL",Issue 1.13. Phase 1 exit criteria.,phase-1,2
+"[Phase 2] Dashboard kanban layout (6 lanes)",Issue 2.1. Check-in In Surgery Outpatient Quarantine Dead Collected.,phase-2;dashboard,2
+"[Phase 2] Plant card component",Issue 2.2. Thumbnail surname name size bugs age.,phase-2;dashboard,3
+"[Phase 2] Dashboard query plants + customer + photo",Issue 2.3.,phase-2;dashboard,2
+"[Phase 2] Check-in customer step",Issue 2.4. Name email phone consent.,phase-2;check-in,2
+"[Phase 2] Check-in staff multi-plant step",Issue 2.5. Size name species notes per plant.,phase-2;check-in,2
+"[Phase 2] Server action: Visit + N Plants transaction",Issue 2.6. Customer → Visit → Many Plants.,phase-2;check-in,2
+"[Phase 2] Photo capture + compression + EXIF strip",Issue 2.7. iPad camera capture=environment.,phase-2;check-in,2
+"[Phase 2] Upload photo + thumbnail to Storage",Issue 2.8. WebP preferred; 200-500KB target.,phase-2;check-in,2
+"[Phase 2] Mandatory photo on check-in complete",Issue 2.9.,phase-2;check-in,2
+"[Phase 2] Plant detail page",Issue 2.10.,phase-2,3
+"[Phase 2] Visit / case detail page",Issue 2.11. Multi-plant view.,phase-2,3
+"[Phase 2] Customer search",Issue 2.12.,phase-2,3
+"[Phase 2] QR route /hh/case/[plantId]",Issue 2.13. APP_BASE_URL placeholder.,phase-2,3
+"[Phase 2] Verification: 3-plant check-in E2E",Issue 2.14. iPad + MacBook.,phase-2,2
+"[Phase 3] Status transitions on kanban",Issue 3.1.,phase-3;dashboard,2
+"[Phase 3] status_history on every change",Issue 3.2. Auditability.,phase-3,2
+"[Phase 3] Treatment notes",Issue 3.3.,phase-3,3
+"[Phase 3] Care tips",Issue 3.4.,phase-3,3
+"[Phase 3] Bugs found toggle +10% pricing",Issue 3.5.,phase-3,2
+"[Phase 3] Bugs warning on dashboard + detail",Issue 3.6.,phase-3;dashboard,3
+"[Phase 3] Pricing engine from pricing_rules",Issue 3.7. No hardcoded UI prices.,phase-3,2
+"[Phase 3] Admin settings: edit size-band pricing",Issue 3.8.,phase-3;auth,3
+"[Phase 3] Pricing summary on plant detail",Issue 3.9.,phase-3,3
+"[Phase 3] Collection workflow mark Collected",Issue 3.10.,phase-3,2
+"[Phase 3] Verification: full lifecycle + audit",Issue 3.11.,phase-3,2
+"[Phase 4] Decide production domain APP_BASE_URL",Issue 4.1.,phase-4;infra,2
+"[Phase 4] print-bridge Node service on Mac Mini",Issue 4.2. Auth + health endpoint.,phase-4;printing,2
+"[Phase 4] Branded label template HTML/PDF + QR",Issue 4.3.,phase-4;printing;brand,2
+"[Phase 4] macOS silent print integration",Issue 4.4.,phase-4;printing,2
+"[Phase 4] App print_jobs + server action to bridge",Issue 4.5.,phase-4;printing,2
+"[Phase 4] Print and reprint from plant + QR page",Issue 4.6.,phase-4;printing,3
+"[Phase 4] Secure bridge access tunnel/allowlist",Issue 4.7. Document in SETUP.,phase-4;printing;infra,2
+"[Phase 4] Verification: iPad print E2E in store",Issue 4.8.,phase-4;printing,2
+"[Phase 5] Mailchimp client + env config",Issue 5.1.,phase-5;mailchimp,2
+"[Phase 5] Mock adapter + mailchimp_events outbox",Issue 5.2. Local dev.,phase-5;mailchimp,3
+"[Phase 5] Check-in upsert contact tags consent",Issue 5.3.,phase-5;mailchimp;check-in,2
+"[Phase 5] Emit events on status and bugs changes",Issue 5.4.,phase-5;mailchimp,2
+"[Phase 5] Worker process outbox to Mailchimp API",Issue 5.5. Retry + status.,phase-5;mailchimp,2
+"[Phase 5] Configure Mailchimp journeys (Jack)",Issue 5.6. In Mailchimp UI not app.,phase-5;mailchimp,3
+"[Phase 5] Admin view failed Mailchimp events",Issue 5.7. Optional.,phase-5;mailchimp,4
+"[Phase 5] Verification: test journey fires",Issue 5.8.,phase-5;mailchimp,2
+"[Phase 6] Brand audit extract tokens from hilda.co",Issue 6.1.,phase-6;brand,2
+"[Phase 6] Apply Hilda design tokens all screens",Issue 6.2. Not default shadcn.,phase-6;brand,2
+"[Phase 6] PWA manifest icons iPad install docs",Issue 6.3.,phase-6,3
+"[Phase 6] Performance kanban + image URLs",Issue 6.4.,phase-6;dashboard,3
+"[Phase 6] Supabase Pro hh-prod + production deploy",Issue 6.5.,phase-6;infra,2
+"[Phase 6] Cutover runbook Zoho parallel to disable",Issue 6.6.,phase-6,2
+"[Phase 6] Production monitoring checklist",Issue 6.7.,phase-6;infra,3
+"[Phase 6] Verification: go-live sign-off",Issue 6.8.,phase-6,2

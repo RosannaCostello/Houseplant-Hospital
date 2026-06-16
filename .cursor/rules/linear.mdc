@@ -1,0 +1,27 @@
+---
+description: Linear workspace and issue identity for this repo only
+globs:
+alwaysApply: true
+---
+
+# Linear — Houseplant Hospital 2.0 (exclusive)
+
+This repository **only** relates to work tracked in one Linear workspace.
+
+## Canonical Linear identity
+
+| Field | Value |
+|-------|--------|
+| **Workspace** | `Houseplant-Hospital` |
+| **Issue ID prefix** | `HIL` (e.g. `HIL-1`, `HIL-42`) |
+
+## Rules (strict)
+
+1. **Only `HIL-*` issues** in the **`Houseplant-Hospital`** Linear workspace are valid for this project. Do not reference, create, or update issues from any other Linear workspace or team.
+2. If an issue ID does not start with **`HIL`**, it is **out of scope** for this repo — ignore it unless Jack explicitly maps it to a `HIL` issue.
+3. When Linear MCP is connected to a different workspace, **do not** use MCP issue data for this project. Jack will provide `HIL-*` IDs or titles, or MCP will be pointed at `Houseplant-Hospital` later.
+4. Before non-trivial work: confirm the task exists as a **`HIL`** issue (or ask Jack to create one in `Houseplant-Hospital`).
+5. Commits and PR descriptions should reference `HIL-*` when applicable (e.g. `HIL-12: scaffold Supabase schema`).
+6. **Task source:** implementation order follows [docs/linear-backlog.md](../../docs/linear-backlog.md). One `HIL` issue per session unless Jack groups them.
+
+Contributor: **jack@jackchalkley.com**. Workflow: [docs/linear-workflow.md](../../docs/linear-workflow.md).

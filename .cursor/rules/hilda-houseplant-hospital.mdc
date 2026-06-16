@@ -1,0 +1,13 @@
+---
+description: Houseplant Hospital 2.0 — scope and Linear delivery
+globs:
+alwaysApply: true
+---
+
+# Houseplant Hospital 2.0
+
+- **Product scope:** [Houseplant-Hospital-2.0-Scope.md](../../Houseplant-Hospital-2.0-Scope.md) — Hilda requirements always win.
+- **Issue tracking:** **Linear workspace `Houseplant-Hospital` only** — issues **`HIL-*` only**. No other Linear workspace or issue prefix applies to this repo. See [.cursor/rules/linear.mdc](linear.mdc) and [docs/linear-workflow.md](../../docs/linear-workflow.md).
+- Jack works as **jack@jackchalkley.com**. Linear MCP may be on another workspace until reconfigured; use Jack-provided `HIL-*` IDs when MCP cannot see `Houseplant-Hospital`.
+- Before starting feature work, confirm the **`HIL`** issue exists and align it to the correct phase milestone.
+- When finishing work, update that Linear issue; reference `HIL-*` in commits/PRs when possible.
