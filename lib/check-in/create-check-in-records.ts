@@ -104,5 +104,34 @@ export async function rollbackCheckInWithClient(
   supabase: SupabaseClient,
   visitId: string,
 ): Promise<void> {
-  await supabase.from("visits").delete().eq("id", visitId);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("You must be signed in.");
+  }
+
+  const { data: visit, error: fetchError } = await supabase
+    .from("visits")
+    .select("created_by")
+    .eq("id", visitId)
+    .maybeSingle();
+
+  if (fetchError) {
+    throw new Error(fetchError.message);
+  }
+
+  if (!visit) {
+    return;
+  }
+
+  if (visit.created_by !== user.id) {
+    throw new Error("You can only roll back visits you created.");
+  }
+
+  const { error: deleteError } = await supabase.from("visits").delete().eq("id", visitId);
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
 }

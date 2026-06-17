@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createCheckInSchema } from "@/lib/check-in/create-check-in-input";
 import {
   createCheckInRecordsWithClient,
@@ -27,7 +28,16 @@ export async function createCheckInRecords(
   return createCheckInRecordsWithClient(supabase, parsed.data);
 }
 
+const rollbackCheckInSchema = z.object({
+  visitId: z.string().uuid(),
+});
+
 export async function rollbackCheckIn(visitId: string): Promise<RollbackCheckInResult> {
+  const parsed = rollbackCheckInSchema.safeParse({ visitId });
+  if (!parsed.success) {
+    return { success: false, error: "Invalid visit id." };
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -37,8 +47,12 @@ export async function rollbackCheckIn(visitId: string): Promise<RollbackCheckInR
     return { success: false, error: "You must be signed in." };
   }
 
-  await rollbackCheckInWithClient(supabase, visitId);
-  return { success: true };
+  try {
+    await rollbackCheckInWithClient(supabase, parsed.data.visitId);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Rollback failed." };
+  }
 }
 
 export async function finalizeCheckIn(): Promise<void> {

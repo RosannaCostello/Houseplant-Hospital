@@ -68,19 +68,25 @@ export function CollectionSection({
         </p>
       </div>
 
-      {isCollected && finalPrice != null ? (
-        <dl className="space-y-2 text-sm">
-          <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-zinc-600">Final price charged</dt>
-            <dd className="text-base font-semibold tabular-nums text-zinc-900">{formatGbp(finalPrice)}</dd>
-          </div>
-          {collectedAt ? (
+      {isCollected ? (
+        finalPrice != null ? (
+          <dl className="space-y-2 text-sm">
             <div className="flex items-baseline justify-between gap-4">
-              <dt className="text-zinc-600">Collected</dt>
-              <dd className="font-medium text-zinc-900">{formatCollectedAt(collectedAt)}</dd>
+              <dt className="text-zinc-600">Final price charged</dt>
+              <dd className="text-base font-semibold tabular-nums text-zinc-900">{formatGbp(finalPrice)}</dd>
             </div>
-          ) : null}
-        </dl>
+            {collectedAt ? (
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-zinc-600">Collected</dt>
+                <dd className="font-medium text-zinc-900">{formatCollectedAt(collectedAt)}</dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : (
+          <p className="text-sm text-zinc-600">
+            Collected via status change. No final price was recorded for this plant.
+          </p>
+        )
       ) : (
         <form className="space-y-4" onSubmit={handleSubmit}>
           <label className={checkInLabelClassName}>

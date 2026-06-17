@@ -6,10 +6,7 @@ import { useMemo, useState } from "react";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
 import { Button } from "@/components/ui/button";
-import {
-  createCheckInRecordsWithClient,
-  rollbackCheckInWithClient,
-} from "@/lib/check-in/create-check-in-records";
+import { createCheckInRecords, rollbackCheckIn } from "@/app/actions/complete-check-in";
 import { clearCheckInDraft } from "@/lib/check-in/draft";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
@@ -99,12 +96,11 @@ export function PhotosStepForm() {
     setFormError(null);
     setSubmitStatus("Saving customer and plants…");
 
-    const supabase = createSupabaseBrowserClient();
     let visitId: string | null = null;
     let succeeded = false;
 
     try {
-      const records = await createCheckInRecordsWithClient(supabase, { customer, plants });
+      const records = await createCheckInRecords({ customer, plants });
 
       if (!records.success) {
         setFormError(records.error);
@@ -114,6 +110,7 @@ export function PhotosStepForm() {
       visitId = records.visitId;
       const plantIdByClientId = new Map(records.plants.map((row) => [row.clientId, row.plantId]));
 
+      const supabase = createSupabaseBrowserClient();
       for (let index = 0; index < plants.length; index += 1) {
         const plant = plants[index];
         const photo = displayPhotos.get(plant.clientId)!;
@@ -140,7 +137,7 @@ export function PhotosStepForm() {
       router.refresh();
     } catch (error) {
       if (visitId) {
-        await rollbackCheckInWithClient(supabase, visitId);
+        await rollbackCheckIn(visitId);
       }
 
       const message = error instanceof Error ? error.message : "Check-in failed";

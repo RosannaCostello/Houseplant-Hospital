@@ -80,6 +80,8 @@ Migrations live in `supabase/migrations/`. Apply in order via Supabase SQL edito
 1. `0001_init.sql` — core schema
 2. `0002_rls.sql` — RLS + roles
 3. `0003_storage.sql` — `plant-photos` bucket
+4. `0007_rls_hardening.sql` — staff-only operational access + block role escalation
+5. `0008_storage_staff_only.sql` — plant photo access staff-only
 
 Then run `supabase/seed.sql` for dev pricing rules.
 

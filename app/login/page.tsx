@@ -2,12 +2,13 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/app";
+  const redirectTo = safeRedirectPath(searchParams.get("redirectTo"));
   const configError = searchParams.get("error") === "missing_env";
 
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
