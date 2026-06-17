@@ -25,8 +25,8 @@ export async function collectPlantWithClient(
   }
 
   const price = roundMoney(finalPrice);
-  if (!Number.isFinite(price) || price < 0) {
-    return { success: false, error: "Final price must be zero or greater." };
+  if (!Number.isFinite(price) || price <= 0) {
+    return { success: false, error: "Final price must be greater than zero." };
   }
 
   const { data: plant, error: fetchError } = await supabase

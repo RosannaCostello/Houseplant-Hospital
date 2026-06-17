@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { createCheckInRecords, rollbackCheckIn } from "@/app/actions/complete-check-in";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
 import { Button } from "@/components/ui/button";
-import { createCheckInRecords, rollbackCheckIn } from "@/app/actions/complete-check-in";
-import { clearCheckInDraft } from "@/lib/check-in/draft";
+import { saveCheckInDraft, clearCheckInDraft } from "@/lib/check-in/draft";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
-import { uploadPlantPhoto } from "@/lib/photos/upload-plant-photo";
+import { removePlantPhotoFiles, uploadPlantPhoto } from "@/lib/photos/upload-plant-photo";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 function photosByPlantId(photos: CheckInPlantPhoto[] | undefined): Map<string, CheckInPlantPhoto> {
@@ -55,6 +55,16 @@ export function PhotosStepForm() {
     );
   }
 
+  function persistPhotos(next: Map<string, CheckInPlantPhoto>) {
+    if (!customer) return;
+
+    saveCheckInDraft({
+      customer,
+      plants,
+      photos: Array.from(next.values()),
+    });
+  }
+
   function updatePhoto(plantClientId: string, photo: CheckInPlantPhoto | null) {
     setFormError(null);
 
@@ -67,6 +77,7 @@ export function PhotosStepForm() {
         next.delete(plantClientId);
       }
 
+      persistPhotos(next);
       return next;
     });
   }
@@ -97,6 +108,7 @@ export function PhotosStepForm() {
     setSubmitStatus("Saving customer and plants…");
 
     let visitId: string | null = null;
+    const uploadedPaths: string[] = [];
     let succeeded = false;
 
     try {
@@ -122,12 +134,13 @@ export function PhotosStepForm() {
 
         setSubmitStatus(`Uploading photo ${index + 1} of ${plants.length}…`);
 
-        await uploadPlantPhoto(supabase, {
+        const uploaded = await uploadPlantPhoto(supabase, {
           plantId,
           mimeType: photo.mimeType,
           dataUrl: photo.dataUrl,
           thumbnailDataUrl: photo.thumbnailDataUrl,
         });
+        uploadedPaths.push(uploaded.storagePath, uploaded.thumbnailPath);
       }
 
       clearCheckInDraft();
@@ -136,6 +149,11 @@ export function PhotosStepForm() {
       router.push("/app");
       router.refresh();
     } catch (error) {
+      if (uploadedPaths.length > 0) {
+        const supabase = createSupabaseBrowserClient();
+        await removePlantPhotoFiles(supabase, uploadedPaths);
+      }
+
       if (visitId) {
         await rollbackCheckIn(visitId);
       }

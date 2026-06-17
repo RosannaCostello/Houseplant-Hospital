@@ -7,7 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const collectPlantSchema = z.object({
   plantId: z.string().uuid(),
-  finalPrice: z.coerce.number(),
+  finalPrice: z.coerce.number().positive("Final price must be greater than zero."),
 });
 
 export type CollectPlantActionResult = Awaited<ReturnType<typeof collectPlantWithClient>>;

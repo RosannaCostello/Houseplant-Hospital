@@ -1,14 +1,8 @@
-import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
-import type { CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
-import type { CheckInPlant } from "@/lib/check-in/plant-schema";
+import { checkInDraftSchema, type CheckInDraft } from "@/lib/check-in/draft-schema";
+
+export type { CheckInDraft };
 
 const STORAGE_KEY = "hh-check-in-draft";
-
-export type CheckInDraft = {
-  customer: CheckInCustomer;
-  plants?: CheckInPlant[];
-  photos?: CheckInPlantPhoto[];
-};
 
 type DraftListener = () => void;
 
@@ -27,7 +21,8 @@ function parseDraft(raw: string | null): CheckInDraft | null {
   if (!raw) return null;
 
   try {
-    return JSON.parse(raw) as CheckInDraft;
+    const parsed = checkInDraftSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }

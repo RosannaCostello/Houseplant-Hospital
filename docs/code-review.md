@@ -20,26 +20,39 @@ Internal code quality review of Houseplant Hospital 2.0. **Not** a product scope
 | Check-in bypasses server-action validation | Photos step called DB lib from browser, skipping Zod | Fix: route through `createCheckInRecords` server action |
 | Collection form when status is collected | Form showed when `status === collected` but no `final_price` | Fix: `collection-section.tsx` branches on status first |
 
-**Explicitly out of scope for this pass:** disable kanban moves when `status === collected` (deferred).
+**Explicitly out of scope:** kanban lock when `status === collected` — **not needed**; staff intentionally keep collected plants movable on the board.
+
+---
+
+## Priority fixes (HIL-51 — June 2026)
+
+| Issue | Why | Status |
+|-------|-----|--------|
+| Empty collection price coerces to £0 | `Number("")` → 0; accidental free collection | Fix: client + server validation in `collection-section.tsx`, `collect-plant.ts`, `collect-plant` action |
+| `window.alert` for kanban errors | Inconsistent, poor on iPad | Fix: inline error in `plant-card-status-menu.tsx` |
+| Check-in photos not in session draft | Refresh loses captured photos | Fix: `persistPhotos` in `photos-step-form.tsx` |
+| Rollback doesn’t delete storage files | Orphan blobs in `plant-photos` | Fix: `removePlantPhotoFiles` on check-in failure in `photos-step-form.tsx` |
+| Check-in doesn’t write `status_history` | Audit gap at lifecycle start | Fix: insert in `create-check-in-records.ts` |
+
+---
+
+## Second batch (HIL-51 — June 2026)
+
+| Issue | Why | Status |
+|-------|-----|--------|
+| Controlled `<select>` DOM recovery on error | Select showed wrong lane after failed move | Fix: local `selectValue` state in `plant-card-status-menu.tsx` |
+| Draft JSON parsed without validation | Trusts `sessionStorage` | Fix: `checkInDraftSchema` in `draft-schema.ts` |
+| Plant detail hard-crashes if pricing fails | Whole page down for one config issue | Fix: nullable pricing + fallback UI |
+| Route IDs not validated as UUID | Opaque errors vs clean 404 | Fix: `isValidRouteId` on detail routes |
+| Customer upsert overwrites PII by email | Typo email could overwrite wrong customer | Fix: lookup + name match guard in `create-check-in-records.ts` |
+| `getPricingSettings()` no auth guard | Service-role loader without caller check | Fix: `requireAdmin` in `get-pricing-settings.ts` |
+| Kanban lock when `status === collected` | Flagged in review | **Not needed** — collected plants stay movable by design |
 
 ---
 
 ## Deferred — important (fix soon)
 
-| Issue | Why | Where |
-|-------|-----|-------|
-| Empty collection price coerces to £0 | `Number("")` → 0; accidental free collection | `collection-section.tsx`, `collect-plant.ts` |
-| `window.alert` for kanban errors | Inconsistent, poor on iPad | `plant-card-status-menu.tsx` |
-| Controlled `<select>` DOM recovery on error | Fights React state; wrong lane shown | `plant-card-status-menu.tsx` |
-| Check-in photos not in session draft | Refresh loses captured photos | `photos-step-form.tsx`, `draft.ts` |
-| Rollback doesn’t delete storage files | Orphan blobs in `plant-photos` | `upload-plant-photo.ts` `removePlantPhotoFiles` |
-| Draft JSON parsed without validation | Trusts `sessionStorage` | `lib/check-in/draft.ts` |
-| Plant detail hard-crashes if pricing fails | Whole page down for one config issue | `app/app/plants/[id]/page.tsx` |
-| Check-in doesn’t write `status_history` | Audit gap at lifecycle start | `create-check-in-records.ts` |
-| Collected plants movable on kanban | Contradicts detail-page collected state | `update-plant-status.ts`, `plant-card-status-menu.tsx` |
-| `getPricingSettings()` no auth guard | Service-role loader safe only if callers check admin | `get-pricing-settings.ts` |
-| Route IDs not validated as UUID | Opaque errors vs clean 404 | `app/**/[id]/page.tsx` |
-| Customer upsert overwrites PII by email | Typo’d email could overwrite wrong customer | `create-check-in-records.ts` |
+_All items from the previous important list are done or explicitly declined (kanban lock)._
 
 ---
 
@@ -86,7 +99,7 @@ Internal code quality review of Houseplant Hospital 2.0. **Not** a product scope
 | Plant workflow | `collection-section.tsx`, `collect-plant.ts`, `update-plant-status.ts` |
 | Data layer duplication | `get-plant-detail.ts`, `get-dashboard-plants.ts`, `get-visit-detail.ts`, `get-public-plant-case.ts` |
 | Pricing | `get-plant-pricing.ts`, `get-base-price-rules.ts`, `plants/[id]/page.tsx` |
-| Dead / half-finished | `plant-case-url.ts`, `removePlantPhotoFiles` |
+| Dead / half-finished | `plant-case-url.ts` |
 
 ---
 

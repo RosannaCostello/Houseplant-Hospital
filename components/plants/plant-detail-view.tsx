@@ -13,7 +13,7 @@ import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 
 type PlantDetailViewProps = {
   plant: PlantDetail;
-  pricing: PlantPriceBreakdown;
+  pricing: PlantPriceBreakdown | null;
   bugsSurchargePercent: number | null;
 };
 
@@ -145,7 +145,7 @@ export function PlantDetailView({ plant, pricing, bugsSurchargePercent }: PlantD
       <CollectionSection
         plantId={plant.id}
         isCollected={isCollected}
-        suggestedFinalPrice={pricing.totalAmount}
+        suggestedFinalPrice={pricing?.totalAmount ?? null}
         finalPrice={plant.finalPrice}
         collectedAt={plant.collectedAt}
       />

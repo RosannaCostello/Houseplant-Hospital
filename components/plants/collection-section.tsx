@@ -10,10 +10,14 @@ import { formatGbp } from "@/lib/pricing/format-gbp";
 type CollectionSectionProps = {
   plantId: string;
   isCollected: boolean;
-  suggestedFinalPrice: number;
+  suggestedFinalPrice: number | null;
   finalPrice: number | null;
   collectedAt: string | null;
 };
+
+function formatSuggestedPrice(value: number | null): string {
+  return value != null ? value.toFixed(2) : "";
+}
 
 function formatCollectedAt(value: string): string {
   return new Date(value).toLocaleString("en-GB", {
@@ -30,14 +34,14 @@ export function CollectionSection({
   collectedAt,
 }: CollectionSectionProps) {
   const router = useRouter();
-  const [priceInput, setPriceInput] = useState(suggestedFinalPrice.toFixed(2));
+  const [priceInput, setPriceInput] = useState(formatSuggestedPrice(suggestedFinalPrice));
   const [priceTouched, setPriceTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!priceTouched) {
-      setPriceInput(suggestedFinalPrice.toFixed(2));
+      setPriceInput(formatSuggestedPrice(suggestedFinalPrice));
     }
   }, [suggestedFinalPrice, priceTouched]);
 
@@ -45,8 +49,14 @@ export function CollectionSection({
     event.preventDefault();
     setError(null);
 
+    const price = Number(priceInput);
+    if (!Number.isFinite(price) || price <= 0) {
+      setError("Enter a final price greater than zero.");
+      return;
+    }
+
     startTransition(async () => {
-      const result = await collectPlantAction(plantId, Number(priceInput));
+      const result = await collectPlantAction(plantId, price);
 
       if (!result.success) {
         setError(result.error);
@@ -94,7 +104,7 @@ export function CollectionSection({
             <input
               className={checkInInputClassName}
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               inputMode="decimal"
               value={priceInput}
@@ -107,7 +117,11 @@ export function CollectionSection({
             />
           </label>
           <p className="text-xs text-zinc-500">
-            Suggested from current pricing estimate: {formatGbp(suggestedFinalPrice)}
+            {suggestedFinalPrice != null ? (
+              <>Suggested from current pricing estimate: {formatGbp(suggestedFinalPrice)}</>
+            ) : (
+              "No pricing estimate available. Enter the final price manually."
+            )}
           </p>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <Button type="submit" disabled={isPending}>
