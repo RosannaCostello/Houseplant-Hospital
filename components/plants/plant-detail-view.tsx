@@ -1,15 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CollectionSection } from "@/components/plants/collection-section";
 import { BugsFoundToggle } from "@/components/plants/bugs-found-toggle";
 import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
+import { PricingSummarySection } from "@/components/plants/pricing-summary-section";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import type { PlantDetail } from "@/lib/plants/get-plant-detail";
 import { plantStatusLabel } from "@/lib/plant-status";
+import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 
 type PlantDetailViewProps = {
   plant: PlantDetail;
+  pricing: PlantPriceBreakdown;
   bugsSurchargePercent: number | null;
 };
 
@@ -19,8 +23,9 @@ function plantTitle(plant: PlantDetail): string {
   return "Unnamed plant";
 }
 
-export function PlantDetailView({ plant, bugsSurchargePercent }: PlantDetailViewProps) {
+export function PlantDetailView({ plant, pricing, bugsSurchargePercent }: PlantDetailViewProps) {
   const latestPhoto = plant.photos[0] ?? null;
+  const isCollected = plant.status === "collected";
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -108,6 +113,7 @@ export function PlantDetailView({ plant, bugsSurchargePercent }: PlantDetailView
           plantId={plant.id}
           bugsFound={plant.bugsFound}
           surchargePercent={bugsSurchargePercent}
+          disabled={isCollected}
         />
         <div className="sm:col-span-2">
           <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">Contact</dt>
@@ -133,6 +139,16 @@ export function PlantDetailView({ plant, bugsSurchargePercent }: PlantDetailView
           </div>
         ) : null}
       </dl>
+
+      <PricingSummarySection pricing={pricing} isCollected={isCollected} finalPrice={plant.finalPrice} />
+
+      <CollectionSection
+        plantId={plant.id}
+        isCollected={isCollected}
+        suggestedFinalPrice={pricing.totalAmount}
+        finalPrice={plant.finalPrice}
+        collectedAt={plant.collectedAt}
+      />
 
       <TreatmentNotesSection plantId={plant.id} notes={plant.treatmentNotes} />
 

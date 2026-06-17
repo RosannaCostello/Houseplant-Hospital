@@ -30,6 +30,8 @@ export type PlantDetail = {
   size: string;
   status: PlantStatus;
   bugsFound: boolean;
+  finalPrice: number | null;
+  collectedAt: string | null;
   checkedInAt: string;
   visitId: string;
   visitNotes: string | null;
@@ -73,6 +75,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
       size,
       status,
       bugs_found,
+      final_price,
+      collected_at,
       created_at,
       visits!inner (
         id,
@@ -124,6 +128,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     size?: string;
     status?: string;
     bugs_found?: boolean;
+    final_price?: number | null;
+    collected_at?: string | null;
     visits?:
       | {
           id: string;
@@ -248,6 +254,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     size: row.size,
     status: row.status,
     bugsFound: row.bugs_found,
+    finalPrice: row.final_price != null ? Number(row.final_price) : null,
+    collectedAt: row.collected_at ?? null,
     checkedInAt: visit.checkin_date,
     visitId: visit.id,
     visitNotes: visit.notes,

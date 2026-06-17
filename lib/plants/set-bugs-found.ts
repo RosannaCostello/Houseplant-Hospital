@@ -38,15 +38,10 @@ export async function setBugsFoundWithClient(
     return { success: true, bugsFound };
   }
 
-  let surchargePercent = 10;
+  let surchargePercent = 0;
 
   if (bugsFound) {
     const rule = await getBugsSurchargeRule();
-
-    if (!rule) {
-      return { success: false, error: "Bugs surcharge pricing rule is not configured." };
-    }
-
     surchargePercent = rule.percent;
   }
 

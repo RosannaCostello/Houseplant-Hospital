@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PricingSettingsForm } from "@/components/settings/pricing-settings-form";
+import { getPricingSettings } from "@/lib/pricing/get-pricing-settings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function SettingsPage() {
@@ -18,15 +20,20 @@ export default async function SettingsPage() {
 
   if (profile?.role !== "admin") redirect("/app");
 
+  const settings = await getPricingSettings();
+
   return (
-    <div className="mx-auto max-w-5xl space-y-4 px-6 py-8">
+    <div className="mx-auto max-w-5xl space-y-8 px-6 py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Settings</h1>
         <Link href="/app" className="text-sm text-zinc-600 hover:text-zinc-900">
           Back to dashboard
         </Link>
       </div>
-      <p className="text-sm text-zinc-600">Admin-only. Pricing and user management coming in Phase 3.</p>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <PricingSettingsForm settings={settings} />
+      </section>
     </div>
   );
 }

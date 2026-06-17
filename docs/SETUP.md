@@ -85,6 +85,10 @@ Then run `supabase/seed.sql` for dev pricing rules.
 
 To update pricing on an existing `hh-dev` database, run `supabase/migrations/0004_pricing_hil9.sql` in the SQL editor.
 
+If **Bugs found** reports a missing surcharge rule, also run `supabase/migrations/0005_ensure_bugs_surcharge.sql`.
+
+For **collection workflow** (final price + collected timestamp), run `supabase/migrations/0006_plant_collection_hil49.sql`.
+
 ## Deploy
 
 See [DEPLOY.md](./DEPLOY.md) for Cloudflare Pages setup. **Confirm the correct GitHub repo with the agent before connecting deploy.**

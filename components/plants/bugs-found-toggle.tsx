@@ -8,9 +8,15 @@ type BugsFoundToggleProps = {
   plantId: string;
   bugsFound: boolean;
   surchargePercent: number | null;
+  disabled?: boolean;
 };
 
-export function BugsFoundToggle({ plantId, bugsFound, surchargePercent }: BugsFoundToggleProps) {
+export function BugsFoundToggle({
+  plantId,
+  bugsFound,
+  surchargePercent,
+  disabled = false,
+}: BugsFoundToggleProps) {
   const router = useRouter();
   const [checked, setChecked] = useState(bugsFound);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +50,7 @@ export function BugsFoundToggle({ plantId, bugsFound, surchargePercent }: BugsFo
           type="checkbox"
           className="mt-1 h-5 w-5 rounded border-zinc-300"
           checked={checked}
-          disabled={isPending}
+          disabled={isPending || disabled}
           onChange={handleChange}
         />
         <span className="text-sm leading-6 text-zinc-800">
@@ -56,6 +62,9 @@ export function BugsFoundToggle({ plantId, bugsFound, surchargePercent }: BugsFo
             <span className="mt-1 block text-xs font-medium uppercase tracking-wide text-orange-600">
               Flagged on dashboard and labels
             </span>
+          ) : null}
+          {disabled ? (
+            <span className="mt-1 block text-xs text-zinc-500">Cannot change after collection.</span>
           ) : null}
         </span>
       </label>

@@ -20,6 +20,7 @@ Existing tools:
 ### Platform decisions
 
 Zoho: **remove**
+Shopify: **retain** — retail catalogue and **source of truth for size-band treatment base prices** (see Pricing Logic)
 Mailchimp: **retain**
 Acuity: **retain for now**
 Native mobile app: **no**
@@ -101,7 +102,7 @@ Before or as Phase 1 starts, create Linear issues for account and environment se
 - Create Supabase `hh-dev` project
 - Create Cloudflare account and Pages project
 - Document env vars and first admin user
-- Export Zoho pricing table for seed data
+- Export Zoho pricing table for **interim seed data** (`pricing_rules` in Supabase until Shopify sync is built)
 - Gather brand assets (logo, label artwork)
 - List staff emails for Supabase Auth
 
@@ -299,6 +300,39 @@ Additional pricing modifier:
 Future pricing rules should be configurable.
 
 Avoid hardcoding pricing into component logic.
+
+## MVP (Phase 3)
+
+- Base prices live in Supabase `pricing_rules` (`rule_type = base_price`, one row per size band).
+- Seeded from Hilda’s pricing table (exported from Zoho during cutover); editable in admin settings (HIL-47).
+- Per-plant modifiers (e.g. bugs) are stored in `pricing_adjustments` and reflected on `plants.pricing_modifier`.
+- All UI and collection totals use `lib/pricing/` (`getBasePriceRules`, `calculatePlantPrice`, `getPlantPricing`) — **never hardcoded amounts in components**.
+
+## Future — Shopify as base-price source
+
+Hilda’s Houseplant Hospital treatment sizes (**XS–XL**) correspond to **products (or variants) in Shopify**. Shopify is the long-term **source of truth for base treatment prices**; this app remains the source of truth for **operational workflow** (check-in, treatment, bugs flag, collection).
+
+| Concern | Owner |
+|--------|--------|
+| Base price per size band (XS–XL) | Shopify product/variant price |
+| Per-plant surcharges (bugs, etc.) | This app (`pricing_adjustments`) |
+| Price breakdown shown to staff | This app (`lib/pricing/`) |
+| Final price at collection | This app (may later create or reference a Shopify order/line item — TBD) |
+
+**Integration approach (not in MVP):**
+
+1. Map each size band to a Shopify product or variant ID (stored in `pricing_rules` or a dedicated mapping table).
+2. **Sync** Shopify variant prices into `pricing_rules.amount` on a schedule or via webhook, **or** fetch live from Shopify inside `getBasePriceRules()` with a DB cache/fallback.
+3. Staff continue to use the same pricing engine and plant-detail summary; only the **data source** for base amounts changes.
+4. Admin settings (HIL-47) may shift from manual DB edits to “sync from Shopify” + read-only display of current Shopify prices.
+
+**What does not move to Shopify:**
+
+- Bugs-found (+10%) and other per-plant treatment adjustments.
+- Size band recorded at check-in on each `Plant`.
+- Audit trail of adjustments and collection price.
+
+This keeps the current `pricing_rules` + `lib/pricing/` design valid: Supabase acts as **cache and fallback** until Shopify sync ships; the calculation layer is unchanged.
 
 ---
 
