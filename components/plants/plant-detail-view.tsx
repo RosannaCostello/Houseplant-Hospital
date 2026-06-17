@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
 import { formatPlantAge } from "@/lib/format-plant-age";
@@ -127,6 +128,8 @@ export function PlantDetailView({ plant }: PlantDetailViewProps) {
       </dl>
 
       <TreatmentNotesSection plantId={plant.id} notes={plant.treatmentNotes} />
+
+      <CareTipsSection plantId={plant.id} tips={plant.careTips} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link

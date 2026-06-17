@@ -17,6 +17,12 @@ export type PlantDetailTreatmentNote = {
   authorName: string | null;
 };
 
+export type PlantDetailCareTip = {
+  id: string;
+  content: string;
+  createdAt: string;
+};
+
 export type PlantDetail = {
   id: string;
   name: string | null;
@@ -35,6 +41,7 @@ export type PlantDetail = {
   };
   photos: PlantDetailPhoto[];
   treatmentNotes: PlantDetailTreatmentNote[];
+  careTips: PlantDetailCareTip[];
 };
 
 type PlantPhotoRow = {
@@ -91,6 +98,11 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
         profiles (
           name
         )
+      ),
+      care_tips (
+        id,
+        content,
+        created_at
       )
     `,
     )
@@ -158,6 +170,13 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
           profiles: { name: string | null } | Array<{ name: string | null }> | null;
         }>
       | null;
+    care_tips?:
+      | Array<{
+          id: string;
+          content: string;
+          created_at: string;
+        }>
+      | null;
   };
 
   const visit = unwrapRelation(row.visits);
@@ -214,6 +233,14 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
       };
     });
 
+  const careTips: PlantDetailCareTip[] = [...(row.care_tips ?? [])]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((tip) => ({
+      id: tip.id,
+      content: tip.content,
+      createdAt: tip.created_at,
+    }));
+
   return {
     id: row.id,
     name: row.name ?? null,
@@ -232,5 +259,6 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     },
     photos,
     treatmentNotes,
+    careTips,
   };
 }
