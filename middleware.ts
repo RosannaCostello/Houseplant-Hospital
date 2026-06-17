@@ -9,6 +9,7 @@ export async function middleware(request: NextRequest) {
 
   if (
     PUBLIC_PATHS.has(pathname) ||
+    pathname.startsWith("/hh/") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {

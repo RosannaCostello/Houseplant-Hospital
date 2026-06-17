@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import type { PlantDetail } from "@/lib/plants/get-plant-detail";
+import { getPlantCaseUrl } from "@/lib/plants/plant-case-url";
 import { plantStatusLabel } from "@/lib/plant-status";
 
 type PlantDetailViewProps = {
@@ -124,13 +125,21 @@ export function PlantDetailView({ plant }: PlantDetailViewProps) {
         ) : null}
       </dl>
 
-      <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link
           href={`/app/visits/${plant.visitId}`}
           className="inline-flex rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
         >
           View visit (all plants on this drop-off)
         </Link>
+        <a
+          href={getPlantCaseUrl(plant.id)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+        >
+          Open QR case page
+        </a>
       </div>
     </div>
   );

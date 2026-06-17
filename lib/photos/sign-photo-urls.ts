@@ -1,13 +1,17 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const PLANT_PHOTOS_BUCKET = "plant-photos";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
-export async function signPhotoPaths(paths: string[]): Promise<Map<string, string>> {
+export async function signPhotoPaths(
+  paths: string[],
+  supabase?: SupabaseClient,
+): Promise<Map<string, string>> {
   if (paths.length === 0) return new Map();
 
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.storage
+  const client = supabase ?? (await createSupabaseServerClient());
+  const { data, error } = await client.storage
     .from(PLANT_PHOTOS_BUCKET)
     .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
 
