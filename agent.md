@@ -122,11 +122,14 @@ Production env vars must still be set in Cloudflare dashboard.
 
 **In progress / blocked:**
 - **HIL-7** — Cloudflare account (created)
-- **HIL-20** — Cloudflare deploy + preview URL (blocked on build command fix above)
+- **HIL-20** — Cloudflare deploy + preview URL — **Done** (2026-06-17). Live: https://houseplanthospital.hildaedinburgh.workers.dev — admin login verified.
 
 **Optional / open:**
-- **HIL-9** — Real pricing export (seed has placeholders)
-- **HIL-11** — Staff emails list
+- **XL base price** — confirm with Hilda (XS–L and bugs +10% set in HIL-9)
+
+**Done:**
+- **HIL-9** — Pricing: XS £12, S £18, M £25, L £35; bugs +10% (e.g. XS with bugs £13.20). Migration `0004_pricing_hil9.sql`.
+- **HIL-11** — Staff emails: Jack (`jack@jackchalkley.com`), Rosanna (`rosanna@hilda.co`) — both admin; Rosanna account created in Supabase.
 
 **Not started:** Phase 2+ (kanban, check-in, photos, etc.) — see `docs/linear-backlog.md`
 
@@ -160,8 +163,6 @@ Production env vars must still be set in Cloudflare dashboard.
 
 ## Immediate next step
 
-1. Commit + push the pending `package.json` / `docs/DEPLOY.md` fix
-2. Retry Cloudflare deploy
-3. Set `APP_BASE_URL` to the live workers.dev URL
-4. Test `/login` on preview
-5. Mark HIL-20 Done in Linear
+1. Cloudflare dashboard → **houseplanthospital** → **Settings → Variables** → set `APP_BASE_URL` = `https://houseplanthospital.hildaedinburgh.workers.dev`
+2. Test `/login` on preview with admin user
+3. Mark HIL-20 Done in Linear

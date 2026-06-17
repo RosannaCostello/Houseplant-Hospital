@@ -49,6 +49,30 @@ values ('<auth_user_uuid>', 'admin', 'Jack', 'jack@jackchalkley.com');
 
 Repeat for staff users with role `staff`.
 
+## Staff roster (Phase 1)
+
+| Name | Email | Role |
+|------|-------|------|
+| Jack | jack@jackchalkley.com | admin |
+| Rosanna | rosanna@hilda.co | admin |
+
+To add Rosanna (or any admin):
+
+1. Supabase → **Authentication** → **Users** → **Add user** → email `rosanna@hilda.co`, set a password (or send invite).
+2. Copy the new user’s **UUID** from the users table.
+3. SQL editor:
+
+```sql
+insert into public.profiles (user_id, role, name, email)
+values ('<auth_user_uuid>', 'admin', 'Rosanna', 'rosanna@hilda.co')
+on conflict (user_id) do update
+  set role = excluded.role,
+      name = excluded.name,
+      email = excluded.email;
+```
+
+4. Rosanna signs in at `/login` (local or https://houseplanthospital.hildaedinburgh.workers.dev/login).
+
 ## Applying migrations
 
 Migrations live in `supabase/migrations/`. Apply in order via Supabase SQL editor:
@@ -57,7 +81,9 @@ Migrations live in `supabase/migrations/`. Apply in order via Supabase SQL edito
 2. `0002_rls.sql` — RLS + roles
 3. `0003_storage.sql` — `plant-photos` bucket
 
-Then run `supabase/seed.sql` for dev pricing rules (update amounts after HIL-9).
+Then run `supabase/seed.sql` for dev pricing rules.
+
+To update pricing on an existing `hh-dev` database, run `supabase/migrations/0004_pricing_hil9.sql` in the SQL editor.
 
 ## Deploy
 
