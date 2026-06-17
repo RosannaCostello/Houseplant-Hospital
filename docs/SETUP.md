@@ -102,3 +102,37 @@ See [linear-workflow.md](./linear-workflow.md) and `.cursor/rules/linear.mdc`.
 - [ ] Admin user + `profiles` row created
 - [ ] `npm run dev` — login works, `/app` loads, staff blocked from `/settings`
 - [ ] Cloudflare preview deploy (when repo remote is confirmed)
+
+## Phase 2 verification checklist (HIL-39)
+
+**Preview URL:** https://houseplanthospital.hildaedinburgh.workers.dev  
+**Exit:** One visit with **3 plants**; kanban, photos, detail pages, search, and QR case page all work on **iPad + Mac**.
+
+Hard-refresh or use a private window after each deploy if behaviour looks stale.
+
+### A — iPad: 3-plant check-in
+
+- [ ] Log in at `/login`
+- [ ] **Check-in** → customer step: name, email, phone, consent → continue
+- [ ] Plants step: add **3 plants** (mixed sizes; optional name/species/notes on at least one)
+- [ ] Photos step: capture/upload a photo for **each** plant (camera opens on iPad)
+- [ ] Complete check-in — no hang; lands on dashboard or success path
+- [ ] All **3 cards** appear in **Check-in** lane with thumbnails
+
+### B — MacBook: dashboard and navigation
+
+- [ ] Log in; kanban shows the 3 new plants (hard refresh if needed)
+- [ ] Card thumbnails load (not “No photo”)
+- [ ] Click a card → `/app/plants/[id]` loads with photo and customer details
+- [ ] **View visit** → `/app/visits/[id]` shows all 3 plants on the drop-off
+- [ ] **Customers** → search finds the customer by surname or email
+- [ ] Customer history → visits and plant links work
+- [ ] **Open QR case page** → `/hh/case/[plantId]` opens on live host (not localhost)
+- [ ] QR case page loads **without** login (test in private window)
+
+### C — Regression
+
+- [ ] Second check-in for same customer (email) upserts customer without error
+- [ ] Log out and log back in; dashboard still loads plants
+
+When all boxes are ticked, mark **HIL-39** Done in Linear — Phase 2 is complete.
