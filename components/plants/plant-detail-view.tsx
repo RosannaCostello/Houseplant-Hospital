@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BugsFoundToggle } from "@/components/plants/bugs-found-toggle";
 import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
@@ -9,6 +10,7 @@ import { plantStatusLabel } from "@/lib/plant-status";
 
 type PlantDetailViewProps = {
   plant: PlantDetail;
+  bugsSurchargePercent: number | null;
 };
 
 function plantTitle(plant: PlantDetail): string {
@@ -17,7 +19,7 @@ function plantTitle(plant: PlantDetail): string {
   return "Unnamed plant";
 }
 
-export function PlantDetailView({ plant }: PlantDetailViewProps) {
+export function PlantDetailView({ plant, bugsSurchargePercent }: PlantDetailViewProps) {
   const latestPhoto = plant.photos[0] ?? null;
 
   return (
@@ -102,6 +104,11 @@ export function PlantDetailView({ plant }: PlantDetailViewProps) {
             {plant.customer.firstName} {plant.customer.lastName}
           </dd>
         </div>
+        <BugsFoundToggle
+          plantId={plant.id}
+          bugsFound={plant.bugsFound}
+          surchargePercent={bugsSurchargePercent}
+        />
         <div className="sm:col-span-2">
           <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">Contact</dt>
           <dd className="mt-1 text-sm text-zinc-900">
