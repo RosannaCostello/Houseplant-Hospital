@@ -15,8 +15,9 @@ function plantTitle(plant: PlantDetail): string {
   return "Unnamed plant";
 }
 
-export function PlantDetailView({ plant }: PlantDetailViewProps) {
+export async function PlantDetailView({ plant }: PlantDetailViewProps) {
   const latestPhoto = plant.photos[0] ?? null;
+  const caseUrl = await getPlantCaseUrl(plant.id);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -133,7 +134,7 @@ export function PlantDetailView({ plant }: PlantDetailViewProps) {
           View visit (all plants on this drop-off)
         </Link>
         <a
-          href={getPlantCaseUrl(plant.id)}
+          href={caseUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
