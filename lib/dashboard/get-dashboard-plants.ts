@@ -1,9 +1,7 @@
+import { signPhotoPaths } from "@/lib/photos/sign-photo-urls";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLANT_STATUSES, type PlantStatus } from "@/lib/plant-status";
 import type { DashboardPlant } from "@/lib/dashboard/types";
-
-const PLANT_PHOTOS_BUCKET = "plant-photos";
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 type PlantPhotoRow = {
   storage_path: string;
@@ -93,31 +91,6 @@ function latestPhotoPath(photos: PlantPhotoRow[] | null | undefined): string | n
   return latest.thumbnail_path ?? latest.storage_path;
 }
 
-async function signPhotoPaths(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  paths: string[],
-): Promise<Map<string, string>> {
-  if (paths.length === 0) return new Map();
-
-  const { data, error } = await supabase.storage
-    .from(PLANT_PHOTOS_BUCKET)
-    .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
-
-  if (error) {
-    throw new Error(`Failed to sign plant photo URLs: ${error.message}`);
-  }
-
-  const signed = new Map<string, string>();
-
-  for (const item of data ?? []) {
-    if (item.path && item.signedUrl) {
-      signed.set(item.path, item.signedUrl);
-    }
-  }
-
-  return signed;
-}
-
 export async function getDashboardPlants(): Promise<DashboardPlant[]> {
   const supabase = await createSupabaseServerClient();
 
@@ -162,7 +135,7 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     ),
   ];
 
-  const signedUrls = await signPhotoPaths(supabase, photoPaths);
+  const signedUrls = await signPhotoPaths(photoPaths);
 
   const plants: DashboardPlant[] = [];
 
