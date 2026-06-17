@@ -65,20 +65,20 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
-| 2.1 | | Dashboard kanban layout (6 lanes) | `phase-2`, `dashboard` | 1.13 |
-| 2.2 | | Plant card component (thumbnail, surname, name, size, bugs, age) | `phase-2`, `dashboard` | 2.1 |
-| 2.3 | | Dashboard query: plants with customer + latest photo | `phase-2`, `dashboard` | 2.2, 1.4 |
-| 2.4 | | Check-in flow — customer step (name, email, phone, consent) | `phase-2`, `check-in` | 1.13 |
-| 2.5 | | Check-in flow — staff step (multi-plant: size, name, notes) | `phase-2`, `check-in` | 2.4 |
-| 2.6 | | Server action: create Visit + N Plants (single transaction) | `phase-2`, `check-in` | 2.5, 1.2 |
-| 2.7 | | Photo capture UI (`capture="environment"`) + client compression / EXIF strip | `phase-2`, `check-in` | 2.5 |
-| 2.8 | | Upload photo + thumbnail to Supabase Storage | `phase-2`, `check-in` | 2.7, 1.4 |
-| 2.9 | | Wire mandatory photo into check-in completion | `phase-2`, `check-in` | 2.6, 2.8 |
-| 2.10 | | Plant detail page | `phase-2` | 2.6 |
-| 2.11 | | Visit / case detail page (multi-plant) | `phase-2` | 2.6 |
-| 2.12 | | Customer search | `phase-2` | 1.2 |
-| 2.13 | | QR route `/hh/case/[plantId]` → plant detail | `phase-2` | 2.10 |
-| 2.14 | | **Phase 2 verification:** 3-plant check-in E2E on iPad + Mac | `phase-2` | 2.3, 2.9, 2.13 |
+| 2.1 | HIL-26 | Dashboard kanban layout (6 lanes) | `phase-2`, `dashboard` | HIL-14 |
+| 2.2 | HIL-27 | Plant card component (thumbnail, surname, name, size, bugs, age) | `phase-2`, `dashboard` | HIL-26 |
+| 2.3 | HIL-28 | Dashboard query: plants with customer + latest photo | `phase-2`, `dashboard` | HIL-27, HIL-17 |
+| 2.4 | HIL-29 | Check-in flow — customer step (name, email, phone, consent) | `phase-2`, `check-in` | HIL-14 |
+| 2.5 | HIL-30 | Check-in flow — staff step (multi-plant: size, name, notes) | `phase-2`, `check-in` | HIL-29 |
+| 2.6 | HIL-31 | Server action: create Visit + N Plants (single transaction) | `phase-2`, `check-in` | HIL-30, HIL-18 |
+| 2.7 | HIL-32 | Photo capture UI (`capture="environment"`) + client compression / EXIF strip | `phase-2`, `check-in` | HIL-30 |
+| 2.8 | HIL-33 | Upload photo + thumbnail to Supabase Storage | `phase-2`, `check-in` | HIL-32, HIL-17 |
+| 2.9 | HIL-34 | Wire mandatory photo into check-in completion | `phase-2`, `check-in` | HIL-31, HIL-33 |
+| 2.10 | HIL-35 | Plant detail page | `phase-2` | HIL-31 |
+| 2.11 | HIL-36 | Visit / case detail page (multi-plant) | `phase-2` | HIL-31 |
+| 2.12 | HIL-37 | Customer search | `phase-2` | HIL-18 |
+| 2.13 | HIL-38 | QR route `/hh/case/[plantId]` → plant detail | `phase-2` | HIL-35 |
+| 2.14 | HIL-39 | **Phase 2 verification:** 3-plant check-in E2E on iPad + Mac | `phase-2` | HIL-28, HIL-34, HIL-38 |
 
 ---
 

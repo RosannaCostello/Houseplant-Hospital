@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[100rem] items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-4">
             <Link href="/app" className="text-sm font-semibold text-zinc-900">
               Houseplant Hospital
@@ -18,6 +18,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <nav className="flex items-center gap-3 text-sm text-zinc-600">
               <Link href="/app" className="hover:text-zinc-900">
                 Dashboard
+              </Link>
+              <Link href="/app/check-in" className="hover:text-zinc-900">
+                Check-in
               </Link>
               <Link href="/settings" className="hover:text-zinc-900">
                 Settings
@@ -34,7 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 py-6 sm:px-6">{children}</main>
     </div>
   );
 }

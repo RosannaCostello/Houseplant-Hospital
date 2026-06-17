@@ -1,9 +1,8 @@
-export default function AppHome() {
-  return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Dashboard</h1>
-      <p className="text-sm text-zinc-600">Phase 1 scaffold — dashboard coming next.</p>
-    </div>
-  );
-}
+import { KanbanBoard } from "@/components/dashboard/kanban-board";
+import { getDashboardPlants } from "@/lib/dashboard/get-dashboard-plants";
 
+export default async function AppHome() {
+  const plants = await getDashboardPlants();
+
+  return <KanbanBoard plants={plants} />;
+}
