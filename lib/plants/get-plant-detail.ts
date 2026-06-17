@@ -10,6 +10,13 @@ export type PlantDetailPhoto = {
   createdAt: string;
 };
 
+export type PlantDetailTreatmentNote = {
+  id: string;
+  content: string;
+  createdAt: string;
+  authorName: string | null;
+};
+
 export type PlantDetail = {
   id: string;
   name: string | null;
@@ -27,6 +34,7 @@ export type PlantDetail = {
     phone: string | null;
   };
   photos: PlantDetailPhoto[];
+  treatmentNotes: PlantDetailTreatmentNote[];
 };
 
 type PlantPhotoRow = {
@@ -75,6 +83,14 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
         storage_path,
         thumbnail_path,
         created_at
+      ),
+      treatment_notes (
+        id,
+        content,
+        created_at,
+        profiles (
+          name
+        )
       )
     `,
     )
@@ -134,6 +150,14 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
               }>;
         }>;
     plant_photos?: PlantPhotoRow[] | null;
+    treatment_notes?:
+      | Array<{
+          id: string;
+          content: string;
+          created_at: string;
+          profiles: { name: string | null } | Array<{ name: string | null }> | null;
+        }>
+      | null;
   };
 
   const visit = unwrapRelation(row.visits);
@@ -177,6 +201,19 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     })
     .filter((photo): photo is PlantDetailPhoto => photo !== null);
 
+  const treatmentNotes: PlantDetailTreatmentNote[] = [...(row.treatment_notes ?? [])]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .map((note) => {
+      const author = unwrapRelation(note.profiles);
+
+      return {
+        id: note.id,
+        content: note.content,
+        createdAt: note.created_at,
+        authorName: author?.name ?? null,
+      };
+    });
+
   return {
     id: row.id,
     name: row.name ?? null,
@@ -194,5 +231,6 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
       phone: customer.phone,
     },
     photos,
+    treatmentNotes,
   };
 }
