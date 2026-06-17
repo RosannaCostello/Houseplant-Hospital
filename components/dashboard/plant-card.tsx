@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import type { DashboardPlant } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
@@ -68,36 +69,44 @@ export function PlantCard({ plant, className }: PlantCardProps) {
   const subtitle = plantSubtitle(plant);
 
   return (
-    <Link
-      href={`/app/plants/${plant.id}`}
+    <article
       className={cn(
-        "block overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50",
+        "overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm",
         className,
       )}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-zinc-100 bg-zinc-50">
-        <PlantThumbnail thumbnailUrl={plant.thumbnailUrl} />
-        {plant.bugsFound ? (
-          <span className="absolute right-2 top-2 rounded-md bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-            Bugs
-          </span>
-        ) : null}
-      </div>
-
-      <div className="space-y-1.5 p-2.5">
-        <p className="truncate text-sm font-semibold text-zinc-900">{plant.customerSurname}</p>
-        <div>
-          <p className="truncate text-sm text-zinc-800">{plantDisplayName(plant)}</p>
-          {subtitle ? <p className="truncate text-xs text-zinc-500">{subtitle}</p> : null}
+      <Link
+        href={`/app/plants/${plant.id}`}
+        className="block transition-colors hover:bg-zinc-50"
+      >
+        <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-zinc-100 bg-zinc-50">
+          <PlantThumbnail thumbnailUrl={plant.thumbnailUrl} />
+          {plant.bugsFound ? (
+            <span className="absolute right-2 top-2 rounded-md bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              Bugs
+            </span>
+          ) : null}
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-0.5">
-          <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-            {plant.size}
-          </span>
-          <span className="text-[11px] text-zinc-500">{formatPlantAge(plant.checkedInAt)}</span>
+        <div className="space-y-1.5 p-2.5">
+          <p className="truncate text-sm font-semibold text-zinc-900">{plant.customerSurname}</p>
+          <div>
+            <p className="truncate text-sm text-zinc-800">{plantDisplayName(plant)}</p>
+            {subtitle ? <p className="truncate text-xs text-zinc-500">{subtitle}</p> : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+              {plant.size}
+            </span>
+            <span className="text-[11px] text-zinc-500">{formatPlantAge(plant.checkedInAt)}</span>
+          </div>
         </div>
+      </Link>
+
+      <div className="border-t border-zinc-100 px-2.5 pb-2.5 pt-1">
+        <PlantCardStatusMenu plantId={plant.id} currentStatus={plant.status} />
       </div>
-    </Link>
+    </article>
   );
 }

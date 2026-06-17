@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { KanbanBoard } from "@/components/dashboard/kanban-board";
 import { getDashboardPlants } from "@/lib/dashboard/get-dashboard-plants";
 

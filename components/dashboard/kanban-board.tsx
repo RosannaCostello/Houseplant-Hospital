@@ -29,7 +29,7 @@ export function KanbanBoard({ plants = [] }: KanbanBoardProps) {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-zinc-600">Plant workflow by status</p>
+          <p className="mt-1 text-sm text-zinc-600">Plant workflow by status — use the menu on a card to move lanes</p>
         </div>
         <Button asChild size="lg">
           <Link href="/app/check-in">New check-in</Link>

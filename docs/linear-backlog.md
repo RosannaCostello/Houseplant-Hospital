@@ -89,17 +89,17 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
-| 3.1 | | Status transitions (kanban move or tap) | `phase-3`, `dashboard` | 2.14 |
-| 3.2 | | `status_history` on every status change | `phase-3` | 3.1 |
-| 3.3 | | Treatment notes on plant detail | `phase-3` | 2.10 |
-| 3.4 | | Care tips on plant detail | `phase-3` | 2.10 |
-| 3.5 | | Bugs found toggle (+10% via `pricing_adjustments`) | `phase-3` | 3.1 |
-| 3.6 | | Bugs warning on dashboard cards + plant detail | `phase-3`, `dashboard` | 3.5 |
-| 3.7 | | Pricing engine from `pricing_rules` (no hardcoded UI prices) | `phase-3` | 1.5 |
-| 3.8 | | Admin settings: edit size-band pricing | `phase-3`, `auth` | 3.7, 1.10 |
-| 3.9 | | Pricing summary on plant detail | `phase-3` | 3.7, 3.5 |
-| 3.10 | | Collection workflow: mark Collected + final price | `phase-3` | 3.9 |
-| 3.11 | | **Phase 3 verification:** full lifecycle + audit trail | `phase-3` | 3.10 |
+| 3.1 | HIL-40 | Status transitions (kanban move or tap) | `phase-3`, `dashboard` | HIL-39 |
+| 3.2 | HIL-46 | `status_history` on every status change | `phase-3` | HIL-40 |
+| 3.3 | HIL-41 | Treatment notes on plant detail | `phase-3` | HIL-35 |
+| 3.4 | HIL-42 | Care tips on plant detail | `phase-3` | HIL-35 |
+| 3.5 | HIL-43 | Bugs found toggle (+10% via `pricing_adjustments`) | `phase-3` | HIL-40 |
+| 3.6 | HIL-44 | Bugs warning on dashboard cards + plant detail | `phase-3`, `dashboard` | HIL-43 |
+| 3.7 | HIL-45 | Pricing engine from `pricing_rules` (no hardcoded UI prices) | `phase-3` | HIL-9 |
+| 3.8 | HIL-47 | Admin settings: edit size-band pricing | `phase-3`, `auth` | HIL-45 |
+| 3.9 | HIL-48 | Pricing summary on plant detail | `phase-3` | HIL-45, HIL-43 |
+| 3.10 | HIL-49 | Collection workflow: mark Collected + final price | `phase-3` | HIL-48 |
+| 3.11 | HIL-50 | **Phase 3 verification:** full lifecycle + audit trail | `phase-3` | HIL-49 |
 
 ---
 
