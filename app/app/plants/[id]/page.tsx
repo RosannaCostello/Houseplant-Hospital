@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { PlantDetailView } from "@/components/plants/plant-detail-view";
 import { getPlantDetail } from "@/lib/plants/get-plant-detail";
 
+export const dynamic = "force-dynamic";
+
 type PlantDetailPageProps = {
   params: Promise<{ id: string }>;
 };
