@@ -4,37 +4,26 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { checkInCustomerSchema } from "@/lib/check-in/customer-schema";
 import { checkInPlantSchema } from "@/lib/check-in/plant-schema";
-import { removePlantPhotoFiles, uploadPlantPhoto } from "@/lib/photos/upload-plant-photo";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const checkInPhotoPayloadSchema = z.object({
-  mimeType: z.enum(["image/webp", "image/jpeg"]),
-  dataUrl: z.string().startsWith("data:image/"),
-  thumbnailDataUrl: z.string().startsWith("data:image/"),
-  byteSize: z.number().positive(),
-  width: z.number().positive(),
-  height: z.number().positive(),
-  thumbnailByteSize: z.number().positive(),
-});
-
-const completeCheckInSchema = z.object({
+const createCheckInSchema = z.object({
   customer: checkInCustomerSchema,
-  plants: z
-    .array(
-      checkInPlantSchema.extend({
-        photo: checkInPhotoPayloadSchema,
-      }),
-    )
-    .min(1, "Add at least one plant"),
+  plants: z.array(checkInPlantSchema).min(1, "Add at least one plant"),
 });
 
-export type CompleteCheckInInput = z.infer<typeof completeCheckInSchema>;
+export type CreateCheckInInput = z.infer<typeof createCheckInSchema>;
 
-export type CompleteCheckInResult =
-  | { success: true; visitId: string; plantIds: string[] }
+export type CreateCheckInResult =
+  | {
+      success: true;
+      visitId: string;
+      plants: Array<{ clientId: string; plantId: string }>;
+    }
   | { success: false; error: string };
 
-function buildVisitNotes(plants: CompleteCheckInInput["plants"]): string | null {
+export type RollbackCheckInResult = { success: true } | { success: false; error: string };
+
+function buildVisitNotes(plants: CreateCheckInInput["plants"]): string | null {
   const lines = plants
     .map((plant, index) => {
       const notes = plant.notes.trim();
@@ -48,8 +37,9 @@ function buildVisitNotes(plants: CompleteCheckInInput["plants"]): string | null 
   return lines.length > 0 ? lines.join("\n") : null;
 }
 
-export async function completeCheckIn(input: CompleteCheckInInput): Promise<CompleteCheckInResult> {
-  const parsed = completeCheckInSchema.safeParse(input);
+/** Creates customer, visit, and plants — photos upload separately from the browser. */
+export async function createCheckInRecords(input: CreateCheckInInput): Promise<CreateCheckInResult> {
+  const parsed = createCheckInSchema.safeParse(input);
 
   if (!parsed.success) {
     return { success: false, error: "Check-in data is invalid. Review each step and try again." };
@@ -65,8 +55,6 @@ export async function completeCheckIn(input: CompleteCheckInInput): Promise<Comp
   }
 
   const { customer, plants } = parsed.data;
-  const uploadedPaths: string[] = [];
-  let visitId: string | null = null;
 
   try {
     const { data: customerRow, error: customerError } = await supabase
@@ -102,9 +90,7 @@ export async function completeCheckIn(input: CompleteCheckInInput): Promise<Comp
       throw new Error(visitError?.message ?? "Could not create visit");
     }
 
-    visitId = visitRow.id;
-
-    const plantIds: string[] = [];
+    const createdPlants: Array<{ clientId: string; plantId: string }> = [];
 
     for (const plant of plants) {
       const { data: plantRow, error: plantError } = await supabase
@@ -123,31 +109,35 @@ export async function completeCheckIn(input: CompleteCheckInInput): Promise<Comp
         throw new Error(plantError?.message ?? "Could not create plant");
       }
 
-      plantIds.push(plantRow.id);
-
-      const uploaded = await uploadPlantPhoto(supabase, {
-        plantId: plantRow.id,
-        mimeType: plant.photo.mimeType,
-        dataUrl: plant.photo.dataUrl,
-        thumbnailDataUrl: plant.photo.thumbnailDataUrl,
-      });
-
-      uploadedPaths.push(uploaded.storagePath, uploaded.thumbnailPath);
+      createdPlants.push({ clientId: plant.clientId, plantId: plantRow.id });
     }
 
-    revalidatePath("/app");
-
-    return { success: true, visitId: visitRow.id, plantIds };
+    return { success: true, visitId: visitRow.id, plants: createdPlants };
   } catch (error) {
-    if (uploadedPaths.length > 0) {
-      await removePlantPhotoFiles(supabase, uploadedPaths);
-    }
-
-    if (visitId) {
-      await supabase.from("visits").delete().eq("id", visitId);
-    }
-
     const message = error instanceof Error ? error.message : "Check-in failed";
     return { success: false, error: message };
   }
+}
+
+export async function rollbackCheckIn(visitId: string): Promise<RollbackCheckInResult> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const { error } = await supabase.from("visits").delete().eq("id", visitId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function finalizeCheckIn(): Promise<void> {
+  revalidatePath("/app");
 }

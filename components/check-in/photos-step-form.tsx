@@ -3,13 +3,19 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { completeCheckIn } from "@/app/actions/complete-check-in";
+import {
+  createCheckInRecords,
+  finalizeCheckIn,
+  rollbackCheckIn,
+} from "@/app/actions/complete-check-in";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
 import { Button } from "@/components/ui/button";
 import { clearCheckInDraft } from "@/lib/check-in/draft";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { uploadPlantPhoto } from "@/lib/photos/upload-plant-photo";
 
 function photosByPlantId(photos: CheckInPlantPhoto[] | undefined): Map<string, CheckInPlantPhoto> {
   return new Map((photos ?? []).map((photo) => [photo.plantClientId, photo]));
@@ -25,6 +31,7 @@ export function PhotosStepForm() {
   const [editedPhotos, setEditedPhotos] = useState<Map<string, CheckInPlantPhoto> | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<string | null>(null);
 
   const displayPhotos = editedPhotos ?? draftPhotoMap;
 
@@ -89,41 +96,58 @@ export function PhotosStepForm() {
       return;
     }
 
-    const plantsWithPhotos = plants.map((plant) => {
-      const photo = displayPhotos.get(plant.clientId)!;
+    setSubmitting(true);
+    setFormError(null);
+    setSubmitStatus("Saving customer and plants…");
 
-      return {
-        ...plant,
-        photo: {
+    let visitId: string | null = null;
+
+    try {
+      const records = await createCheckInRecords({ customer, plants });
+
+      if (!records.success) {
+        setFormError(records.error);
+        return;
+      }
+
+      visitId = records.visitId;
+      const plantIdByClientId = new Map(records.plants.map((row) => [row.clientId, row.plantId]));
+      const supabase = createSupabaseBrowserClient();
+
+      for (let index = 0; index < plants.length; index += 1) {
+        const plant = plants[index];
+        const photo = displayPhotos.get(plant.clientId)!;
+        const plantId = plantIdByClientId.get(plant.clientId);
+
+        if (!plantId) {
+          throw new Error("Could not match plant to photo.");
+        }
+
+        setSubmitStatus(`Uploading photo ${index + 1} of ${plants.length}…`);
+
+        await uploadPlantPhoto(supabase, {
+          plantId,
           mimeType: photo.mimeType,
           dataUrl: photo.dataUrl,
           thumbnailDataUrl: photo.thumbnailDataUrl,
-          byteSize: photo.byteSize,
-          width: photo.width,
-          height: photo.height,
-          thumbnailByteSize: photo.thumbnailByteSize,
-        },
-      };
-    });
+        });
+      }
 
-    setSubmitting(true);
-    setFormError(null);
+      await finalizeCheckIn();
+      clearCheckInDraft();
+      router.push("/app");
+      router.refresh();
+    } catch (error) {
+      if (visitId) {
+        await rollbackCheckIn(visitId);
+      }
 
-    const result = await completeCheckIn({
-      customer,
-      plants: plantsWithPhotos,
-    });
-
-    setSubmitting(false);
-
-    if (!result.success) {
-      setFormError(result.error);
-      return;
+      const message = error instanceof Error ? error.message : "Check-in failed";
+      setFormError(message);
+    } finally {
+      setSubmitting(false);
+      setSubmitStatus(null);
     }
-
-    clearCheckInDraft();
-    router.push("/app");
-    router.refresh();
   }
 
   return (
@@ -148,6 +172,7 @@ export function PhotosStepForm() {
         </div>
 
         {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+        {submitStatus ? <p className="text-sm text-zinc-600">{submitStatus}</p> : null}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button asChild variant="outline" size="lg" className="w-full sm:w-auto" disabled={submitting}>
