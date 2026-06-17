@@ -2,6 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
 	"name": "houseplanthospital",
+	"account_id": "505de01ea243dfef0f441a274454ac9a",
 	"compatibility_date": "2026-06-16",
 	"compatibility_flags": [
 		"nodejs_compat",

@@ -14,9 +14,9 @@ This app uses [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) to ru
 
 1. Cloudflare Dashboard → **Workers & Pages** → **Create** → connect the GitHub repo
 2. Build settings (auto-detected for Next.js):
-   - **Build command:** `npm run build` (runs OpenNext — includes `next build`)
+   - **Build command:** `npx opennextjs-cloudflare build`
    - **Deploy command:** `npx wrangler deploy`
-   - Do **not** use plain `next build` as the build command; deploy needs the `.open-next/` output.
+   - Do **not** set `npm run build` as the Cloudflare build command — OpenNext calls that internally for `next build`, and pointing it back at OpenNext causes an infinite loop.
 3. **Worker name** must match `wrangler.jsonc` → currently `houseplanthospital` (Cloudflare strips hyphens from project names).
 4. Environment variables (Production + Preview):
    - `NEXT_PUBLIC_SUPABASE_URL`

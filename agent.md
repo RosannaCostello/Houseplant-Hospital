@@ -62,7 +62,8 @@ Migrations applied via SQL editor:
 2. **ZodError on empty optional env vars** — fixed `lib/env.ts` with `emptyToUndefined()`.
 3. **Cloudflare `npm ci` lockfile mismatch** — local npm 11 vs Cloudflare npm 10. Regenerated lockfile with `npx npm@10.9.2 install`.
 4. **Worker name mismatch** — Cloudflare project name `Houseplant-Hospital` → worker `houseplanthospital` (no hyphens). OpenNext migrate used `houseplant-hospital`. Fixed in `wrangler.jsonc`.
-5. **"Could not find compiled Open Next config"** — Cloudflare build ran `next build` but deploy needs `opennextjs-cloudflare build`. Fix prepared locally (see below); **not yet pushed**.
+5. **"Could not find compiled Open Next config"** — Cloudflare CI build ran `next build` but deploy needs OpenNext output. Cloudflare build command must be `npx opennextjs-cloudflare build`, not `npm run build`.
+6. **Mac crash / 90GB memory on `npm run deploy`** — infinite loop: `build` was set to `opennextjs-cloudflare build`, but OpenNext internally calls `npm run build`. Fixed: `build` = `next build`, `build:cf` = `opennextjs-cloudflare build`.
 
 ---
 
@@ -99,16 +100,11 @@ Migrations applied via SQL editor:
 2. `WORKER_SELF_REFERENCE` references wrong worker name → fixed in `wrangler.jsonc`
 3. `Could not find compiled Open Next config` → build command was `next build` instead of OpenNext build
 
-### Pending fix (local, uncommitted)
-`package.json` changed so `npm run build` runs `opennextjs-cloudflare build` (includes `next build` internally). Added `build:next` for plain Next build if needed. `docs/DEPLOY.md` updated with fast-path local deploy instructions.
-
-**To finish HIL-20:**
-```bash
-git add package.json docs/DEPLOY.md
-git commit -m "HIL-20: use OpenNext build for Cloudflare CI"
-git push
-```
-Then retry deploy in Cloudflare (or use fast path below).
+### Pending fix (committed)
+- `build` = `next build` (OpenNext calls this internally — must not be OpenNext itself)
+- `build:cf` = `opennextjs-cloudflare build` for explicit use
+- Cloudflare CI **build command:** `npx opennextjs-cloudflare build`
+- Local deploy: `npm run deploy` (safe after loop fix)
 
 ### Fast path — deploy from Mac (bypass CI)
 ```bash
