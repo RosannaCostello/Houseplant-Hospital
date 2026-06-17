@@ -62,22 +62,7 @@ function isPlantStatus(value: string): value is PlantStatus {
   return (PLANT_STATUSES as readonly string[]).includes(value);
 }
 
-export async function getPlantDetail(plantId: string): Promise<PlantDetail | null> {
-  const supabase = await createSupabaseServerClient();
-
-  const { data, error } = await supabase
-    .from("plants")
-    .select(
-      `
-      id,
-      name,
-      species,
-      size,
-      status,
-      bugs_found,
-      final_price,
-      collected_at,
-      created_at,
+const PLANT_DETAIL_RELATIONS = `
       visits!inner (
         id,
         checkin_date,
@@ -108,10 +93,52 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
         content,
         created_at
       )
-    `,
-    )
+`;
+
+const PLANT_DETAIL_SELECT = `
+      id,
+      name,
+      species,
+      size,
+      status,
+      bugs_found,
+      final_price,
+      collected_at,
+      created_at,
+      ${PLANT_DETAIL_RELATIONS}
+`;
+
+const PLANT_DETAIL_SELECT_LEGACY = `
+      id,
+      name,
+      species,
+      size,
+      status,
+      bugs_found,
+      created_at,
+      ${PLANT_DETAIL_RELATIONS}
+`;
+
+function isMissingCollectionColumnsError(message: string): boolean {
+  return message.includes("final_price") || message.includes("collected_at");
+}
+
+export async function getPlantDetail(plantId: string): Promise<PlantDetail | null> {
+  const supabase = await createSupabaseServerClient();
+
+  let { data, error } = await supabase
+    .from("plants")
+    .select(PLANT_DETAIL_SELECT)
     .eq("id", plantId)
     .maybeSingle();
+
+  if (error && isMissingCollectionColumnsError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT_LEGACY)
+      .eq("id", plantId)
+      .maybeSingle());
+  }
 
   if (error) {
     throw new Error(`Failed to load plant: ${error.message}`);

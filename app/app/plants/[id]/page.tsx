@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PlantDetailView } from "@/components/plants/plant-detail-view";
 import { getPlantDetail } from "@/lib/plants/get-plant-detail";
+import { DEFAULT_BUGS_SURCHARGE_PERCENT } from "@/lib/pricing/defaults";
 import { getBugsSurchargeRule } from "@/lib/pricing/get-bugs-surcharge-rule";
 import { getPlantPricing } from "@/lib/pricing/get-plant-pricing";
 
@@ -12,14 +13,19 @@ type PlantDetailPageProps = {
 
 export default async function PlantDetailPage({ params }: PlantDetailPageProps) {
   const { id } = await params;
-  const [plant, bugsRule, pricing] = await Promise.all([
-    getPlantDetail(id),
-    getBugsSurchargeRule(),
-    getPlantPricing(id),
+  const plant = await getPlantDetail(id);
+
+  if (!plant) {
+    notFound();
+  }
+
+  const [bugsRule, pricing] = await Promise.all([
+    getBugsSurchargeRule().catch(() => ({ percent: DEFAULT_BUGS_SURCHARGE_PERCENT })),
+    getPlantPricing(id).catch(() => null),
   ]);
 
-  if (!plant || !pricing) {
-    notFound();
+  if (!pricing) {
+    throw new Error("Failed to load plant pricing.");
   }
 
   return (
