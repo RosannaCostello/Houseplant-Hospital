@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { collectPlantAction } from "@/app/actions/collect-plant";
 import { Button } from "@/components/ui/button";
 import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
@@ -31,8 +31,15 @@ export function CollectionSection({
 }: CollectionSectionProps) {
   const router = useRouter();
   const [priceInput, setPriceInput] = useState(suggestedFinalPrice.toFixed(2));
+  const [priceTouched, setPriceTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!priceTouched) {
+      setPriceInput(suggestedFinalPrice.toFixed(2));
+    }
+  }, [suggestedFinalPrice, priceTouched]);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -88,6 +95,7 @@ export function CollectionSection({
               disabled={isPending}
               onChange={(event) => {
                 setPriceInput(event.target.value);
+                setPriceTouched(true);
                 setError(null);
               }}
             />
