@@ -3,19 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import {
-  createCheckInRecords,
-  finalizeCheckIn,
-  rollbackCheckIn,
-} from "@/app/actions/complete-check-in";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
 import { Button } from "@/components/ui/button";
+import {
+  createCheckInRecordsWithClient,
+  rollbackCheckInWithClient,
+} from "@/lib/check-in/create-check-in-records";
 import { clearCheckInDraft } from "@/lib/check-in/draft";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { uploadPlantPhoto } from "@/lib/photos/upload-plant-photo";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 function photosByPlantId(photos: CheckInPlantPhoto[] | undefined): Map<string, CheckInPlantPhoto> {
   return new Map((photos ?? []).map((photo) => [photo.plantClientId, photo]));
@@ -100,10 +99,12 @@ export function PhotosStepForm() {
     setFormError(null);
     setSubmitStatus("Saving customer and plants…");
 
+    const supabase = createSupabaseBrowserClient();
     let visitId: string | null = null;
+    let succeeded = false;
 
     try {
-      const records = await createCheckInRecords({ customer, plants });
+      const records = await createCheckInRecordsWithClient(supabase, { customer, plants });
 
       if (!records.success) {
         setFormError(records.error);
@@ -112,7 +113,6 @@ export function PhotosStepForm() {
 
       visitId = records.visitId;
       const plantIdByClientId = new Map(records.plants.map((row) => [row.clientId, row.plantId]));
-      const supabase = createSupabaseBrowserClient();
 
       for (let index = 0; index < plants.length; index += 1) {
         const plant = plants[index];
@@ -133,22 +133,27 @@ export function PhotosStepForm() {
         });
       }
 
-      await finalizeCheckIn();
       clearCheckInDraft();
+      setSubmitStatus("Done! Opening dashboard…");
+      succeeded = true;
       router.push("/app");
       router.refresh();
     } catch (error) {
       if (visitId) {
-        await rollbackCheckIn(visitId);
+        await rollbackCheckInWithClient(supabase, visitId);
       }
 
       const message = error instanceof Error ? error.message : "Check-in failed";
       setFormError(message);
     } finally {
       setSubmitting(false);
-      setSubmitStatus(null);
+      if (succeeded) {
+        setSubmitStatus(null);
+      }
     }
   }
+
+  const buttonLabel = submitStatus ?? (submitting ? "Working…" : "Complete check-in");
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -179,7 +184,7 @@ export function PhotosStepForm() {
             <Link href="/app/check-in/plants">Back to plants</Link>
           </Button>
           <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
-            {submitting ? "Completing check-in…" : "Complete check-in"}
+            {buttonLabel}
           </Button>
         </div>
       </form>
