@@ -124,6 +124,43 @@ Dev Dashboard apps use **client credentials** — the server exchanges Client ID
 4. Confirm standard + pests prices match Shopify for Mini/S–XL
 5. Toggle **bugs found** on a plant — price should match the pests variant for that size (toggle is blocked until pests prices are synced)
 
+## Mailchimp (HIL-8)
+
+Mailchimp is the communications engine for hospital customers (contact sync, tags, journeys). The app remains the operational source of truth; Phase 5 wires the API.
+
+### Account
+
+| Setting | Value |
+|---------|--------|
+| Plan | **Essentials** |
+| Audience | **Hilda** (existing main list — not a segment) |
+| Audience ID | `c34fa4ecc8` |
+| Server prefix (data centre) | `us17` |
+
+Houseplant Hospital customers sync into the **Hilda** audience. Use **tags** (e.g. `houseplant_hospital`, `bugs_treatment`) to segment hospital contacts — not a separate audience.
+
+Essentials supports simple **API-triggered automation flows** (up to 4 steps per flow). Complex branching journeys need Standard.
+
+### Env vars (server only)
+
+Create an API key in Mailchimp → **Account & billing** → **Extras** → **API keys** (label e.g. `Houseplant Hospital`). Copy the full key once at creation.
+
+```bash
+MAILCHIMP_API_KEY=...          # full key ending in -us17
+MAILCHIMP_SERVER_PREFIX=us17
+MAILCHIMP_AUDIENCE_ID=c34fa4ecc8
+```
+
+Never commit API keys. For production (Phase 5), add the same three vars to Cloudflare Worker secrets.
+
+### Verification (HIL-8)
+
+- [x] Audience chosen: **Hilda**
+- [x] Audience ID documented
+- [x] API key created; env vars in `.env.local`
+
+API integration and journeys are **Phase 5** (starts after HIL-8).
+
 ## Deploy
 
 See [DEPLOY.md](./DEPLOY.md) for Cloudflare Pages setup. **Confirm the correct GitHub repo with the agent before connecting deploy.**

@@ -19,8 +19,8 @@ Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md)
 | 2 — Core operations | **Complete** | HIL-39 verified (iPad + Mac) |
 | 3 — Workflow and pricing | **Complete** | HIL-50 verified (iPad + Mac) |
 | **Shopify pricing (HIL-52)** | **Complete** (live) | Sync standard + pests from Shopify |
-| 4 — Label printing | **Not started** | Needs printer + Mac Mini at store (S8) |
-| 5 — Mailchimp | **Not started** | Independent of Phase 4; needs S4 |
+| 4 — Label printing | **Not started** | Needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12) (printer at store) |
+| 5 — Mailchimp | **Setup done** ([HIL-8](https://linear.app/hilda-houseplant-hospital/issue/HIL-8)); integration not started | Mailchimp client + check-in sync next |
 | 6 — Polish and go-live | **Not started** | — |
 
 **Tech debt (HIL-51):** Critical + priority + second-batch items **done**. Nice-to-haves remain in [code-review.md](./code-review.md).
@@ -78,18 +78,17 @@ Staff can:
 
 | ID | Task | Blocks |
 |----|------|--------|
-| **S4** | Mailchimp plan + audience ID | Phase 5 |
-| **S6** | Brand assets (logo, label refs) | Phase 4 template, Phase 6 |
-| **S8** | Mac Mini + Brother printer on shop WiFi | Phase 4 |
+| **HIL-10** | Brand assets (logo, label refs) | Phase 4 template, Phase 6 |
+| **HIL-12** | Mac Mini + Brother printer on shop WiFi | Phase 4 |
 
 ---
 
 ## Next session
 
-1. **Phase 4** — label printing (at Hilda store with printer)
-2. **Phase 5** — Mailchimp integration (can start from home once S4 is done; not blocked on Phase 4)
+1. **Phase 5** — Mailchimp integration ([HIL-8](https://linear.app/hilda-houseplant-hospital/issue/HIL-8) done; start Mailchimp client + env config)
+2. **Phase 4** — label printing (at Hilda store; needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12))
 
-Start with: Phase 4.1 (`APP_BASE_URL`) + S8 hardware check, or Phase 5.1 + S4 if working remotely.
+Start with Phase 5 if working remotely, or Phase 4 + HIL-12 if at the store with the printer.
 
 ---
 
