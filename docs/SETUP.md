@@ -139,6 +139,8 @@ Mailchimp is the communications engine for hospital customers (contact sync, tag
 
 Houseplant Hospital customers sync into the **Hilda** audience. Use **tags** (e.g. `houseplant_hospital`, `bugs_treatment`) to segment hospital contacts — not a separate audience.
 
+The Hilda audience uses a required merge field **`NAME`** (full name), not default `FNAME`/`LNAME`. The client maps `firstName` + `lastName` → `NAME` automatically (`lib/mailchimp/merge-fields.ts`).
+
 Essentials supports simple **API-triggered automation flows** (up to 4 steps per flow). Complex branching journeys need Standard.
 
 ### Env vars (server only)
@@ -160,6 +162,35 @@ Never commit API keys. For production (Phase 5), add the same three vars to Clou
 - [x] API key created; env vars in `.env.local`
 
 API integration and journeys are **Phase 5** (starts after HIL-8).
+
+### Client library (HIL-53)
+
+Server code lives under `lib/mailchimp/`:
+
+- `env.ts` — `isMailchimpConfigured()`, `getMailchimpConfig()`
+- `client.ts` — authenticated Marketing API requests
+- `upsert-list-member.ts` — create/update audience member (preserves consent on update)
+- `update-member-tags.ts` — add/remove tags
+- `ping.ts` — connectivity check (`GET /ping`)
+- `event-types.ts` — event names + payload types (`plant_checked_in`, status changes, etc.)
+- `enqueue-event.ts` — insert `pending` rows into `mailchimp_events`
+- `adapter.ts` — `getMailchimpAdapter()` queues via outbox (no live API from request path)
+
+Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (useful locally). When Mailchimp env vars are missing, outbox-only is automatic. The worker (HIL-57) processes pending rows when live delivery is enabled.
+
+Quick local check (requires `.env.local`):
+
+```bash
+node --env-file=.env.local -e "
+const key = process.env.MAILCHIMP_API_KEY;
+const prefix = process.env.MAILCHIMP_SERVER_PREFIX;
+fetch('https://' + prefix + '.api.mailchimp.com/3.0/ping', {
+  headers: { Authorization: 'Basic ' + Buffer.from('anystring:' + key).toString('base64') },
+}).then((r) => r.json()).then(console.log).catch(console.error);
+"
+```
+
+Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 
 ## Deploy
 

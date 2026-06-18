@@ -128,14 +128,15 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
-| 5.1 | | Mailchimp client + env config | `phase-5`, `mailchimp` | S4 |
-| 5.2 | | Mock adapter for local dev (`mailchimp_events` outbox) | `phase-5`, `mailchimp` | 5.1 |
-| 5.3 | | Check-in: upsert contact, tags, consent rules | `phase-5`, `mailchimp`, `check-in` | 5.2, 2.9 |
-| 5.4 | | Emit events on status / bugs changes | `phase-5`, `mailchimp` | 5.2, 3.2 |
-| 5.5 | | Worker: process outbox → Mailchimp API (retry + status) | `phase-5`, `mailchimp` | 5.4 |
-| 5.6 | | Jack: configure Mailchimp journeys in Mailchimp UI | `phase-5`, `mailchimp` | Jack |
-| 5.7 | | Admin view: failed / pending Mailchimp events (optional) | `phase-5`, `mailchimp` | 5.5 |
-| 5.8 | | **Phase 5 verification:** test audience journey fires | `phase-5`, `mailchimp` | 5.6 |
+| — | HIL-8 | Mailchimp plan + audience ID (setup) | `phase-5`, `mailchimp` | — **Done** |
+| 5.1 | HIL-53 | Mailchimp client + env config | `phase-5`, `mailchimp` | HIL-8 |
+| 5.2 | HIL-54 | Mock adapter for local dev (`mailchimp_events` outbox) | `phase-5`, `mailchimp` | HIL-53 |
+| 5.3 | HIL-55 | Check-in: upsert contact, tags, consent rules | `phase-5`, `mailchimp`, `check-in` | HIL-54, HIL-31 |
+| 5.4 | HIL-56 | Emit events on status / bugs changes | `phase-5`, `mailchimp` | HIL-54, HIL-40 |
+| 5.5 | HIL-57 | Worker: process outbox → Mailchimp API (retry + status) | `phase-5`, `mailchimp` | HIL-56 |
+| 5.6 | HIL-58 | Jack: configure Mailchimp journeys in Mailchimp UI | `phase-5`, `mailchimp` | Jack (parallel) |
+| 5.7 | HIL-59 | Admin view: failed / pending Mailchimp events (optional) | `phase-5`, `mailchimp` | HIL-57 |
+| 5.8 | HIL-60 | **Phase 5 verification:** test audience journey fires | `phase-5`, `mailchimp` | HIL-55, HIL-57, HIL-58 |
 
 ---
 

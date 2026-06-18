@@ -18,6 +18,7 @@ const envSchema = publicEnvSchema.extend({
   MAILCHIMP_API_KEY: z.string().min(1).optional(),
   MAILCHIMP_SERVER_PREFIX: z.string().min(1).optional(),
   MAILCHIMP_AUDIENCE_ID: z.string().min(1).optional(),
+  MAILCHIMP_OUTBOX_ONLY: z.enum(["true", "false", "1", "0"]).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -33,6 +34,7 @@ function parseEnv(): Env {
     MAILCHIMP_API_KEY: emptyToUndefined(process.env.MAILCHIMP_API_KEY),
     MAILCHIMP_SERVER_PREFIX: emptyToUndefined(process.env.MAILCHIMP_SERVER_PREFIX),
     MAILCHIMP_AUDIENCE_ID: emptyToUndefined(process.env.MAILCHIMP_AUDIENCE_ID),
+    MAILCHIMP_OUTBOX_ONLY: emptyToUndefined(process.env.MAILCHIMP_OUTBOX_ONLY),
   });
 }
 
