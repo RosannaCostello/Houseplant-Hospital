@@ -5,7 +5,7 @@ Living summary of what’s shipped and what’s next. Update this at the end of 
 **Last updated:** 18 June 2026  
 **Live:** https://houseplanthospital.hildaedinburgh.workers.dev  
 **Supabase:** `hh-dev` (migrations through `0010`)  
-**Latest deploy:** *(pending — HIL-52 Shopify pricing sync)*
+**Latest deploy:** `70b6601` — *HIL-52: Shopify pricing sync (standard + pests)*
 
 Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md) · [code-review.md](./code-review.md) · [Scope](../Houseplant-Hospital-2.0-Scope.md)
 
@@ -18,7 +18,7 @@ Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md)
 | 1 — Foundation | **Complete** | Auth, schema, RLS, Cloudflare deploy |
 | 2 — Core operations | **Complete** | HIL-39 verified (iPad + Mac) |
 | 3 — Workflow and pricing | **Complete** | HIL-50 verified (iPad + Mac) |
-| **Shopify pricing (HIL-52)** | **Complete** (local verified) | Sync standard + pests from Shopify |
+| **Shopify pricing (HIL-52)** | **Complete** (live) | Sync standard + pests from Shopify |
 | 4 — Label printing | **Not started** | Needs printer + Mac Mini at store (S8) |
 | 5 — Mailchimp | **Not started** | Independent of Phase 4; needs S4 |
 | 6 — Polish and go-live | **Not started** | — |
@@ -96,6 +96,7 @@ Start with: Phase 4.1 (`APP_BASE_URL`) + S8 hardware check, or Phase 5.1 + S4 if
 ## Recent commits (newest first)
 
 ```
+70b6601 HIL-52: sync base and pests treatment prices from Shopify
 eaaba14 HIL-51: harden check-in, collection, kanban, and detail routes
 842d665 HIL-51: critical security + workflow hardening
 d855f26 Fix collection price not updating when bugs toggle changes estimate
