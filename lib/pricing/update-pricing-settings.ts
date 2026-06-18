@@ -3,9 +3,10 @@ import type { PlantSize } from "@/lib/plant-size";
 import { PLANT_SIZES } from "@/lib/plant-size";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { roundMoney } from "@/lib/pricing/round-money";
+import { isShopifyPricingConfigured } from "@/lib/shopify/env";
 
 export type UpdatePricingSettingsInput = {
-  basePrices: Record<PlantSize, number>;
+  basePrices?: Record<PlantSize, number>;
   bugsSurchargePercent: number;
 };
 
@@ -26,11 +27,22 @@ export async function updatePricingSettingsWithClient(
     return { success: false, error: admin.error };
   }
 
-  for (const size of PLANT_SIZES) {
-    const amount = roundMoney(input.basePrices[size]);
-    if (!isValidPrice(amount)) {
-      return { success: false, error: `Invalid price for size ${size}.` };
+  const shopifyConfigured = isShopifyPricingConfigured();
+
+  if (!shopifyConfigured && input.basePrices) {
+    for (const size of PLANT_SIZES) {
+      const amount = roundMoney(input.basePrices[size]);
+      if (!isValidPrice(amount)) {
+        return { success: false, error: `Invalid price for size ${size}.` };
+      }
     }
+  }
+
+  if (shopifyConfigured && input.basePrices) {
+    return {
+      success: false,
+      error: "Base prices are synced from Shopify. Use Sync from Shopify instead.",
+    };
   }
 
   const bugsPercent = Number(input.bugsSurchargePercent);
@@ -60,30 +72,32 @@ export async function updatePricingSettingsWithClient(
     }
   }
 
-  for (const size of PLANT_SIZES) {
-    const amount = roundMoney(input.basePrices[size]);
-    const ruleId = baseRuleIds.get(size);
+  if (!shopifyConfigured && input.basePrices) {
+    for (const size of PLANT_SIZES) {
+      const amount = roundMoney(input.basePrices[size]);
+      const ruleId = baseRuleIds.get(size);
 
-    if (ruleId) {
-      const { error } = await supabase
-        .from("pricing_rules")
-        .update({ amount })
-        .eq("id", ruleId);
+      if (ruleId) {
+        const { error } = await supabase
+          .from("pricing_rules")
+          .update({ amount })
+          .eq("id", ruleId);
 
-      if (error) {
-        return { success: false, error: error.message };
-      }
-    } else {
-      const { error } = await supabase.from("pricing_rules").insert({
-        size,
-        rule_type: "base_price",
-        amount,
-        percent: 0,
-        active: true,
-      });
+        if (error) {
+          return { success: false, error: error.message };
+        }
+      } else {
+        const { error } = await supabase.from("pricing_rules").insert({
+          size,
+          rule_type: "base_price",
+          amount,
+          percent: 0,
+          active: true,
+        });
 
-      if (error) {
-        return { success: false, error: error.message };
+        if (error) {
+          return { success: false, error: error.message };
+        }
       }
     }
   }

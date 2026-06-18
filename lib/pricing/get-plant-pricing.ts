@@ -2,6 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlantSize } from "@/lib/plant-size";
 import { calculatePlantPrice } from "@/lib/pricing/calculate-plant-price";
 import { getBasePriceForSize, getBasePriceRules } from "@/lib/pricing/get-base-price-rules";
+import { getPestsPriceRules } from "@/lib/shopify/sync-pricing-from-shopify";
+import { isShopifyPricingConfigured } from "@/lib/shopify/env";
+import { roundMoney } from "@/lib/pricing/round-money";
 import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -26,8 +29,9 @@ export async function getPlantPricingWithClient(
   plantId: string,
   basePriceRules?: Awaited<ReturnType<typeof getBasePriceRules>>,
 ): Promise<PlantPriceBreakdown | null> {
-  const [rules, plantResult, adjustmentsResult] = await Promise.all([
+  const [rules, pestsRules, plantResult, adjustmentsResult] = await Promise.all([
     basePriceRules ?? getBasePriceRules(),
+    getPestsPriceRules(),
     supabase
       .from("plants")
       .select("size, pricing_modifier")
@@ -54,12 +58,56 @@ export async function getPlantPricingWithClient(
   }
 
   const baseAmount = getBasePriceForSize(rules, plant.size);
+  const adjustments = mapAdjustments(adjustmentsResult.data ?? []);
+  const hasBugsAdjustment = adjustments.some(
+    (adjustment) => adjustment.adjustmentType === "bugs_surcharge",
+  );
+  const pestsAmount = pestsRules[plant.size];
+  const shopifyPricing = isShopifyPricingConfigured();
+
+  if (hasBugsAdjustment && pestsAmount != null) {
+    const pestsLineAmount = roundMoney(pestsAmount - baseAmount);
+
+    return {
+      size: plant.size,
+      baseAmount,
+      lines: [
+        {
+          adjustmentType: "bugs_surcharge",
+          label: "Pests treatment",
+          amount: pestsLineAmount,
+        },
+      ],
+      totalAmount: roundMoney(pestsAmount),
+    };
+  }
+
+  if (shopifyPricing && hasBugsAdjustment) {
+    const bugsAdjustment = adjustments.find(
+      (adjustment) => adjustment.adjustmentType === "bugs_surcharge",
+    );
+
+    if (bugsAdjustment?.amount != null) {
+      return calculatePlantPrice({
+        size: plant.size,
+        baseAmount,
+        adjustments: [bugsAdjustment],
+      });
+    }
+  }
+
+  const adjustmentsForCalc = shopifyPricing
+    ? adjustments.filter(
+        (adjustment) =>
+          adjustment.adjustmentType !== "bugs_surcharge" || adjustment.amount != null,
+      )
+    : adjustments;
 
   return calculatePlantPrice({
     size: plant.size,
     baseAmount,
     pricingModifier: Number(plant.pricing_modifier),
-    adjustments: mapAdjustments(adjustmentsResult.data ?? []),
+    adjustments: adjustmentsForCalc,
   });
 }
 

@@ -4,6 +4,7 @@ import { getPlantDetail } from "@/lib/plants/get-plant-detail";
 import { DEFAULT_BUGS_SURCHARGE_PERCENT } from "@/lib/pricing/defaults";
 import { getBugsSurchargeRule } from "@/lib/pricing/get-bugs-surcharge-rule";
 import { getPlantPricing } from "@/lib/pricing/get-plant-pricing";
+import { isShopifyPricingConfigured } from "@/lib/shopify/env";
 import { isValidRouteId } from "@/lib/validation/parse-route-id";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +26,12 @@ export default async function PlantDetailPage({ params }: PlantDetailPageProps) 
     notFound();
   }
 
+  const shopifyPricing = isShopifyPricingConfigured();
+
   const [bugsRule, pricing] = await Promise.all([
-    getBugsSurchargeRule().catch(() => ({ percent: DEFAULT_BUGS_SURCHARGE_PERCENT })),
+    shopifyPricing
+      ? Promise.resolve(null)
+      : getBugsSurchargeRule().catch(() => ({ percent: DEFAULT_BUGS_SURCHARGE_PERCENT })),
     getPlantPricing(id).catch(() => null),
   ]);
 
@@ -34,7 +39,8 @@ export default async function PlantDetailPage({ params }: PlantDetailPageProps) 
     <PlantDetailView
       plant={plant}
       pricing={pricing}
-      bugsSurchargePercent={bugsRule.percent}
+      pestsPricingFromShopify={shopifyPricing}
+      bugsSurchargePercent={bugsRule?.percent ?? null}
     />
   );
 }

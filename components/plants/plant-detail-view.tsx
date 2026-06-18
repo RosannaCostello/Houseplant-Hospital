@@ -14,7 +14,8 @@ import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 type PlantDetailViewProps = {
   plant: PlantDetail;
   pricing: PlantPriceBreakdown | null;
-  bugsSurchargePercent: number | null;
+  pestsPricingFromShopify?: boolean;
+  bugsSurchargePercent?: number | null;
 };
 
 function plantTitle(plant: PlantDetail): string {
@@ -23,7 +24,12 @@ function plantTitle(plant: PlantDetail): string {
   return "Unnamed plant";
 }
 
-export function PlantDetailView({ plant, pricing, bugsSurchargePercent }: PlantDetailViewProps) {
+export function PlantDetailView({
+  plant,
+  pricing,
+  pestsPricingFromShopify = false,
+  bugsSurchargePercent = null,
+}: PlantDetailViewProps) {
   const latestPhoto = plant.photos[0] ?? null;
   const isCollected = plant.status === "collected";
 
@@ -112,6 +118,7 @@ export function PlantDetailView({ plant, pricing, bugsSurchargePercent }: PlantD
         <BugsFoundToggle
           plantId={plant.id}
           bugsFound={plant.bugsFound}
+          pestsPricingFromShopify={pestsPricingFromShopify}
           surchargePercent={bugsSurchargePercent}
           disabled={isCollected}
         />

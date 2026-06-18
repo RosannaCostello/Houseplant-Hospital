@@ -17,7 +17,7 @@ const basePricesSchema = z.object(
 );
 
 const updatePricingSettingsSchema = z.object({
-  basePrices: basePricesSchema,
+  basePrices: basePricesSchema.optional(),
   bugsSurchargePercent: z.coerce.number(),
 });
 

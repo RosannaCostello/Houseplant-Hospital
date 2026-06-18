@@ -7,14 +7,16 @@ import { setBugsFoundAction } from "@/app/actions/set-bugs-found";
 type BugsFoundToggleProps = {
   plantId: string;
   bugsFound: boolean;
-  surchargePercent: number | null;
+  pestsPricingFromShopify?: boolean;
+  surchargePercent?: number | null;
   disabled?: boolean;
 };
 
 export function BugsFoundToggle({
   plantId,
   bugsFound,
-  surchargePercent,
+  pestsPricingFromShopify = false,
+  surchargePercent = null,
   disabled = false,
 }: BugsFoundToggleProps) {
   const router = useRouter();
@@ -55,7 +57,9 @@ export function BugsFoundToggle({
         />
         <span className="text-sm leading-6 text-zinc-800">
           <span className="font-medium text-zinc-900">Bugs found</span>
-          {surchargePercent != null ? (
+          {pestsPricingFromShopify ? (
+            <span className="text-zinc-600"> — uses Pests treatment price from Shopify</span>
+          ) : surchargePercent != null ? (
             <span className="text-zinc-600"> — applies +{surchargePercent}% treatment surcharge</span>
           ) : null}
           {checked ? (

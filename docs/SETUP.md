@@ -82,6 +82,8 @@ Migrations live in `supabase/migrations/`. Apply in order via Supabase SQL edito
 3. `0003_storage.sql` — `plant-photos` bucket
 4. `0007_rls_hardening.sql` — staff-only operational access + block role escalation
 5. `0008_storage_staff_only.sql` — plant photo access staff-only
+6. `0009_shopify_pricing_hil52.sql` — Shopify variant mapping columns (HIL-52)
+7. `0010_pricing_rules_dedupe.sql` — one active base_price row per size
 
 Then run `supabase/seed.sql` for dev pricing rules.
 
@@ -90,6 +92,37 @@ To update pricing on an existing `hh-dev` database, run `supabase/migrations/000
 If **Bugs found** reports a missing surcharge rule, also run `supabase/migrations/0005_ensure_bugs_surcharge.sql`.
 
 For **collection workflow** (final price + collected timestamp), run `supabase/migrations/0006_plant_collection_hil49.sql`.
+
+For **Shopify pricing sync** (HIL-52), run `supabase/migrations/0009_shopify_pricing_hil52.sql`.
+
+## Shopify pricing (HIL-52)
+
+Shopify is the source of truth for **standard** and **pests** treatment prices. The app size **XS** maps to Shopify option **Mini** on both products.
+
+### Env vars (server only)
+
+```bash
+SHOPIFY_STORE_DOMAIN=hildas-houseplants.myshopify.com
+SHOPIFY_CLIENT_ID=...
+SHOPIFY_CLIENT_SECRET=shpss_...   # Client secret from Dev Dashboard — not pasted as access token
+CRON_SECRET=...                   # optional: for daily HTTP cron
+```
+
+Dev Dashboard apps use **client credentials** — the server exchanges Client ID + Secret for a short-lived `shpat_` token on each sync.
+
+### Sync behaviour
+
+- **Automatic:** when an admin opens `/settings`, sync runs if the last sync was over 24 hours ago
+- **Manual:** **Sync from Shopify** button on Settings
+- **Cron (optional):** `GET /api/cron/shopify-pricing` with header `Authorization: Bearer <CRON_SECRET>`
+
+### Verification
+
+1. Apply migration `0009`
+2. Set env vars locally
+3. Log in as admin → **Settings** → **Sync from Shopify**
+4. Confirm standard + pests prices match Shopify for Mini/S–XL
+5. Toggle **bugs found** on a plant — price should match the pests variant for that size (toggle is blocked until pests prices are synced)
 
 ## Deploy
 
@@ -100,6 +133,8 @@ See [DEPLOY.md](./DEPLOY.md) for Cloudflare Pages setup. **Confirm the correct G
 This repo is tracked exclusively in Linear workspace `Houseplant-Hospital`, team `HIL-*`.
 
 See [linear-workflow.md](./linear-workflow.md) and `.cursor/rules/linear.mdc`.
+
+**Project progress:** [project-status.md](./project-status.md) — phases complete, live URL, what’s next.
 
 ## Phase 1 verification checklist
 
@@ -142,3 +177,26 @@ Hard-refresh or use a private window after each deploy if behaviour looks stale.
 - [ ] Log out and log back in; dashboard still loads plants
 
 When all boxes are ticked, mark **HIL-39** Done in Linear — Phase 2 is complete.
+
+## Phase 3 verification checklist (HIL-50)
+
+**Verified:** June 2026 on live URL (iPad + Mac). **HIL-50** marked Done in Linear.
+
+- [x] Kanban: move plant between lanes; card updates after refresh
+- [x] `status_history` visible on plant detail
+- [x] Treatment notes: add and persist
+- [x] Care tips: add and persist
+- [x] Bugs found toggle: saves, shows warning on card + detail, adjusts price estimate
+- [x] Pricing summary on plant detail matches size band + bugs adjustment
+- [x] Admin settings: edit XS–XL base prices
+- [x] Collection: enter final price, mark collected; form hidden when collected
+- [x] Full lifecycle: check-in → surgery → outpatient → collected (audit trail intact)
+- [x] Post–HIL-51 smoke: collection £0 blocked, check-in photos survive refresh, kanban inline errors
+
+## Deploy
+
+```bash
+cp .env.local .dev.vars && npm run deploy
+```
+
+See [DEPLOY.md](./DEPLOY.md) and [project-status.md](./project-status.md) for current release state.

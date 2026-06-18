@@ -1,5 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isPlantSize } from "@/lib/plant-size";
 import { getBugsSurchargeRule } from "@/lib/pricing/get-bugs-surcharge-rule";
+import { getBasePriceForSize, getBasePriceRules } from "@/lib/pricing/get-base-price-rules";
+import { roundMoney } from "@/lib/pricing/round-money";
+import { isShopifyPricingConfigured } from "@/lib/shopify/env";
+import { getPestsPriceRules } from "@/lib/shopify/sync-pricing-from-shopify";
 
 export type SetBugsFoundResult =
   | { success: true; bugsFound: boolean }
@@ -22,7 +27,7 @@ export async function setBugsFoundWithClient(
 
   const { data: plant, error: fetchError } = await supabase
     .from("plants")
-    .select("bugs_found")
+    .select("bugs_found, size")
     .eq("id", plantId)
     .maybeSingle();
 
@@ -38,14 +43,36 @@ export async function setBugsFoundWithClient(
     return { success: true, bugsFound };
   }
 
+  const shopifyPricing = isShopifyPricingConfigured();
   let surchargePercent = 0;
+  let pestsLineAmount: number | null = null;
 
   if (bugsFound) {
-    const rule = await getBugsSurchargeRule();
-    surchargePercent = rule.percent;
+    if (plant.size && isPlantSize(plant.size)) {
+      const [baseRules, pestsRules] = await Promise.all([getBasePriceRules(), getPestsPriceRules()]);
+      const pestsAmount = pestsRules[plant.size];
+
+      if (pestsAmount != null) {
+        const baseAmount = getBasePriceForSize(baseRules, plant.size);
+        pestsLineAmount = roundMoney(pestsAmount - baseAmount);
+      }
+    }
+
+    if (shopifyPricing && pestsLineAmount == null) {
+      return {
+        success: false,
+        error:
+          "Pests prices are not synced from Shopify yet. Open Settings and run Sync from Shopify, then try again.",
+      };
+    }
+
+    if (!shopifyPricing && pestsLineAmount == null) {
+      const rule = await getBugsSurchargeRule();
+      surchargePercent = rule.percent;
+    }
   }
 
-  const pricingModifier = bugsFound ? surchargePercent / 100 : 0;
+  const pricingModifier = bugsFound && pestsLineAmount == null ? surchargePercent / 100 : 0;
 
   const { error: updateError } = await supabase
     .from("plants")
@@ -74,19 +101,38 @@ export async function setBugsFoundWithClient(
   }
 
   if (bugsFound) {
-    const { error: insertError } = await supabase.from("pricing_adjustments").insert({
-      plant_id: plantId,
-      adjustment_type: BUGS_ADJUSTMENT_TYPE,
-      percent: surchargePercent,
-      reason: "Bugs found during treatment",
-    });
+    if (pestsLineAmount != null) {
+      const { error: insertError } = await supabase.from("pricing_adjustments").insert({
+        plant_id: plantId,
+        adjustment_type: BUGS_ADJUSTMENT_TYPE,
+        amount: pestsLineAmount,
+        percent: null,
+        reason: "Pests treatment (Shopify)",
+      });
 
-    if (insertError) {
-      await supabase
-        .from("plants")
-        .update({ bugs_found: plant.bugs_found, pricing_modifier: 0 })
-        .eq("id", plantId);
-      return { success: false, error: insertError.message };
+      if (insertError) {
+        await supabase
+          .from("plants")
+          .update({ bugs_found: plant.bugs_found, pricing_modifier: 0 })
+          .eq("id", plantId);
+        return { success: false, error: insertError.message };
+      }
+    } else {
+      const { error: insertError } = await supabase.from("pricing_adjustments").insert({
+        plant_id: plantId,
+        adjustment_type: BUGS_ADJUSTMENT_TYPE,
+        percent: surchargePercent,
+        amount: null,
+        reason: "Bugs found during treatment",
+      });
+
+      if (insertError) {
+        await supabase
+          .from("plants")
+          .update({ bugs_found: plant.bugs_found, pricing_modifier: 0 })
+          .eq("id", plantId);
+        return { success: false, error: insertError.message };
+      }
     }
   }
 
