@@ -10,7 +10,6 @@ import {
 } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
 import { addMemberTags } from "@/lib/mailchimp/update-member-tags";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { PlantStatus } from "@/lib/plant-status";
 
 type PlantCustomerContext = {
@@ -20,52 +19,49 @@ type PlantCustomerContext = {
   email: string;
 };
 
-function unwrapRelation<T>(value: T | T[] | null | undefined): T | null {
-  if (value == null) return null;
-  return Array.isArray(value) ? (value[0] ?? null) : value;
-}
-
-async function resolvePlantCustomerContext(plantId: string): Promise<PlantCustomerContext | null> {
-  const supabase = createSupabaseAdminClient();
-
-  const { data, error } = await supabase
+/** Load plant → visit → customer in separate queries (reliable on Cloudflare + RLS). */
+async function resolvePlantCustomerContext(
+  supabase: SupabaseClient,
+  plantId: string,
+): Promise<PlantCustomerContext | null> {
+  const { data: plant, error: plantError } = await supabase
     .from("plants")
-    .select(
-      `
-      id,
-      visit_id,
-      visits!inner (
-        customer_id,
-        customers!inner (
-          email
-        )
-      )
-    `,
-    )
+    .select("id, visit_id")
     .eq("id", plantId)
     .maybeSingle();
 
-  if (error || !data) {
+  if (plantError || !plant) {
+    console.error("[mailchimp] plant lookup failed:", plantError?.message ?? "not found");
     return null;
   }
 
-  const visit = unwrapRelation(
-    data.visits as
-      | { customer_id: string; customers: { email: string } | { email: string }[] }
-      | Array<{ customer_id: string; customers: { email: string } | { email: string }[] }>
-      | null,
-  );
-  const customer = visit ? unwrapRelation(visit.customers) : null;
-  const email = customer?.email?.trim().toLowerCase();
+  const { data: visit, error: visitError } = await supabase
+    .from("visits")
+    .select("customer_id")
+    .eq("id", plant.visit_id)
+    .maybeSingle();
 
-  if (!visit?.customer_id || !email) {
+  if (visitError || !visit) {
+    console.error("[mailchimp] visit lookup failed:", visitError?.message ?? "not found");
+    return null;
+  }
+
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("email")
+    .eq("id", visit.customer_id)
+    .maybeSingle();
+
+  const email = customer?.email?.trim().toLowerCase();
+  if (customerError || !email) {
+    console.error("[mailchimp] customer lookup failed:", customerError?.message ?? "no email");
     return null;
   }
 
   return {
-    plantId: data.id,
+    plantId: plant.id,
     customerId: visit.customer_id,
-    visitId: data.visit_id,
+    visitId: plant.visit_id,
     email,
   };
 }
@@ -80,7 +76,7 @@ async function queuePlantEvent(
   },
 ): Promise<void> {
   const adapter = getMailchimpAdapter();
-  await adapter.queueEvent({
+  const result = await adapter.queueEvent({
     eventName,
     customerId: context.customerId,
     plantId: context.plantId,
@@ -92,6 +88,10 @@ async function queuePlantEvent(
       ...payload,
     },
   });
+
+  if (!result.success) {
+    console.error("[mailchimp] queue failed:", eventName, result.error);
+  }
 }
 
 /**
@@ -99,7 +99,7 @@ async function queuePlantEvent(
  * Skips `plant_checked_in` — that is emitted at check-in only (HIL-55).
  */
 export async function emitPlantStatusChangeEvent(
-  _supabase: SupabaseClient,
+  supabase: SupabaseClient,
   plantId: string,
   previousStatus: PlantStatus,
   newStatus: PlantStatus,
@@ -114,21 +114,22 @@ export async function emitPlantStatusChangeEvent(
   }
 
   try {
-    const context = await resolvePlantCustomerContext(plantId);
+    const context = await resolvePlantCustomerContext(supabase, plantId);
     if (!context) {
       return;
     }
 
     await queuePlantEvent(context, eventName, { previousStatus, newStatus });
-  } catch {
-    // Mailchimp must not block workflow updates.
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error("[mailchimp] status event failed:", eventName, message);
   }
 }
 
 /** Best-effort `bugs_found` event + `bugs_treatment` tag when bugs are flagged. Never throws. */
-export async function emitBugsFoundEvent(_supabase: SupabaseClient, plantId: string): Promise<void> {
+export async function emitBugsFoundEvent(supabase: SupabaseClient, plantId: string): Promise<void> {
   try {
-    const context = await resolvePlantCustomerContext(plantId);
+    const context = await resolvePlantCustomerContext(supabase, plantId);
     if (!context) {
       return;
     }
@@ -138,7 +139,8 @@ export async function emitBugsFoundEvent(_supabase: SupabaseClient, plantId: str
     if (isMailchimpConfigured() && !isMailchimpOutboxOnly()) {
       await addMemberTags(context.email, [MAILCHIMP_TAGS.bugsTreatment]);
     }
-  } catch {
-    // Mailchimp must not block workflow updates.
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error("[mailchimp] bugs_found event failed:", message);
   }
 }
