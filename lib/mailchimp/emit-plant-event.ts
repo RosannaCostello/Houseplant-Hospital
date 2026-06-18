@@ -10,6 +10,7 @@ import {
 } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
 import { addMemberTags } from "@/lib/mailchimp/update-member-tags";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { PlantStatus } from "@/lib/plant-status";
 
 type PlantCustomerContext = {
@@ -24,13 +25,23 @@ function unwrapRelation<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
-async function resolvePlantCustomerContext(
-  supabase: SupabaseClient,
-  plantId: string,
-): Promise<PlantCustomerContext | null> {
+async function resolvePlantCustomerContext(plantId: string): Promise<PlantCustomerContext | null> {
+  const supabase = createSupabaseAdminClient();
+
   const { data, error } = await supabase
     .from("plants")
-    .select("id, visit_id, visits(customer_id, customers(email))")
+    .select(
+      `
+      id,
+      visit_id,
+      visits!inner (
+        customer_id,
+        customers!inner (
+          email
+        )
+      )
+    `,
+    )
     .eq("id", plantId)
     .maybeSingle();
 
@@ -88,7 +99,7 @@ async function queuePlantEvent(
  * Skips `plant_checked_in` — that is emitted at check-in only (HIL-55).
  */
 export async function emitPlantStatusChangeEvent(
-  supabase: SupabaseClient,
+  _supabase: SupabaseClient,
   plantId: string,
   previousStatus: PlantStatus,
   newStatus: PlantStatus,
@@ -103,7 +114,7 @@ export async function emitPlantStatusChangeEvent(
   }
 
   try {
-    const context = await resolvePlantCustomerContext(supabase, plantId);
+    const context = await resolvePlantCustomerContext(plantId);
     if (!context) {
       return;
     }
@@ -115,12 +126,9 @@ export async function emitPlantStatusChangeEvent(
 }
 
 /** Best-effort `bugs_found` event + `bugs_treatment` tag when bugs are flagged. Never throws. */
-export async function emitBugsFoundEvent(
-  supabase: SupabaseClient,
-  plantId: string,
-): Promise<void> {
+export async function emitBugsFoundEvent(_supabase: SupabaseClient, plantId: string): Promise<void> {
   try {
-    const context = await resolvePlantCustomerContext(supabase, plantId);
+    const context = await resolvePlantCustomerContext(plantId);
     if (!context) {
       return;
     }
