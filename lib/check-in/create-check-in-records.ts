@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreateCheckInInput } from "@/lib/check-in/create-check-in-input";
+import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
 
 export type CreateCheckInRecordsResult =
   | {
@@ -155,6 +156,14 @@ export async function createCheckInRecordsWithClient(
 
       createdPlants.push({ clientId: plant.clientId, plantId: plantRow.id });
     }
+
+    await syncCheckInToMailchimp({
+      supabase,
+      customer,
+      customerId: customerResult.id,
+      visitId: visitRow.id,
+      plants: createdPlants.map((plant) => ({ plantId: plant.plantId })),
+    });
 
     return { success: true, visitId: visitRow.id, plants: createdPlants };
   } catch (error) {
