@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
 import type { PlantStatus } from "@/lib/plant-status";
 import { PLANT_STATUSES } from "@/lib/plant-status";
 
@@ -61,6 +62,8 @@ export async function updatePlantStatusWithClient(
     await supabase.from("plants").update({ status: plant.status }).eq("id", plantId);
     return { success: false, error: historyError.message };
   }
+
+  await emitPlantStatusChangeEvent(supabase, plantId, plant.status, newStatus);
 
   return { success: true, previousStatus: plant.status, newStatus };
 }

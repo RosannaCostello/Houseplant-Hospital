@@ -5,7 +5,7 @@ Living summary of what’s shipped and what’s next. Update this at the end of 
 **Last updated:** 18 June 2026  
 **Live:** https://houseplanthospital.hildaedinburgh.workers.dev  
 **Supabase:** `hh-dev` (migrations through `0010`)  
-**Latest deploy:** `70b6601` — *HIL-52: Shopify pricing sync (standard + pests)*
+**Latest deploy:** HIL-55 — check-in → Mailchimp audience sync verified live
 
 Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md) · [code-review.md](./code-review.md) · [Scope](../Houseplant-Hospital-2.0-Scope.md)
 
@@ -20,7 +20,7 @@ Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md)
 | 3 — Workflow and pricing | **Complete** | HIL-50 verified (iPad + Mac) |
 | **Shopify pricing (HIL-52)** | **Complete** (live) | Sync standard + pests from Shopify |
 | 4 — Label printing | **Not started** | Needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12) (printer at store) |
-| 5 — Mailchimp | **In progress** — [HIL-8](https://linear.app/hilda-houseplant-hospital/issue/HIL-8) done; next [HIL-53](https://linear.app/hilda-houseplant-hospital/issue/HIL-53) | HIL-53–60 created |
+| 5 — Mailchimp | **In progress** — HIL-53–56 **done**; next [HIL-57](https://linear.app/hilda-houseplant-hospital/issue/HIL-57) (outbox worker) | HIL-57–60 |
 | 6 — Polish and go-live | **Not started** | — |
 
 **Tech debt (HIL-51):** Critical + priority + second-batch items **done**. Nice-to-haves remain in [code-review.md](./code-review.md).
@@ -85,7 +85,7 @@ Staff can:
 
 ## Next session
 
-1. **Phase 5** — start [HIL-53](https://linear.app/hilda-houseplant-hospital/issue/HIL-53) (Mailchimp client); HIL-53–60 in Linear
+1. **Phase 5** — [HIL-57](https://linear.app/hilda-houseplant-hospital/issue/HIL-57) outbox worker (process `mailchimp_events` → Mailchimp API)
 2. **Phase 4** — label printing (at Hilda store; needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12))
 
 Start with Phase 5 if working remotely, or Phase 4 + HIL-12 if at the store with the printer.

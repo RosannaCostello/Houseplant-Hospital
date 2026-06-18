@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emitBugsFoundEvent } from "@/lib/mailchimp/emit-plant-event";
 import { isPlantSize } from "@/lib/plant-size";
 import { getBugsSurchargeRule } from "@/lib/pricing/get-bugs-surcharge-rule";
 import { getBasePriceForSize, getBasePriceRules } from "@/lib/pricing/get-base-price-rules";
@@ -134,6 +135,10 @@ export async function setBugsFoundWithClient(
         return { success: false, error: insertError.message };
       }
     }
+  }
+
+  if (bugsFound) {
+    await emitBugsFoundEvent(supabase, plantId);
   }
 
   return { success: true, bugsFound };

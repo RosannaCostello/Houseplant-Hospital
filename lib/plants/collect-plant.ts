@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
 import type { PlantStatus } from "@/lib/plant-status";
 import { PLANT_STATUSES } from "@/lib/plant-status";
 import { roundMoney } from "@/lib/pricing/round-money";
@@ -81,6 +82,8 @@ export async function collectPlantWithClient(
       .eq("id", plantId);
     return { success: false, error: historyError.message };
   }
+
+  await emitPlantStatusChangeEvent(supabase, plantId, previousStatus, "collected");
 
   return { success: true, finalPrice: price, collectedAt };
 }
