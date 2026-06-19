@@ -180,7 +180,24 @@ Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (usef
 
 **Check-in sync (HIL-55):** on successful check-in, the app queues `plant_checked_in` per plant. When Mailchimp is configured and not outbox-only, it also upserts the contact, applies tags (`houseplant_hospital`, `repeat_hospital_customer`, `newsletter` when consented), and saves `mailchimp_contact_id` on the customer. Mailchimp failures do not block check-in.
 
-**Status and bugs events (HIL-56):** kanban status moves, collection, and enabling **bugs found** queue the matching event to `mailchimp_events` (`plant_in_surgery`, `plant_outpatient`, `plant_collected`, etc.). Enabling bugs found also applies the `bugs_treatment` tag when live Mailchimp is enabled. Events are not sent to Mailchimp until the outbox worker (HIL-57) runs.
+**Status and bugs events (HIL-56):** kanban status moves, collection, and enabling **bugs found** queue the matching event to `mailchimp_events` (`plant_in_surgery`, `plant_outpatient`, `plant_collected`, etc.). Enabling bugs found also applies the `bugs_treatment` tag when live Mailchimp is enabled.
+
+**Outbox worker (HIL-57):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50), POSTs each event to Mailchimp’s member Events API, and sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
+
+```bash
+curl -s -H "Authorization: Bearer $CRON_SECRET" \
+  "https://houseplanthospital.hildaedinburgh.workers.dev/api/cron/mailchimp-outbox"
+```
+
+To retry failed rows after a fix, reset them in Supabase SQL Editor:
+
+```sql
+UPDATE mailchimp_events
+SET status = 'pending'
+WHERE status = 'failed';
+```
+
+Set `MAILCHIMP_OUTBOX_ONLY=true` locally to queue without delivery. The worker skips when that flag is set or Mailchimp keys are missing.
 
 Quick local check (requires `.env.local`):
 
@@ -195,6 +212,76 @@ fetch('https://' + prefix + '.api.mailchimp.com/3.0/ping', {
 ```
 
 Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
+
+### Journeys (HIL-58) — configure in Mailchimp UI
+
+**No app code.** Build flows in Mailchimp; the app delivers events via HIL-57. Event names must match **exactly** (case-sensitive).
+
+| App trigger | Mailchimp event name (`name` field) | Suggested journey |
+|-------------|-------------------------------------|-------------------|
+| Check-in (per plant) | `plant_checked_in` | Check-in confirmation |
+| Move to In surgery | `plant_in_surgery` | In surgery update |
+| Move to Outpatient | `plant_outpatient` | Ready for collection |
+| Collect plant | `plant_collected` | Collection aftercare |
+| Bugs found toggled on | `bugs_found` | Optional pests/treatment note |
+| Move to Quarantine | `plant_quarantined` | Optional |
+| Move to Dead | `plant_dead` | Optional |
+
+**Audience:** always **Hilda** (`c34fa4ecc8`). **Tags** on contacts: `houseplant_hospital`, `repeat_hospital_customer`, `bugs_treatment`, `newsletter` (if consented).
+
+**Consent rules (scope):**
+
+- **Transactional** emails (check-in, surgery, ready for collection, aftercare) — allowed without marketing opt-in; contacts are `transactional` unless they ticked newsletter.
+- **Marketing** (e.g. 6-month come-back) — only contacts with tag `newsletter` or subscribed status; add a **tag filter** on the journey start or email step.
+
+#### Create a flow (Essentials)
+
+1. Mailchimp → **Automations** → **Customer Journeys** (or **Automations** / **Flows** depending on UI).
+2. **Create** → audience **Hilda**.
+3. **Starting point** → **API & Integrations** → **Event API** (not “Customer Journey API” — the app sends member events via the Events API).
+4. **Event name** — type exactly e.g. `plant_checked_in` (must match table above).
+5. Add **Send email** (Essentials: up to **4 steps** per flow).
+6. Design email (Hilda branding); use merge tag `*|NAME|*` for full name.
+7. **Activate** the journey.
+
+Repeat for each event you want email on. Start with **check-in confirmation** (`plant_checked_in`) — that is the HIL-58 exit criterion.
+
+#### Optional event properties (for email content)
+
+The worker sends string properties you can reference in advanced templates:
+
+- `visit_id`, `plant_id`, `customer_id`
+- `previous_status`, `new_status` (status-change events)
+- `bugs_found` (`true` on `bugs_found`)
+
+#### Schedule the outbox worker (production)
+
+**Cloudflare Cron Triggers** (`custom-worker.ts` + `wrangler.jsonc`):
+
+| Schedule | Cron | Route |
+|----------|------|-------|
+| Mailchimp outbox | `*/5 * * * *` | `/api/cron/mailchimp-outbox` |
+| Shopify pricing | `0 6 * * *` (06:00 UTC daily) | `/api/cron/shopify-pricing` |
+
+Requires `CRON_SECRET` and `APP_BASE_URL` on the worker. After deploy, check **Cloudflare → houseplanthospital → Settings → Triggers → Cron Triggers**.
+
+Manual curl still works for testing:
+
+1. Ensure cron is running (or curl the outbox route after each test).
+2. Check-in with a **real email** (not `test@test.com` — Mailchimp rejects obvious fakes).
+3. Supabase → `mailchimp_events` → row should become `sent`.
+4. Mailchimp → contact → **Activity** / **Events** — should show `plant_checked_in`.
+5. Journey should send within a few minutes of the event (after cron + Mailchimp processing).
+
+Record active journeys here when live:
+
+| Journey | Event trigger | Status | Notes |
+|---------|---------------|--------|-------|
+| Check-in confirmation | `plant_checked_in` | **Live** | Verified Jun 2026 — email received |
+| In surgery | `plant_in_surgery` | | |
+| Ready for collection | `plant_outpatient` | | |
+| Aftercare | `plant_collected` | | |
+| 6-month reminder (marketing) | TBD — tag/time based | | Requires `newsletter` tag |
 
 ## Deploy
 

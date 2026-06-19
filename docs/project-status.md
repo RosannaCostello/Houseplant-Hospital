@@ -20,7 +20,7 @@ Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md)
 | 3 — Workflow and pricing | **Complete** | HIL-50 verified (iPad + Mac) |
 | **Shopify pricing (HIL-52)** | **Complete** (live) | Sync standard + pests from Shopify |
 | 4 — Label printing | **Not started** | Needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12) (printer at store) |
-| 5 — Mailchimp | **In progress** — HIL-53–56 **done**; next [HIL-57](https://linear.app/hilda-houseplant-hospital/issue/HIL-57) (outbox worker) | HIL-57–60 |
+| 5 — Mailchimp | **Nearly complete** — HIL-53–58 **done**; check-in journey verified live; HIL-60 sign-off remaining | HIL-59–60 |
 | 6 — Polish and go-live | **Not started** | — |
 
 **Tech debt (HIL-51):** Critical + priority + second-batch items **done**. Nice-to-haves remain in [code-review.md](./code-review.md).
@@ -85,7 +85,7 @@ Staff can:
 
 ## Next session
 
-1. **Phase 5** — [HIL-57](https://linear.app/hilda-houseplant-hospital/issue/HIL-57) outbox worker (process `mailchimp_events` → Mailchimp API)
+1. **Phase 5** — [HIL-58](https://linear.app/hilda-houseplant-hospital/issue/HIL-58) configure Mailchimp journeys; then HIL-60 verification
 2. **Phase 4** — label printing (at Hilda store; needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12))
 
 Start with Phase 5 if working remotely, or Phase 4 + HIL-12 if at the store with the printer.

@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"main": ".open-next/worker.js",
+	"main": "custom-worker.ts",
 	"name": "houseplanthospital",
 	"account_id": "505de01ea243dfef0f441a274454ac9a",
 	"compatibility_date": "2026-06-16",
@@ -8,6 +8,12 @@
 		"nodejs_compat",
 		"global_fetch_strictly_public"
 	],
+	"triggers": {
+		"crons": [
+			"*/5 * * * *",
+			"0 6 * * *"
+		]
+	},
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"

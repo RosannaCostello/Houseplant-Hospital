@@ -30,6 +30,9 @@ export type MailchimpEventPayload = {
   previousStatus?: PlantStatus;
   newStatus?: PlantStatus;
   bugsFound?: boolean;
+  /** Set by outbox worker (HIL-57) when delivery fails. */
+  _deliveryError?: string;
+  _failedAt?: string;
 };
 
 /** Map kanban plant status to a Mailchimp event (not used for initial check-in). */

@@ -23,8 +23,12 @@ This app uses [@opennextjs/cloudflare](https://opennext.js.org/cloudflare) to ru
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (encrypt)
    - `APP_BASE_URL` (preview URL after first deploy)
+   - `CRON_SECRET` (encrypt) — auth for `/api/cron/*` **and** the `scheduled()` handler in `custom-worker.ts`
+   - `MAILCHIMP_*` (Phase 5)
 
 5. Deploy and verify admin login at the preview URL.
+
+Cron triggers are defined in `wrangler.jsonc` (`*/5 * * * *` mailchimp outbox, `0 6 * * *` Shopify pricing). Entry point is `custom-worker.ts` (wraps OpenNext worker + `scheduled` handler).
 
 ## Fast path — deploy from your Mac (skip CI debugging)
 
@@ -37,6 +41,14 @@ npm run deploy
 ```
 
 Env vars for production must still be set in the Cloudflare dashboard (**Workers & Pages → houseplanthospital → Settings → Variables**).
+
+**Cron requires a Worker secret.** `deploy:live` bakes most env into the Next bundle, but `custom-worker.ts` `scheduled()` only sees Cloudflare bindings — not build-time env. After first deploy, run once:
+
+```bash
+grep '^CRON_SECRET=' .env.local | cut -d= -f2- | xargs | npx wrangler secret put CRON_SECRET
+```
+
+Verify: `npx wrangler tail houseplanthospital` — at each `:00/:05/...` you should see `[cron] /api/cron/mailchimp-outbox ok: ...`, not `CRON_SECRET not set`.
 
 ## Local preview
 
