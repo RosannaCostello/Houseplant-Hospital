@@ -9,7 +9,7 @@ export type VisitDetailPlant = {
   species: string | null;
   size: string;
   status: PlantStatus;
-  bugsFound: boolean;
+  bugsFound: boolean | null;
   thumbnailUrl: string | null;
 };
 
@@ -118,7 +118,7 @@ export async function getVisitDetail(visitId: string): Promise<VisitDetail | nul
           species: string | null;
           size: string;
           status: string;
-          bugs_found: boolean;
+          bugs_found: boolean | null;
           created_at: string;
           plant_photos: PlantPhotoRow[] | null;
         }>
@@ -158,7 +158,7 @@ export async function getVisitDetail(visitId: string): Promise<VisitDetail | nul
       species: plant.species,
       size: plant.size,
       status: plant.status,
-      bugsFound: plant.bugs_found,
+      bugsFound: plant.bugs_found ?? null,
       thumbnailUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
     });
   }

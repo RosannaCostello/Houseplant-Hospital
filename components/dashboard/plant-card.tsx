@@ -1,8 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
+import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
 import { formatPlantAge } from "@/lib/format-plant-age";
+import {
+  formatDaysInQuarantine,
+  formatQuarantineBadgeDays,
+} from "@/lib/format-quarantine-age";
 import type { DashboardPlant } from "@/lib/dashboard/types";
+import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
 import { cn } from "@/lib/utils";
 
 type PlantCardProps = {
@@ -35,7 +41,7 @@ function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
         src={thumbnailUrl}
         alt=""
         fill
-        sizes="14rem"
+        sizes="18rem"
         className="object-cover"
         unoptimized
       />
@@ -43,7 +49,7 @@ function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-zinc-100 text-zinc-400">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-hilda-bg text-hilda-text-muted">
       <svg
         aria-hidden
         className="h-8 w-8"
@@ -71,40 +77,56 @@ export function PlantCard({ plant, className }: PlantCardProps) {
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm",
+        "shrink-0 overflow-hidden rounded-none border border-hilda-border/15 bg-hilda-surface shadow-sm",
         className,
       )}
     >
       <Link
         href={`/app/plants/${plant.id}`}
-        className="block transition-colors hover:bg-zinc-50"
+        className="block transition-colors hover:bg-hilda-bg"
       >
-        <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-zinc-100 bg-zinc-50">
+        <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-hilda-border/10 bg-hilda-bg">
           <PlantThumbnail thumbnailUrl={plant.thumbnailUrl} />
-          {plant.bugsFound ? (
-            <span className="absolute right-2 top-2 rounded-md bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-              Bugs
+          {plant.status === "quarantine" && plant.quarantineSince ? (
+            <span
+              className="absolute left-2 top-2 flex flex-col rounded-none bg-hilda-deep px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-tight tracking-wide text-white"
+              title={formatDaysInQuarantine(plant.quarantineSince)}
+            >
+              <span>{formatQuarantineBadgeDays(plant.quarantineSince)}</span>
+              <span className="text-[9px] font-medium normal-case tracking-normal opacity-90">
+                in quarantine
+              </span>
             </span>
+          ) : null}
+          {plant.bugsFound ? (
+            <BugsFoundBadge className="right-2 top-2 bg-hilda-gold" />
           ) : null}
         </div>
 
-        <div className="space-y-1.5 p-2.5">
-          <p className="truncate text-sm font-semibold text-zinc-900">{plant.customerSurname}</p>
+        <div className="space-y-1.5 p-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="truncate text-sm font-medium text-hilda-heading">{plant.customerSurname}</p>
+            <span className="shrink-0 tabular-nums text-[11px] font-semibold text-hilda-text-muted">
+              {formatVisitPlantPosition(plant.visitPlantIndex, plant.visitPlantTotal)}
+            </span>
+          </div>
           <div>
-            <p className="truncate text-sm text-zinc-800">{plantDisplayName(plant)}</p>
-            {subtitle ? <p className="truncate text-xs text-zinc-500">{subtitle}</p> : null}
+            <p className="line-clamp-2 text-sm leading-snug text-hilda-text">{plantDisplayName(plant)}</p>
+            {subtitle ? (
+              <p className="mt-0.5 line-clamp-1 text-xs text-hilda-text-muted">{subtitle}</p>
+            ) : null}
           </div>
 
           <div className="flex items-center justify-between gap-2 pt-0.5">
-            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+            <span className="rounded bg-hilda-bg px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-heading">
               {plant.size}
             </span>
-            <span className="text-[11px] text-zinc-500">{formatPlantAge(plant.checkedInAt)}</span>
+            <span className="text-[11px] text-hilda-text-muted">{formatPlantAge(plant.checkedInAt)}</span>
           </div>
         </div>
       </Link>
 
-      <div className="border-t border-zinc-100 px-2.5 pb-2.5 pt-1">
+      <div className="border-t border-hilda-border/10 px-3 pb-3 pt-1.5">
         <PlantCardStatusMenu plantId={plant.id} currentStatus={plant.status} />
       </div>
     </article>

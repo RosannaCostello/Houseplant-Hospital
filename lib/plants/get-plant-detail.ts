@@ -2,24 +2,12 @@ import type { PlantStatus } from "@/lib/plant-status";
 import { PLANT_STATUSES } from "@/lib/plant-status";
 import { signPhotoPaths } from "@/lib/photos/sign-photo-urls";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { visitPlantPositionFromOrderedIds } from "@/lib/visits/visit-plant-position";
 
 export type PlantDetailPhoto = {
   id: string;
   url: string;
   thumbnailUrl: string | null;
-  createdAt: string;
-};
-
-export type PlantDetailTreatmentNote = {
-  id: string;
-  content: string;
-  createdAt: string;
-  authorName: string | null;
-};
-
-export type PlantDetailCareTip = {
-  id: string;
-  content: string;
   createdAt: string;
 };
 
@@ -29,11 +17,13 @@ export type PlantDetail = {
   species: string | null;
   size: string;
   status: PlantStatus;
-  bugsFound: boolean;
+  bugsFound: boolean | null;
   finalPrice: number | null;
   collectedAt: string | null;
   checkedInAt: string;
   visitId: string;
+  visitPlantIndex: number;
+  visitPlantTotal: number;
   visitNotes: string | null;
   customer: {
     firstName: string;
@@ -42,8 +32,8 @@ export type PlantDetail = {
     phone: string | null;
   };
   photos: PlantDetailPhoto[];
-  treatmentNotes: PlantDetailTreatmentNote[];
-  careTips: PlantDetailCareTip[];
+  treatmentNote: string | null;
+  careTip: string | null;
 };
 
 type PlantPhotoRow = {
@@ -81,15 +71,10 @@ const PLANT_DETAIL_RELATIONS = `
         created_at
       ),
       treatment_notes (
-        id,
         content,
-        created_at,
-        profiles (
-          name
-        )
+        created_at
       ),
       care_tips (
-        id,
         content,
         created_at
       )
@@ -197,15 +182,12 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     plant_photos?: PlantPhotoRow[] | null;
     treatment_notes?:
       | Array<{
-          id: string;
           content: string;
           created_at: string;
-          profiles: { name: string | null } | Array<{ name: string | null }> | null;
         }>
       | null;
     care_tips?:
       | Array<{
-          id: string;
           content: string;
           created_at: string;
         }>
@@ -215,7 +197,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
   const visit = unwrapRelation(row.visits);
   const customer = visit ? unwrapRelation(visit.customers) : null;
 
-  if (!row.id || !row.size || !row.status || row.bugs_found == null || !visit || !customer) {
+  if (!row.id || !row.size || !row.status || !visit || !customer) {
     return null;
   }
 
@@ -253,26 +235,27 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     })
     .filter((photo): photo is PlantDetailPhoto => photo !== null);
 
-  const treatmentNotes: PlantDetailTreatmentNote[] = [...(row.treatment_notes ?? [])]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map((note) => {
-      const author = unwrapRelation(note.profiles);
+  const latestTreatmentNote = [...(row.treatment_notes ?? [])].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  )[0];
+  const latestCareTip = [...(row.care_tips ?? [])].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  )[0];
 
-      return {
-        id: note.id,
-        content: note.content,
-        createdAt: note.created_at,
-        authorName: author?.name ?? null,
-      };
-    });
+  const { data: visitPlants, error: visitPlantsError } = await supabase
+    .from("plants")
+    .select("id")
+    .eq("visit_id", visit.id)
+    .order("created_at", { ascending: true });
 
-  const careTips: PlantDetailCareTip[] = [...(row.care_tips ?? [])]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .map((tip) => ({
-      id: tip.id,
-      content: tip.content,
-      createdAt: tip.created_at,
-    }));
+  if (visitPlantsError) {
+    throw new Error(`Failed to load visit plants: ${visitPlantsError.message}`);
+  }
+
+  const visitPlantPosition = visitPlantPositionFromOrderedIds(
+    row.id,
+    (visitPlants ?? []).map((plant) => plant.id),
+  );
 
   return {
     id: row.id,
@@ -280,11 +263,13 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     species: row.species ?? null,
     size: row.size,
     status: row.status,
-    bugsFound: row.bugs_found,
+    bugsFound: row.bugs_found ?? null,
     finalPrice: row.final_price != null ? Number(row.final_price) : null,
     collectedAt: row.collected_at ?? null,
     checkedInAt: visit.checkin_date,
     visitId: visit.id,
+    visitPlantIndex: visitPlantPosition.index,
+    visitPlantTotal: visitPlantPosition.total,
     visitNotes: visit.notes,
     customer: {
       firstName: customer.first_name,
@@ -293,7 +278,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
       phone: customer.phone,
     },
     photos,
-    treatmentNotes,
-    careTips,
+    treatmentNote: latestTreatmentNote?.content ?? null,
+    careTip: latestCareTip?.content ?? null,
   };
 }

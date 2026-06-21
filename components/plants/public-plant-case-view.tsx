@@ -21,7 +21,7 @@ export function PublicPlantCaseView({ plant }: PublicPlantCaseViewProps) {
         ) : null}
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-none border border-zinc-200 bg-white shadow-sm">
         <div className="relative aspect-[4/3] w-full bg-zinc-100">
           {plant.photoUrl ? (
             <Image
@@ -39,7 +39,7 @@ export function PublicPlantCaseView({ plant }: PublicPlantCaseViewProps) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <section className="rounded-none border border-zinc-200 bg-white p-5 shadow-sm">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Status</p>
         <p className="mt-1 text-lg font-semibold text-zinc-900">{plant.statusLabel}</p>
         <p className="mt-2 text-sm leading-6 text-zinc-600">{plant.statusMessage}</p>

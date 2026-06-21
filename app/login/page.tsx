@@ -3,7 +3,9 @@
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { Button } from "@/components/ui/button";
 
 function LoginForm() {
   const router = useRouter();
@@ -38,9 +40,9 @@ function LoginForm() {
 
   if (configError) {
     return (
-      <p className="text-sm text-amber-700">
-        Supabase is not configured. Copy <code className="rounded bg-zinc-100 px-1">.env.example</code> to{" "}
-        <code className="rounded bg-zinc-100 px-1">.env.local</code> and add your project keys.
+      <p className="text-sm text-hilda-text">
+        Supabase is not configured. Copy <code className="rounded bg-hilda-bg px-1">.env.example</code> to{" "}
+        <code className="rounded bg-hilda-bg px-1">.env.local</code> and add your project keys.
       </p>
     );
   }
@@ -48,9 +50,9 @@ function LoginForm() {
   return (
     <form className="mt-6 space-y-4" onSubmit={onSubmit}>
       <label className="block">
-        <span className="text-sm font-medium text-zinc-700">Email</span>
+        <span className={hildaLabelClassName}>Email</span>
         <input
-          className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className={hildaInputClassName}
           type="email"
           inputMode="email"
           autoComplete="email"
@@ -61,9 +63,9 @@ function LoginForm() {
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium text-zinc-700">Password</span>
+        <span className={hildaLabelClassName}>Password</span>
         <input
-          className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 outline-none focus:border-zinc-400"
+          className={hildaInputClassName}
           type="password"
           autoComplete="current-password"
           required
@@ -72,27 +74,23 @@ function LoginForm() {
         />
       </label>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-      <button
-        className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
-        type="submit"
-        disabled={submitting}
-      >
+      <Button className="w-full" type="submit" size="lg" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-50 px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Staff login</h1>
-        <p className="mt-1 text-sm text-zinc-600">Houseplant Hospital</p>
+    <div className="flex flex-1 items-center justify-center px-6 py-12">
+      <div className="w-full max-w-sm rounded-none border border-hilda-border/15 bg-hilda-surface p-6 shadow-sm">
+        <h1 className="font-serif text-2xl font-normal text-hilda-heading">Staff login</h1>
+        <p className="mt-1 text-sm text-hilda-text-muted">Hilda Houseplant Hospital</p>
 
-        <Suspense fallback={<p className="mt-6 text-sm text-zinc-500">Loading…</p>}>
+        <Suspense fallback={<p className="mt-6 text-sm text-hilda-text-muted">Loading…</p>}>
           <LoginForm />
         </Suspense>
       </div>

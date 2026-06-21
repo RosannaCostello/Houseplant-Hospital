@@ -7,14 +7,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const setBugsFoundSchema = z.object({
   plantId: z.string().uuid(),
-  bugsFound: z.boolean(),
+  bugsFound: z.union([z.literal(true), z.literal(false), z.null()]),
 });
 
 export type SetBugsFoundActionResult = Awaited<ReturnType<typeof setBugsFoundWithClient>>;
 
 export async function setBugsFoundAction(
   plantId: string,
-  bugsFound: boolean,
+  bugsFound: boolean | null,
 ): Promise<SetBugsFoundActionResult> {
   const parsed = setBugsFoundSchema.safeParse({ plantId, bugsFound });
 

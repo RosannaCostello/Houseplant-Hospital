@@ -10,9 +10,15 @@ type PlantPhotoCaptureProps = {
   label: string;
   photo?: CheckInPlantPhoto;
   onPhotoChange: (photo: CheckInPlantPhoto | null) => void;
+  className?: string;
 };
 
-export function PlantPhotoCapture({ label, photo, onPhotoChange }: PlantPhotoCaptureProps) {
+export function PlantPhotoCapture({
+  label,
+  photo,
+  onPhotoChange,
+  className,
+}: PlantPhotoCaptureProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState(false);
@@ -47,49 +53,77 @@ export function PlantPhotoCapture({ label, photo, onPhotoChange }: PlantPhotoCap
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-base font-semibold text-zinc-900">{label}</h2>
-        {photo ? (
-          <button
-            type="button"
-            className="text-sm font-medium text-red-600 hover:text-red-700"
-            onClick={() => onPhotoChange(null)}
-            disabled={processing}
-          >
-            Remove
-          </button>
-        ) : null}
-      </div>
+    <section
+      className={cn(
+        "flex min-h-0 flex-1 flex-col rounded-none border border-zinc-200 bg-white p-3",
+        className,
+      )}
+    >
+      <div className="flex min-h-0 flex-1 flex-col gap-3 sm:flex-row sm:items-stretch">
+        <div
+          className={cn(
+            "relative min-h-0 w-full overflow-hidden rounded-none border border-dashed border-zinc-300 bg-zinc-50 sm:w-[44%] sm:shrink-0",
+            photo ? "border-solid border-zinc-200" : "",
+          )}
+        >
+          {photo ? (
+            <div className="aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full sm:max-h-[min(34dvh,12.5rem)]">
+              {/* eslint-disable-next-line @next/next/no-img-element -- preview of client-compressed data URL */}
+              <img src={photo.dataUrl} alt="" className="h-full w-full object-cover" />
+            </div>
+          ) : (
+            <div className="flex aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full flex-col items-center justify-center gap-1 px-3 text-center text-xs text-zinc-500 sm:max-h-[min(34dvh,12.5rem)]">
+              <span className="font-medium text-zinc-600">Photo required</span>
+              <span>Rear camera or library</span>
+            </div>
+          )}
+        </div>
 
-      <div
-        className={cn(
-          "mt-4 overflow-hidden rounded-xl border border-dashed border-zinc-300 bg-zinc-50",
-          photo ? "border-solid border-zinc-200" : "",
-        )}
-      >
-        {photo ? (
-          <div className="relative aspect-[4/3] w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element -- preview of client-compressed data URL */}
-            <img src={photo.dataUrl} alt="" className="h-full w-full object-cover" />
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="text-sm font-semibold leading-snug text-zinc-900">{label}</h2>
+            {photo ? (
+              <button
+                type="button"
+                className="shrink-0 text-xs font-medium text-red-600 hover:text-red-700"
+                onClick={() => onPhotoChange(null)}
+                disabled={processing}
+              >
+                Remove
+              </button>
+            ) : null}
           </div>
-        ) : (
-          <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 px-4 text-center text-sm text-zinc-500">
-            <span>Photo required</span>
-            <span className="text-xs">Use the rear camera on iPad or choose an existing image</span>
+
+          {photo ? (
+            <p className="text-xs text-zinc-500">
+              {formatImageByteSize(photo.byteSize)} · {photo.mimeType === "image/webp" ? "WebP" : "JPEG"}{" "}
+              · {photo.width}×{photo.height}
+            </p>
+          ) : null}
+
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              className="min-h-10 flex-1 sm:flex-none"
+              disabled={processing}
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              {processing ? "Processing…" : photo ? "Retake" : "Take photo"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10 flex-1 sm:flex-none"
+              disabled={processing}
+              onClick={() => libraryInputRef.current?.click()}
+            >
+              Library
+            </Button>
           </div>
-        )}
+        </div>
       </div>
-
-      {photo ? (
-        <p className="mt-2 text-xs text-zinc-500">
-          {formatImageByteSize(photo.byteSize)} · {photo.mimeType === "image/webp" ? "WebP" : "JPEG"} ·{" "}
-          {photo.width}×{photo.height}
-          {photo.byteSize > 500 * 1024 ? " · above 500KB target" : ""}
-        </p>
-      ) : null}
-
-      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
 
       <input
         ref={cameraInputRef}
@@ -112,28 +146,6 @@ export function PlantPhotoCapture({ label, photo, onPhotoChange }: PlantPhotoCap
           event.target.value = "";
         }}
       />
-
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Button
-          type="button"
-          size="lg"
-          className="w-full sm:w-auto"
-          disabled={processing}
-          onClick={() => cameraInputRef.current?.click()}
-        >
-          {processing ? "Processing…" : photo ? "Retake photo" : "Take photo"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full sm:w-auto"
-          disabled={processing}
-          onClick={() => libraryInputRef.current?.click()}
-        >
-          Choose from library
-        </Button>
-      </div>
     </section>
   );
 }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
+import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
+import { CustomerEmailField } from "@/components/check-in/customer-email-field";
 import { Button } from "@/components/ui/button";
 import {
   checkInCustomerSchema,
@@ -12,6 +14,8 @@ import {
 } from "@/lib/check-in/customer-schema";
 import { saveCheckInDraft, loadCheckInDraft } from "@/lib/check-in/draft";
 import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
+import type { CustomerSearchResult } from "@/lib/customers/search-customers";
+import { cn } from "@/lib/utils";
 
 import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
 const defaultValues: CheckInCustomerInput = {
@@ -19,7 +23,7 @@ const defaultValues: CheckInCustomerInput = {
   lastName: "",
   email: "",
   phone: "",
-  marketingConsent: false,
+  marketingConsent: true,
 };
 
 function toFormValues(customer: CheckInCustomer): CheckInCustomerInput {
@@ -47,6 +51,24 @@ export function CustomerStepForm() {
   function updateField<K extends keyof CheckInCustomerInput>(key: K, value: CheckInCustomerInput[K]) {
     setEditedValues((current) => ({ ...(current ?? formValues), [key]: value }));
     setFieldErrors((current) => ({ ...current, [key]: undefined }));
+    setFormError(null);
+  }
+
+  function applyCustomerMatch(customer: CustomerSearchResult) {
+    setEditedValues((current) => ({
+      ...(current ?? formValues),
+      email: customer.email,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      phone: customer.phone ?? "",
+    }));
+    setFieldErrors((current) => ({
+      ...current,
+      email: undefined,
+      firstName: undefined,
+      lastName: undefined,
+      phone: undefined,
+    }));
     setFormError(null);
   }
 
@@ -81,20 +103,45 @@ export function CustomerStepForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <CheckInStepHeader
-        step={1}
-        totalSteps={3}
-        title="Customer details"
-        description="Capture who dropped the plants off. Staff complete plant details on the next step."
-      />
+    <CheckInStepShell
+      header={
+        <CheckInStepHeader
+          step={1}
+          totalSteps={3}
+          title="Customer details"
+          description="Who dropped the plants off?"
+        />
+      }
+      status={formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+      footer={
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/app">Cancel</Link>
+          </Button>
+          <Button type="submit" form="check-in-customer-form" className="w-full sm:w-auto">
+            Continue to plants
+          </Button>
+        </div>
+      }
+    >
+      <form
+        id="check-in-customer-form"
+        className="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+        onSubmit={onSubmit}
+        noValidate
+      >
+        <CustomerEmailField
+          value={formValues.email}
+          error={fieldErrors.email}
+          onChange={(email) => updateField("email", email)}
+          onSelectCustomer={applyCustomerMatch}
+        />
 
-      <form className="mt-8 space-y-6" onSubmit={onSubmit} noValidate>
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className={checkInLabelClassName}>
             First name
             <input
-              className={checkInInputClassName}
+              className={cn(checkInInputClassName, "py-2.5")}
               type="text"
               name="firstName"
               autoComplete="given-name"
@@ -110,7 +157,7 @@ export function CustomerStepForm() {
           <label className={checkInLabelClassName}>
             Last name
             <input
-              className={checkInInputClassName}
+              className={cn(checkInInputClassName, "py-2.5")}
               type="text"
               name="lastName"
               autoComplete="family-name"
@@ -125,26 +172,9 @@ export function CustomerStepForm() {
         </div>
 
         <label className={checkInLabelClassName}>
-          Email
-          <input
-            className={checkInInputClassName}
-            type="email"
-            name="email"
-            inputMode="email"
-            autoComplete="email"
-            enterKeyHint="next"
-            value={formValues.email}
-            onChange={(event) => updateField("email", event.target.value)}
-          />
-          {fieldErrors.email ? (
-            <span className="mt-1 block text-sm text-red-600">{fieldErrors.email}</span>
-          ) : null}
-        </label>
-
-        <label className={checkInLabelClassName}>
           Phone <span className="font-normal text-zinc-500">(optional)</span>
           <input
-            className={checkInInputClassName}
+            className={cn(checkInInputClassName, "py-2.5")}
             type="tel"
             name="phone"
             inputMode="tel"
@@ -158,31 +188,22 @@ export function CustomerStepForm() {
           ) : null}
         </label>
 
-        <label className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+        <label className="flex items-start gap-2.5 rounded-none border border-zinc-200 bg-zinc-50 p-3">
           <input
-            className="mt-1 h-5 w-5 rounded border-zinc-300"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300"
             type="checkbox"
             name="marketingConsent"
             checked={formValues.marketingConsent}
             onChange={(event) => updateField("marketingConsent", event.target.checked)}
           />
-          <span className="text-sm leading-6 text-zinc-700">
-            Customer agrees to receive marketing emails from Hilda (newsletter, offers, and plant care
-            tips). Transactional Hospital updates are always sent regardless.
+          <span className="text-xs leading-snug text-zinc-700 sm:text-sm">
+            <span className="font-medium text-zinc-900">Marketing emails (pre-selected).</span> Customer
+            agrees to Hilda newsletter, offers, and plant care tips.{" "}
+            <span className="text-zinc-600">Deselect if they opt out.</span> Hospital treatment updates
+            are always sent regardless of this box.
           </span>
         </label>
-
-        {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
-
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
-            <Link href="/app">Cancel</Link>
-          </Button>
-          <Button type="submit" size="lg" className="w-full sm:w-auto">
-            Continue to plants
-          </Button>
-        </div>
       </form>
-    </div>
+    </CheckInStepShell>
   );
 }

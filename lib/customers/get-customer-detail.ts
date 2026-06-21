@@ -8,7 +8,7 @@ export type CustomerDetailPlant = {
   species: string | null;
   size: string;
   status: PlantStatus;
-  bugsFound: boolean;
+  bugsFound: boolean | null;
 };
 
 export type CustomerDetailVisit = {
@@ -90,7 +90,7 @@ export async function getCustomerDetail(customerId: string): Promise<CustomerDet
             species: string | null;
             size: string;
             status: string;
-            bugs_found: boolean;
+            bugs_found: boolean | null;
             created_at: string;
           }> | null;
         }>
@@ -116,7 +116,7 @@ export async function getCustomerDetail(customerId: string): Promise<CustomerDet
               species: plant.species,
               size: plant.size,
               status: plant.status,
-              bugsFound: plant.bugs_found,
+              bugsFound: plant.bugs_found ?? null,
             },
           ];
         });

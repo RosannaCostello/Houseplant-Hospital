@@ -1,7 +1,9 @@
 import { signPhotoPaths } from "@/lib/photos/sign-photo-urls";
+import { getQuarantineSinceByPlantIds } from "@/lib/dashboard/get-quarantine-since";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLANT_STATUSES, type PlantStatus } from "@/lib/plant-status";
 import type { DashboardPlant } from "@/lib/dashboard/types";
+import { buildVisitPlantPositions } from "@/lib/visits/visit-plant-position";
 
 type PlantPhotoRow = {
   storage_path: string;
@@ -11,11 +13,12 @@ type PlantPhotoRow = {
 
 type DashboardPlantRow = {
   id: string;
+  visit_id: string;
   name: string | null;
   species: string | null;
   size: string;
   status: string;
-  bugs_found: boolean;
+  bugs_found: boolean | null;
   created_at: string;
   visits: {
     checkin_date: string;
@@ -36,6 +39,7 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
 
   const row = raw as {
     id?: string;
+    visit_id?: string;
     name?: string | null;
     species?: string | null;
     size?: string;
@@ -57,17 +61,18 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
   const visit = unwrapRelation(row.visits);
   const customer = visit ? unwrapRelation(visit.customers) : null;
 
-  if (!row.id || !row.size || !row.status || row.bugs_found == null || !visit || !customer) {
+  if (!row.id || !row.visit_id || !row.size || !row.status || !visit || !customer) {
     return null;
   }
 
   return {
     id: row.id,
+    visit_id: row.visit_id,
     name: row.name ?? null,
     species: row.species ?? null,
     size: row.size,
     status: row.status,
-    bugs_found: row.bugs_found,
+    bugs_found: row.bugs_found ?? null,
     created_at: row.created_at ?? visit.checkin_date,
     visits: {
       checkin_date: visit.checkin_date,
@@ -99,6 +104,7 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     .select(
       `
       id,
+      visit_id,
       name,
       species,
       size,
@@ -127,6 +133,14 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
   const rows = (data ?? [])
     .map(parseDashboardPlantRow)
     .filter((row): row is DashboardPlantRow => row !== null);
+
+  const visitPlantPositions = buildVisitPlantPositions(rows);
+
+  const quarantinePlantIds = rows
+    .filter((row) => row.status === "quarantine")
+    .map((row) => row.id);
+  const quarantineSinceByPlantId = await getQuarantineSinceByPlantIds(supabase, quarantinePlantIds);
+
   const photoPaths = [
     ...new Set(
       rows
@@ -143,6 +157,7 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     if (!isPlantStatus(row.status)) continue;
 
     const photoPath = latestPhotoPath(row.plant_photos);
+    const position = visitPlantPositions.get(row.id) ?? { index: 1, total: 1 };
 
     plants.push({
       id: row.id,
@@ -151,8 +166,12 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       name: row.name,
       species: row.species,
       size: row.size,
-      bugsFound: row.bugs_found,
+      bugsFound: row.bugs_found ?? null,
       checkedInAt: row.visits.checkin_date,
+      quarantineSince:
+        row.status === "quarantine" ? (quarantineSinceByPlantId.get(row.id) ?? null) : null,
+      visitPlantIndex: position.index,
+      visitPlantTotal: position.total,
       thumbnailUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
     });
   }

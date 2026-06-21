@@ -84,6 +84,8 @@ Migrations live in `supabase/migrations/`. Apply in order via Supabase SQL edito
 5. `0008_storage_staff_only.sql` — plant photo access staff-only
 6. `0009_shopify_pricing_hil52.sql` — Shopify variant mapping columns (HIL-52)
 7. `0010_pricing_rules_dedupe.sql` — one active base_price row per size
+8. `0011_bugs_found_nullable.sql` — **required** for check-in (`bugs_found` null = not yet assessed)
+9. `0012_single_plant_notes.sql` — **required** for autosave treatment notes / care tips (one row per plant)
 
 Then run `supabase/seed.sql` for dev pricing rules.
 

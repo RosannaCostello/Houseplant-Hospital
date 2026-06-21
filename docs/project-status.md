@@ -2,12 +2,12 @@
 
 Living summary of what’s shipped and what’s next. Update this at the end of significant sessions.
 
-**Last updated:** 18 June 2026  
+**Last updated:** 20 June 2026  
 **Live:** https://houseplanthospital.hildaedinburgh.workers.dev  
-**Supabase:** `hh-dev` (migrations through `0010`)  
-**Latest deploy:** HIL-55 — check-in → Mailchimp audience sync verified live
+**Supabase:** `hh-dev` (migrations through **0012** — apply manually)  
+**Pending release:** local uncommitted UX work + fixes below (not yet deployed)
 
-Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md) · [code-review.md](./code-review.md) · [Scope](../Houseplant-Hospital-2.0-Scope.md)
+Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md) · [brand-tokens.md](./brand-tokens.md) · [code-review.md](./code-review.md) · [Scope](../Houseplant-Hospital-2.0-Scope.md)
 
 ---
 
@@ -20,14 +20,14 @@ Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md)
 | 3 — Workflow and pricing | **Complete** | HIL-50 verified (iPad + Mac) |
 | **Shopify pricing (HIL-52)** | **Complete** (live) | Sync standard + pests from Shopify |
 | 4 — Label printing | **Not started** | Needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12) (printer at store) |
-| 5 — Mailchimp | **Nearly complete** — HIL-53–58 **done**; check-in journey verified live; HIL-60 sign-off remaining | HIL-59–60 |
-| 6 — Polish and go-live | **Not started** | — |
+| 5 — Mailchimp | **Complete** — HIL-53–60 done | HIL-59 optional |
+| 6 — Polish and go-live | **In progress** — [HIL-61](https://linear.app/hilda-houseplant-hospital/issue/HIL-61), [HIL-63](https://linear.app/hilda-houseplant-hospital/issue/HIL-63) in progress | HIL-62–68 |
 
 **Tech debt (HIL-51):** Critical + priority + second-batch items **done**. Nice-to-haves remain in [code-review.md](./code-review.md).
 
 ---
 
-## What’s live today
+## What’s live today (deployed ~HIL-57)
 
 Staff can:
 
@@ -35,31 +35,40 @@ Staff can:
 - Run full **check-in** (customer → plants → photos) on iPad
 - View plant / visit / customer detail pages and search customers
 - Move plants between lanes; changes write to `status_history`
-- Add treatment notes and care tips
-- Toggle **bugs found** (pests price from Shopify when configured; no % fallback)
+- Toggle **bugs found** (pests price from Shopify when configured)
 - **Shopify pricing sync** in Settings (standard + pests products; Mini → XS)
-- See **pricing summary** on plant detail (with fallback if config fails)
-- **Collect** plants with final price (> £0 guard)
+- See **pricing summary** on plant detail
 - Open public **QR case page** at `/hh/case/[plantId]` (no login)
 - Manage size-band pricing in **Settings** (admin only)
 
 ---
 
-## Phase 3 deliverables (HIL-40–50)
+## Pending release (local — not deployed yet)
 
-| Area | Notes |
-|------|--------|
-| Status moves | Kanban select + server action; inline errors; select resets on failure |
-| `status_history` | Every status change + initial row at check-in |
-| Treatment notes / care tips | Plant detail sections |
-| Bugs toggle | `pricing_adjustments` + dashboard warning |
-| Pricing engine | `pricing_rules` + `lib/pricing/`; admin settings UI |
-| Collection | `final_price`, `collected_at`; form hidden when collected |
-| HIL-51 hardening | RLS `0007`/`0008`, safe login redirect, check-in server path, draft validation, customer email guard, UUID 404s, storage rollback on failed check-in |
+Includes check-in UX refinements, plant detail redesign, nullable bugs-found, autosave notes/tips, partial Hilda brand styling, and code-review fixes:
+
+| Fix | Area |
+|-----|------|
+| Check-in rollback on partial plant failure | `create-check-in-records.ts` |
+| Autosave notes survive page refresh while typing | `plant-autosave-textarea.tsx` |
+| Notes/tips upsert on `plant_id` (needs **0012**) | `save-treatment-note.ts`, `save-care-tip.ts` |
+| Mailchimp outbox row claiming (`processing` status) | `process-outbox.ts` |
+| Photos step: tab-close warning + draft notice | `photos-step-form.tsx` |
+| Marketing consent: clearer pre-selected copy | `customer-step-form.tsx` |
+
+**Migrations required before deploy:** `0011_bugs_found_nullable.sql`, `0012_single_plant_notes.sql`
 
 ---
 
-## Migrations applied (`hh-dev`)
+## Collection / pricing (product direction — not in this release)
+
+Price at collection will be the **calculated treatment total** (size band + bugs adjustment when answered) **locked when status becomes Collected**. A separate editable “final price” field is not the long-term model.
+
+Future refinement: pre-move prompts on kanban (e.g. confirm price before Collected). Not implemented yet.
+
+---
+
+## Migrations (`hh-dev`)
 
 | Migration | Purpose |
 |-----------|---------|
@@ -71,6 +80,8 @@ Staff can:
 | `0008` | Storage staff-only |
 | `0009` | Shopify variant columns + pests_amount |
 | `0010` | Dedupe active base_price rows per size |
+| **`0011`** | Nullable `bugs_found` (unset / yes / no) |
+| **`0012`** | One treatment note + one care tip per plant |
 
 ---
 
@@ -85,20 +96,15 @@ Staff can:
 
 ## Next session
 
-1. **Phase 5** — [HIL-58](https://linear.app/hilda-houseplant-hospital/issue/HIL-58) configure Mailchimp journeys; then HIL-60 verification
-2. **Phase 4** — label printing (at Hilda store; needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12))
-
-Start with Phase 5 if working remotely, or Phase 4 + HIL-12 if at the store with the printer.
+1. **Deploy pending release** — commit, apply 0011/0012 on target Supabase, deploy to Cloudflare, verify cron secret
+2. **Phase 6** — [HIL-63](https://linear.app/hilda-houseplant-hospital/issue/HIL-63) complete brand tokens on check-in + plant detail
+3. **Phase 4** — label printing (needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12))
 
 ---
 
-## Recent commits (newest first)
+## Deploy checklist (before each production/preview push)
 
-```
-70b6601 HIL-52: sync base and pests treatment prices from Shopify
-eaaba14 HIL-51: harden check-in, collection, kanban, and detail routes
-842d665 HIL-51: critical security + workflow hardening
-d855f26 Fix collection price not updating when bugs toggle changes estimate
-16ac635 Fix plant detail crash when collection migration is not applied
-384ec24 HIL-45–49: Phase 3 pricing engine, summary, admin settings, and collection
-```
+1. Apply any new SQL in `supabase/migrations/` on the target Supabase project (see [SETUP.md](./SETUP.md))
+2. Confirm Cloudflare Worker **`CRON_SECRET`** is set (`wrangler secret put CRON_SECRET`) — see [DEPLOY.md](./DEPLOY.md)
+3. Run `npx wrangler tail houseplanthospital` after deploy; at `:00/:05` expect `[cron] /api/cron/mailchimp-outbox ok`
+4. Smoke-test iPad check-in (3 plants) and plant detail (bugs + autosave notes)

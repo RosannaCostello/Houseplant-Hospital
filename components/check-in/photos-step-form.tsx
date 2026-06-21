@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createCheckInRecords, rollbackCheckIn } from "@/app/actions/complete-check-in";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
+import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
+import { PlantStepPager } from "@/components/check-in/plant-step-pager";
 import { Button } from "@/components/ui/button";
 import { saveCheckInDraft, clearCheckInDraft } from "@/lib/check-in/draft";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
@@ -17,6 +19,20 @@ function photosByPlantId(photos: CheckInPlantPhoto[] | undefined): Map<string, C
   return new Map((photos ?? []).map((photo) => [photo.plantClientId, photo]));
 }
 
+function nextPlantIndexWithoutPhoto(
+  plants: { clientId: string }[],
+  photos: Map<string, CheckInPlantPhoto>,
+  afterIndex: number,
+): number | null {
+  for (let index = afterIndex + 1; index < plants.length; index += 1) {
+    if (!photos.has(plants[index].clientId)) {
+      return index;
+    }
+  }
+
+  return null;
+}
+
 export function PhotosStepForm() {
   const router = useRouter();
   const draft = useCheckInDraft();
@@ -25,11 +41,26 @@ export function PhotosStepForm() {
 
   const draftPhotoMap = useMemo(() => photosByPlantId(draft?.photos), [draft?.photos]);
   const [editedPhotos, setEditedPhotos] = useState<Map<string, CheckInPlantPhoto> | null>(null);
+  const [activePlantIndex, setActivePlantIndex] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<string | null>(null);
 
   const displayPhotos = editedPhotos ?? draftPhotoMap;
+
+  useEffect(() => {
+    if (submitting || displayPhotos.size === 0) {
+      return;
+    }
+
+    function onBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [displayPhotos.size, submitting]);
 
   if (!customer) {
     return (
@@ -55,6 +86,8 @@ export function PhotosStepForm() {
     );
   }
 
+  const activePlant = plants[Math.min(activePlantIndex, plants.length - 1)];
+
   function persistPhotos(next: Map<string, CheckInPlantPhoto>) {
     if (!customer) return;
 
@@ -65,7 +98,7 @@ export function PhotosStepForm() {
     });
   }
 
-  function updatePhoto(plantClientId: string, photo: CheckInPlantPhoto | null) {
+  function updatePhoto(plantClientId: string, photo: CheckInPlantPhoto | null, plantIndex: number) {
     setFormError(null);
 
     setEditedPhotos((current) => {
@@ -78,6 +111,14 @@ export function PhotosStepForm() {
       }
 
       persistPhotos(next);
+
+      if (photo) {
+        const nextIndex = nextPlantIndexWithoutPhoto(plants, next, plantIndex);
+        if (nextIndex !== null) {
+          setActivePlantIndex(nextIndex);
+        }
+      }
+
       return next;
     });
   }
@@ -89,6 +130,11 @@ export function PhotosStepForm() {
     const missing = plants.filter((plant) => !displayPhotos.has(plant.clientId));
 
     if (missing.length > 0) {
+      const firstMissing = plants.findIndex((plant) => !displayPhotos.has(plant.clientId));
+      if (firstMissing >= 0) {
+        setActivePlantIndex(firstMissing);
+      }
+
       setFormError(`Add a photo for each plant (${missing.length} remaining).`);
       return;
     }
@@ -171,38 +217,59 @@ export function PhotosStepForm() {
   const buttonLabel = submitStatus ?? (submitting ? "Working…" : "Complete check-in");
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <CheckInStepHeader
-        step={3}
-        totalSteps={3}
-        title="Photos"
-        description="Take one photo per plant. Images are compressed and stripped of location metadata before upload."
-      />
-
-      <form className="mt-8 space-y-6" onSubmit={onComplete} noValidate>
-        <div className="space-y-4">
-          {plants.map((plant, index) => (
-            <PlantPhotoCapture
-              key={plant.clientId}
-              label={checkInPlantLabel(plant, index)}
-              photo={displayPhotos.get(plant.clientId)}
-              onPhotoChange={(photo) => updatePhoto(plant.clientId, photo)}
-            />
-          ))}
-        </div>
-
-        {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
-        {submitStatus ? <p className="text-sm text-zinc-600">{submitStatus}</p> : null}
-
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto" disabled={submitting}>
+    <CheckInStepShell
+      maxWidth="3xl"
+      header={
+        <CheckInStepHeader
+          step={3}
+          totalSteps={3}
+          title="Photos"
+          description="One photo per plant. Images are compressed before upload."
+        />
+      }
+      status={
+        <>
+          {displayPhotos.size > 0 && !submitting ? (
+            <p className="text-xs text-zinc-500">
+              Photos are saved in this browser tab only — closing the tab or refreshing loses them.
+              Complete check-in to save permanently.
+            </p>
+          ) : null}
+          {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+          {submitStatus ? <p className="text-sm text-zinc-600">{submitStatus}</p> : null}
+        </>
+      }
+      footer={
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Button asChild variant="outline" className="w-full sm:w-auto" disabled={submitting}>
             <Link href="/app/check-in/plants">Back to plants</Link>
           </Button>
-          <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={submitting}>
+          <Button type="submit" form="check-in-photos-form" className="w-full sm:w-auto" disabled={submitting}>
             {buttonLabel}
           </Button>
         </div>
+      }
+    >
+      <form
+        id="check-in-photos-form"
+        className="flex min-h-0 flex-1 flex-col gap-3"
+        onSubmit={onComplete}
+        noValidate
+      >
+        <PlantStepPager
+          total={plants.length}
+          currentIndex={activePlantIndex}
+          onIndexChange={setActivePlantIndex}
+          isComplete={(index) => displayPhotos.has(plants[index].clientId)}
+        />
+
+        <PlantPhotoCapture
+          key={activePlant.clientId}
+          label={checkInPlantLabel(activePlant, activePlantIndex)}
+          photo={displayPhotos.get(activePlant.clientId)}
+          onPhotoChange={(photo) => updatePhoto(activePlant.clientId, photo, activePlantIndex)}
+        />
       </form>
-    </div>
+    </CheckInStepShell>
   );
 }

@@ -114,6 +114,23 @@ function resolveOccurredAt(row: MailchimpEventRow): string | undefined {
   return formatMailchimpOccurredAt(row.payload?.occurredAt ?? row.created_at);
 }
 
+async function claimEventRow(eventId: string): Promise<MailchimpEventRow | null> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("mailchimp_events")
+    .update({ status: "processing" })
+    .eq("id", eventId)
+    .eq("status", "pending")
+    .select("id, customer_id, plant_id, event_name, payload, status, created_at")
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as MailchimpEventRow;
+}
+
 async function markEventSent(eventId: string): Promise<void> {
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase
@@ -123,7 +140,7 @@ async function markEventSent(eventId: string): Promise<void> {
       sent_at: new Date().toISOString(),
     })
     .eq("id", eventId)
-    .eq("status", "pending");
+    .eq("status", "processing");
 
   if (error) {
     throw new Error(`Could not mark event ${eventId} as sent: ${error.message}`);
@@ -148,7 +165,7 @@ async function markEventFailed(
       payload,
     })
     .eq("id", row.id)
-    .eq("status", "pending");
+    .eq("status", "processing");
 }
 
 async function sendEventWithRetry(
@@ -184,31 +201,40 @@ async function sendEventWithRetry(
   throw new Error(message);
 }
 
-async function processEventRow(
-  row: MailchimpEventRow,
-): Promise<{ success: true } | { success: false; error: string }> {
-  if (!isMailchimpEventName(row.event_name)) {
-    return { success: false, error: `Unknown event name: ${row.event_name}` };
+type ProcessEventRowResult =
+  | { success: true }
+  | { success: false; error: string; skipped?: boolean };
+
+async function processEventRow(row: MailchimpEventRow): Promise<ProcessEventRowResult> {
+  const claimed = await claimEventRow(row.id);
+  if (!claimed) {
+    return { success: false, error: "Already claimed", skipped: true };
   }
 
-  const email = await resolveEmailForEvent(row);
+  if (!isMailchimpEventName(claimed.event_name)) {
+    await markEventFailed(claimed, `Unknown event name: ${claimed.event_name}`);
+    return { success: false, error: `Unknown event name: ${claimed.event_name}` };
+  }
+
+  const email = await resolveEmailForEvent(claimed);
   if (!email) {
+    await markEventFailed(claimed, "Could not resolve contact email for event");
     return { success: false, error: "Could not resolve contact email for event" };
   }
 
   try {
-    await ensureAudienceMember(row, email);
+    await ensureAudienceMember(claimed, email);
     await sendEventWithRetry(
       email,
-      row.event_name,
-      row.payload ?? {},
-      resolveOccurredAt(row),
+      claimed.event_name,
+      claimed.payload ?? {},
+      resolveOccurredAt(claimed),
     );
-    await markEventSent(row.id);
+    await markEventSent(claimed.id);
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Mailchimp event delivery failed";
-    await markEventFailed(row, message);
+    await markEventFailed(claimed, message);
     return { success: false, error: message };
   }
 }
@@ -262,6 +288,10 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
 
   for (const row of rows) {
     const result = await processEventRow(row);
+
+    if ("skipped" in result && result.skipped) {
+      continue;
+    }
 
     if (result.success) {
       sent += 1;

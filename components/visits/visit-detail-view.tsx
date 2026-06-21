@@ -1,3 +1,4 @@
+import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPlantAge } from "@/lib/format-plant-age";
@@ -25,9 +26,9 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
   return (
     <Link
       href={`/app/plants/${plant.id}`}
-      className="flex gap-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+      className="flex gap-4 rounded-none border border-zinc-200 bg-white p-3 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50"
     >
-      <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-lg border border-zinc-100 bg-zinc-100">
+      <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-none border border-zinc-100 bg-zinc-100">
         {plant.thumbnailUrl ? (
           <Image
             src={plant.thumbnailUrl}
@@ -43,9 +44,7 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
           </div>
         )}
         {plant.bugsFound ? (
-          <span className="absolute right-1 top-1 rounded bg-orange-500 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-            Bugs
-          </span>
+          <BugsFoundBadge className="right-1 top-1 bg-orange-500" iconClassName="h-3 w-3" />
         ) : null}
       </div>
 
@@ -85,7 +84,7 @@ export function VisitDetailView({ visit }: VisitDetailViewProps) {
         </p>
       </div>
 
-      <dl className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+      <dl className="grid gap-4 rounded-none border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-2">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">Customer</dt>
           <dd className="mt-1 text-sm text-zinc-900">
@@ -136,7 +135,7 @@ export function VisitDetailView({ visit }: VisitDetailViewProps) {
             ))}
           </ul>
         ) : (
-          <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
+          <p className="rounded-none border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
             No plants linked to this visit.
           </p>
         )}

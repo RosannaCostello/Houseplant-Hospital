@@ -2,28 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { addCareTipWithClient } from "@/lib/plants/add-care-tip";
+import { saveCareTipWithClient } from "@/lib/plants/save-care-tip";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const addCareTipSchema = z.object({
+const saveCareTipSchema = z.object({
   plantId: z.string().uuid(),
   content: z.string(),
 });
 
-export type AddCareTipActionResult = Awaited<ReturnType<typeof addCareTipWithClient>>;
+export type SaveCareTipActionResult = Awaited<ReturnType<typeof saveCareTipWithClient>>;
 
-export async function addCareTipAction(
+export async function saveCareTipAction(
   plantId: string,
   content: string,
-): Promise<AddCareTipActionResult> {
-  const parsed = addCareTipSchema.safeParse({ plantId, content });
+): Promise<SaveCareTipActionResult> {
+  const parsed = saveCareTipSchema.safeParse({ plantId, content });
 
   if (!parsed.success) {
     return { success: false, error: "Invalid plant or care tip." };
   }
 
   const supabase = await createSupabaseServerClient();
-  const result = await addCareTipWithClient(supabase, parsed.data.plantId, parsed.data.content);
+  const result = await saveCareTipWithClient(supabase, parsed.data.plantId, parsed.data.content);
 
   if (result.success) {
     revalidatePath(`/app/plants/${parsed.data.plantId}`);

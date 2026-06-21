@@ -7,13 +7,13 @@ type CheckInStepHeaderProps = {
 
 export function CheckInStepHeader({ step, totalSteps, title, description }: CheckInStepHeaderProps) {
   return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-zinc-500">
+    <div className="space-y-1">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
         Step {step} of {totalSteps}
       </p>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">{title}</h1>
-        <p className="mt-2 text-base text-zinc-600">{description}</p>
+        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">{title}</h1>
+        <p className="mt-1 text-sm leading-snug text-zinc-600">{description}</p>
       </div>
     </div>
   );

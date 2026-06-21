@@ -103,6 +103,8 @@ export async function createCheckInRecordsWithClient(
 
   const { customer, plants } = input;
 
+  let visitId: string | null = null;
+
   try {
     const customerResult = await resolveCheckInCustomerId(supabase, customer);
 
@@ -124,6 +126,8 @@ export async function createCheckInRecordsWithClient(
       throw new Error(visitError?.message ?? "Could not create visit");
     }
 
+    visitId = visitRow.id;
+
     const createdPlants: Array<{ clientId: string; plantId: string }> = [];
 
     for (const plant of plants) {
@@ -135,6 +139,7 @@ export async function createCheckInRecordsWithClient(
           species: plant.species.trim() || null,
           size: plant.size,
           status: "check_in",
+          bugs_found: null,
         })
         .select("id")
         .single();
@@ -167,6 +172,20 @@ export async function createCheckInRecordsWithClient(
 
     return { success: true, visitId: visitRow.id, plants: createdPlants };
   } catch (error) {
+    if (visitId) {
+      try {
+        await rollbackCheckInWithClient(supabase, visitId);
+      } catch (rollbackError) {
+        const rollbackMessage =
+          rollbackError instanceof Error ? rollbackError.message : "Could not roll back visit";
+        const message = error instanceof Error ? error.message : "Check-in failed";
+        return {
+          success: false,
+          error: `${message} (rollback also failed: ${rollbackMessage})`,
+        };
+      }
+    }
+
     const message = error instanceof Error ? error.message : "Check-in failed";
     return { success: false, error: message };
   }

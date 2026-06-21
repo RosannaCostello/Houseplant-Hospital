@@ -33,6 +33,39 @@ function buildSearchFilter(query: string): string | null {
   return filters.join(",");
 }
 
+const EMAIL_AUTOCOMPLETE_MIN_LENGTH = 4;
+const EMAIL_AUTOCOMPLETE_LIMIT = 8;
+
+export async function searchCustomersByEmail(emailQuery: string): Promise<CustomerSearchResult[]> {
+  const trimmed = emailQuery.trim();
+
+  if (trimmed.length < EMAIL_AUTOCOMPLETE_MIN_LENGTH) {
+    return [];
+  }
+
+  const pattern = `${escapeIlike(trimmed)}%`;
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, first_name, last_name, email, phone")
+    .ilike("email", pattern)
+    .order("email", { ascending: true })
+    .limit(EMAIL_AUTOCOMPLETE_LIMIT);
+
+  if (error) {
+    throw new Error(`Failed to search customers by email: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    phone: row.phone,
+  }));
+}
+
 export async function searchCustomers(query: string): Promise<CustomerSearchResult[]> {
   const filter = buildSearchFilter(query);
 

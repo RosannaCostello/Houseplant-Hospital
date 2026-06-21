@@ -136,7 +136,8 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 5.5 | HIL-57 | Worker: process outbox → Mailchimp API (retry + status) | `phase-5`, `mailchimp` | HIL-56 | **Done** |
 | 5.6 | HIL-58 | Jack: configure Mailchimp journeys in Mailchimp UI | `phase-5`, `mailchimp` | Jack (parallel) | **Done** |
 | 5.7 | HIL-59 | Admin view: failed / pending Mailchimp events (optional) | `phase-5`, `mailchimp` | HIL-57 |
-| 5.8 | HIL-60 | **Phase 5 verification:** test audience journey fires | `phase-5`, `mailchimp` | HIL-55, HIL-57, HIL-58 |
+| 5.8 | HIL-60 | **Phase 5 verification:** test audience journey fires | `phase-5`, `mailchimp` | HIL-55, HIL-57, HIL-58 | **Done** |
+| — | HIL-69 | Define full Mailchimp event payload + expose variables (price, size, notes, etc.) | `phase-5`, `mailchimp` | HIL-57 |
 
 ---
 
@@ -147,14 +148,31 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
-| 6.1 | | Brand audit: extract tokens from hilda.co | `phase-6`, `brand` | S6 |
-| 6.2 | | Apply Hilda design tokens across all screens | `phase-6`, `brand` | 6.1 |
-| 6.3 | | PWA manifest + icons + iPad install instructions | `phase-6` | 6.2 |
-| 6.4 | | Performance: kanban + signed image URLs tuned | `phase-6`, `dashboard` | 2.3 |
-| 6.5 | | Supabase Pro + `hh-prod` + production env on Cloudflare | `phase-6`, `infra` | 1.12 |
-| 6.6 | | Cutover runbook: parallel Zoho → training → disable Zoho | `phase-6` | 6.5 |
-| 6.7 | | Production monitoring checklist (auth, storage, queues) | `phase-6`, `infra` | 6.5 |
-| 6.8 | | **Phase 6 verification:** go-live sign-off | `phase-6` | 6.3–6.7 |
+| — | HIL-10 | Gather brand assets (logo, label refs) | `phase-6`, `brand` | Jack (setup) |
+| 6.1 | HIL-61 | Brand audit: extract tokens from hilda.co | `phase-6`, `brand` | HIL-10 | **In progress** |
+| 6.2 | HIL-63 | Apply Hilda design tokens across all screens | `phase-6`, `brand` | HIL-61 | **In progress** |
+| 6.3 | HIL-64 | PWA manifest + icons + iPad install instructions | `phase-6` | HIL-63, HIL-10 |
+| 6.4 | HIL-62 | Performance: kanban + signed image URLs tuned | `phase-6`, `dashboard` | — |
+| 6.5 | HIL-65 | Supabase Pro + `hh-prod` + production env on Cloudflare | `phase-6`, `infra` | — |
+| 6.6 | HIL-66 | Cutover runbook: parallel Zoho → training → disable Zoho | `phase-6` | HIL-65 |
+| 6.7 | HIL-67 | Production monitoring checklist (auth, storage, queues) | `phase-6`, `infra` | HIL-65 |
+| 6.8 | HIL-68 | **Phase 6 verification:** go-live sign-off | `phase-6` | HIL-64, HIL-62, HIL-66, HIL-67 |
+
+---
+
+## Post go-live — Staff PIN lock (shared iPad)
+
+**Epic:** [HIL-70](https://linear.app/hilda-houseplant-hospital/issue/HIL-70)  
+**Exit:** Shared iPad stays Supabase-signed-in; staff unlock with 4-digit PIN; auto-lock after 60s idle. Admin `/login` unchanged.
+
+| # | Linear ID | Title | Labels | Blocked by |
+|---|-----------|-------|--------|------------|
+| — | HIL-70 | Staff PIN lock — shared iPad access (epic) | `phase-6`, `auth` | — |
+| P1 | HIL-71 | Staff PIN — schema, hashed storage, verify API | `phase-6`, `auth` | HIL-70 |
+| P2 | HIL-72 | Admin settings — staff roster + PIN assignment | `phase-6`, `auth` | HIL-71 |
+| P3 | HIL-73 | Lock screen UI — PIN overlay on app shell | `phase-6`, `auth` | HIL-71 |
+| P4 | HIL-74 | Idle auto-lock (60s) + staff PIN verification | `phase-6`, `auth` | HIL-73 |
+| P5 | HIL-75 | Wire acting staff into audit trail on all mutations | `phase-6`, `auth` | HIL-71, HIL-73 |
 
 ---
 
@@ -180,6 +198,7 @@ You may group phases as **parent** issues:
 | Phase 3 — Workflow and pricing | 3.1–3.11 |
 | Phase 4 — Label printing | 4.1–4.8 |
 | Phase 5 — Mailchimp | 5.1–5.8 |
-| Phase 6 — Polish and go-live | 6.1–6.8 |
+| Phase 6 — Polish and go-live | HIL-10, HIL-61–68 |
+| Post go-live — Staff PIN lock | HIL-70–75 |
 
 Setup tasks **S1–S8** stay top-level (no parent).

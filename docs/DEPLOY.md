@@ -50,6 +50,22 @@ grep '^CRON_SECRET=' .env.local | cut -d= -f2- | xargs | npx wrangler secret put
 
 Verify: `npx wrangler tail houseplanthospital` — at each `:00/:05/...` you should see `[cron] /api/cron/mailchimp-outbox ok: ...`, not `CRON_SECRET not set`.
 
+## Post-deploy cron verification
+
+If Mailchimp journeys stop firing or Shopify prices go stale, cron is the first thing to check:
+
+1. **Worker secret:** `npx wrangler secret list` should include `CRON_SECRET`. If missing, Mailchimp outbox and Shopify sync never run (`[cron] CRON_SECRET not set` in tail logs).
+2. **HTTP cron routes:** `GET /api/cron/mailchimp-outbox` and `GET /api/cron/shopify-pricing` require `Authorization: Bearer <CRON_SECRET>`.
+3. **Schedule:** `wrangler.jsonc` — Mailchimp every 5 minutes, Shopify daily at 06:00 UTC.
+4. **Manual test:**
+
+```bash
+curl -s -H "Authorization: Bearer $CRON_SECRET" \
+  "https://houseplanthospital.hildaedinburgh.workers.dev/api/cron/mailchimp-outbox"
+```
+
+Expect JSON with `success: true` and `sent` / `processed` counts (or `skipped` when `MAILCHIMP_OUTBOX_ONLY` is set).
+
 ## Local preview
 
 ```bash
@@ -68,4 +84,5 @@ npx npm@10.9.2 install
 ## Notes
 
 - Do not commit `.env.local` or `.dev.vars` — use Cloudflare env vars per environment.
+- Apply Supabase migrations **0011** and **0012** before deploying builds that use nullable bugs-found or autosave notes (see [SETUP.md](./SETUP.md)).
 - Production Supabase (`hh-prod`) is Phase 6; use `hh-dev` for previews until go-live.

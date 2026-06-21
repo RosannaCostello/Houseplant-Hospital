@@ -6,5 +6,9 @@ import { getDashboardPlants } from "@/lib/dashboard/get-dashboard-plants";
 export default async function AppHome() {
   const plants = await getDashboardPlants();
 
-  return <KanbanBoard plants={plants} />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <KanbanBoard plants={plants} />
+    </div>
+  );
 }

@@ -8,7 +8,10 @@ export type DashboardPlant = {
   name: string | null;
   species: string | null;
   size: string;
-  bugsFound: boolean;
+  bugsFound: boolean | null;
   checkedInAt: string;
+  quarantineSince: string | null;
+  visitPlantIndex: number;
+  visitPlantTotal: number;
   thumbnailUrl?: string | null;
 };

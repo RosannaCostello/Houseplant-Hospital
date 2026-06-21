@@ -15,7 +15,7 @@ function CustomerResultRow({ customer }: { customer: CustomerSearchResult }) {
   return (
     <Link
       href={`/app/customers/${customer.id}`}
-      className="block rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+      className="block rounded-none border border-zinc-200 bg-white p-4 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50"
     >
       <p className="text-sm font-semibold text-zinc-900">
         {customer.firstName} {customer.lastName}
@@ -85,7 +85,7 @@ export function CustomerSearchView({ initialQuery, results }: CustomerSearchView
       </label>
 
       {!hasQuery ? (
-        <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
+        <p className="rounded-none border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
           Start typing to search customers.
         </p>
       ) : results.length > 0 ? (
@@ -97,7 +97,7 @@ export function CustomerSearchView({ initialQuery, results }: CustomerSearchView
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
+        <p className="rounded-none border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
           No customers match &ldquo;{initialQuery.trim()}&rdquo;.
         </p>
       )}

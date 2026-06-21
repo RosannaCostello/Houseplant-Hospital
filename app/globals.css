@@ -1,26 +1,80 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Hilda — extracted from hilda.co (Jun 2026) */
+  --hilda-bg: #f1f1f1;
+  --hilda-surface: #ffffff;
+  --hilda-heading: #002c36;
+  --hilda-text: #315f5f;
+  --hilda-nav-ink: #335c59; /* hilda.co main nav links */
+  --hilda-text-muted: rgba(49, 95, 95, 0.6);
+  --hilda-border: #171d1a;
+  --hilda-coral: #f1c1bd;
+  --hilda-gold: #d3ac54;
+  --hilda-deep: #002c36;
+
+  --background: var(--hilda-bg);
+  --foreground: var(--hilda-text);
+
+  /* Fixed bottom nav bar — scroll clearance on overlay layouts */
+  --bottom-nav-bar-height: 4.5rem;
+  --bottom-nav-inset: calc(var(--bottom-nav-bar-height) + env(safe-area-inset-bottom, 0px));
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-hilda-bg: var(--hilda-bg);
+  --color-hilda-surface: var(--hilda-surface);
+  --color-hilda-heading: var(--hilda-heading);
+  --color-hilda-text: var(--hilda-text);
+  --color-hilda-nav-ink: var(--hilda-nav-ink);
+  --color-hilda-text-muted: var(--hilda-text-muted);
+  --color-hilda-border: var(--hilda-border);
+  --color-hilda-coral: var(--hilda-coral);
+  --color-hilda-gold: var(--hilda-gold);
+  --color-hilda-deep: var(--hilda-deep);
+
+  --font-sans: var(--font-libre-franklin), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-dm-serif), "DM Serif", ui-serif, Georgia, serif;
+
+  --radius-hilda: 1rem;
+  --radius-hilda-sm: 0.75rem;
+  --radius-hilda-lg: 1rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  color: var(--hilda-heading);
+}
+
+.pb-bottom-nav {
+  padding-bottom: var(--bottom-nav-inset);
+}
+
+/* Liquid glass bottom bar — explicit webkit prefixes for iPad Safari */
+.bottom-nav-glass {
+  position: relative;
+  isolation: isolate;
+  background-color: rgba(255, 255, 255, 0.28);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+  border-top: 1px solid rgba(51, 92, 89, 0.45);
+  box-shadow: inset 0 1px 0 rgba(51, 92, 89, 0.12);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .bottom-nav-glass {
+    background-color: rgba(255, 255, 255, 0.72);
+  }
 }

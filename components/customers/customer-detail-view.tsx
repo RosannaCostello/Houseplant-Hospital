@@ -21,7 +21,7 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
   return (
     <Link
       href={`/app/plants/${plant.id}`}
-      className="flex items-center justify-between gap-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 transition-colors hover:border-zinc-200 hover:bg-white"
+      className="flex items-center justify-between gap-3 rounded-none border border-zinc-100 bg-zinc-50 px-3 py-2 transition-colors hover:border-zinc-200 hover:bg-white"
     >
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-zinc-900">{plantTitle(plant)}</p>
@@ -43,7 +43,7 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
 
 function VisitHistoryCard({ visit }: { visit: CustomerDetailVisit }) {
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <article className="rounded-none border border-zinc-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-zinc-900">
@@ -56,7 +56,7 @@ function VisitHistoryCard({ visit }: { visit: CustomerDetailVisit }) {
         </div>
         <Link
           href={`/app/visits/${visit.id}`}
-          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+          className="rounded-none border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
         >
           View visit
         </Link>
@@ -97,7 +97,7 @@ export function CustomerDetailView({ customer }: CustomerDetailViewProps) {
         <p className="mt-1 text-base text-zinc-600">Customer history</p>
       </div>
 
-      <dl className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-2">
+      <dl className="grid gap-4 rounded-none border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-2">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">Email</dt>
           <dd className="mt-1 text-sm text-zinc-900">
@@ -137,7 +137,7 @@ export function CustomerDetailView({ customer }: CustomerDetailViewProps) {
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
+          <p className="rounded-none border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-sm text-zinc-500">
             No visits recorded for this customer yet.
           </p>
         )}

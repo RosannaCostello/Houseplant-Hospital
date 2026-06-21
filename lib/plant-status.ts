@@ -18,12 +18,12 @@ export type PlantStatusLane = {
 
 /** Kanban lane order per scope (Dashboard UX). */
 export const PLANT_STATUS_LANES: readonly PlantStatusLane[] = [
-  { status: "check_in", label: "Check-in", accentClass: "border-t-sky-500" },
-  { status: "in_surgery", label: "In Surgery", accentClass: "border-t-amber-500" },
-  { status: "outpatient", label: "Outpatient", accentClass: "border-t-emerald-500" },
-  { status: "quarantine", label: "Quarantine", accentClass: "border-t-orange-500" },
-  { status: "dead", label: "Dead", accentClass: "border-t-zinc-400" },
-  { status: "collected", label: "Collected", accentClass: "border-t-zinc-600" },
+  { status: "check_in", label: "Check-in", accentClass: "border-t-hilda-gold" },
+  { status: "quarantine", label: "Quarantine", accentClass: "border-t-hilda-heading" },
+  { status: "in_surgery", label: "In Surgery", accentClass: "border-t-hilda-coral" },
+  { status: "outpatient", label: "Outpatient", accentClass: "border-t-hilda-text" },
+  { status: "collected", label: "Collected", accentClass: "border-t-hilda-border/40" },
+  { status: "dead", label: "Dead", accentClass: "border-t-hilda-text-muted" },
 ] as const;
 
 export function plantStatusLabel(status: PlantStatus): string {

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
+import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
+import { PlantStepPager } from "@/components/check-in/plant-step-pager";
 import { Button } from "@/components/ui/button";
 import {
   checkInPlantsStepSchema,
@@ -23,6 +25,7 @@ export function PlantsStepForm() {
   const customerName = customer ? `${customer.firstName} ${customer.lastName}` : null;
 
   const [editedPlants, setEditedPlants] = useState<CheckInPlantInput[] | null>(null);
+  const [activePlantIndex, setActivePlantIndex] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const [plantErrors, setPlantErrors] = useState<Record<string, Partial<Record<keyof CheckInPlantInput, string>>>>({});
 
@@ -42,6 +45,9 @@ export function PlantsStepForm() {
     );
   }
 
+  const activePlant = plants[Math.min(activePlantIndex, plants.length - 1)];
+  const activeErrors = plantErrors[activePlant.clientId] ?? {};
+
   function updatePlants(next: CheckInPlantInput[]) {
     setEditedPlants(next);
     setFormError(null);
@@ -53,12 +59,21 @@ export function PlantsStepForm() {
   }
 
   function addPlant() {
-    updatePlants([...plants, createEmptyPlant()]);
+    const next = [...plants, createEmptyPlant()];
+    updatePlants(next);
+    setActivePlantIndex(next.length - 1);
   }
 
   function removePlant(clientId: string) {
     if (plants.length === 1) return;
-    updatePlants(plants.filter((plant) => plant.clientId !== clientId));
+
+    const removedIndex = plants.findIndex((plant) => plant.clientId === clientId);
+    const next = plants.filter((plant) => plant.clientId !== clientId);
+    updatePlants(next);
+
+    if (removedIndex >= 0 && activePlantIndex >= removedIndex) {
+      setActivePlantIndex(Math.max(0, activePlantIndex - 1));
+    }
   }
 
   function onSubmit(event: React.FormEvent) {
@@ -70,6 +85,7 @@ export function PlantsStepForm() {
     if (!parsed.success) {
       const errors: Record<string, Partial<Record<keyof CheckInPlantInput, string>>> = {};
       let rootMessage: string | null = null;
+      let firstErrorIndex: number | null = null;
 
       for (const issue of parsed.error.issues) {
         const index = issue.path[0];
@@ -79,6 +95,10 @@ export function PlantsStepForm() {
           const plant = plants[index];
           if (!plant) continue;
 
+          if (firstErrorIndex === null) {
+            firstErrorIndex = index;
+          }
+
           errors[plant.clientId] ??= {};
           if (!errors[plant.clientId][field as keyof CheckInPlantInput]) {
             errors[plant.clientId][field as keyof CheckInPlantInput] = issue.message;
@@ -86,6 +106,10 @@ export function PlantsStepForm() {
         } else if (issue.path[0] === "plants") {
           rootMessage = issue.message;
         }
+      }
+
+      if (firstErrorIndex !== null) {
+        setActivePlantIndex(firstErrorIndex);
       }
 
       setPlantErrors(errors);
@@ -110,116 +134,125 @@ export function PlantsStepForm() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <CheckInStepHeader
-        step={2}
-        totalSteps={3}
-        title="Plants"
-        description={`Add each plant for ${customerName}. Size is required; name and species are optional.`}
-      />
-
-      <form className="mt-8 space-y-6" onSubmit={onSubmit} noValidate>
-        <div className="space-y-4">
-          {plants.map((plant, index) => {
-            const errors = plantErrors[plant.clientId] ?? {};
-
-            return (
-              <section
-                key={plant.clientId}
-                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5"
-              >
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="text-base font-semibold text-zinc-900">Plant {index + 1}</h2>
-                  {plants.length > 1 ? (
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-red-600 hover:text-red-700"
-                      onClick={() => removePlant(plant.clientId)}
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-
-                <div className="space-y-5">
-                  <fieldset>
-                    <legend className={checkInLabelClassName}>Size</legend>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {PLANT_SIZES.map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          className={cn(
-                            "min-h-11 min-w-14 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors",
-                            plant.size === size
-                              ? "border-zinc-900 bg-zinc-900 text-white"
-                              : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400",
-                          )}
-                          onClick={() => updatePlant(plant.clientId, { size })}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                    {errors.size ? (
-                      <span className="mt-1 block text-sm text-red-600">{errors.size}</span>
-                    ) : null}
-                  </fieldset>
-
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <label className={checkInLabelClassName}>
-                      Name <span className="font-normal text-zinc-500">(optional)</span>
-                      <input
-                        className={checkInInputClassName}
-                        type="text"
-                        value={plant.name}
-                        onChange={(event) => updatePlant(plant.clientId, { name: event.target.value })}
-                        placeholder="e.g. Monty"
-                      />
-                    </label>
-
-                    <label className={checkInLabelClassName}>
-                      Species <span className="font-normal text-zinc-500">(optional)</span>
-                      <input
-                        className={checkInInputClassName}
-                        type="text"
-                        value={plant.species}
-                        onChange={(event) => updatePlant(plant.clientId, { species: event.target.value })}
-                        placeholder="e.g. Monstera deliciosa"
-                      />
-                    </label>
-                  </div>
-
-                  <label className={checkInLabelClassName}>
-                    Notes <span className="font-normal text-zinc-500">(optional)</span>
-                    <textarea
-                      className={cn(checkInInputClassName, "min-h-24 resize-y")}
-                      value={plant.notes}
-                      onChange={(event) => updatePlant(plant.clientId, { notes: event.target.value })}
-                      placeholder="Visible issues, pot size, customer concerns…"
-                    />
-                  </label>
-                </div>
-              </section>
-            );
-          })}
-        </div>
-
-        <Button type="button" variant="outline" size="lg" className="w-full sm:w-auto" onClick={addPlant}>
-          Add another plant
-        </Button>
-
-        {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
-
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
+    <CheckInStepShell
+      maxWidth="3xl"
+      header={
+        <CheckInStepHeader
+          step={2}
+          totalSteps={3}
+          title="Plants"
+          description={`Plants for ${customerName}. Size required; name and species optional.`}
+        />
+      }
+      status={formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+      footer={
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/app/check-in">Back to customer</Link>
           </Button>
-          <Button type="submit" size="lg" className="w-full sm:w-auto">
+          <Button type="submit" form="check-in-plants-form" className="w-full sm:w-auto">
             Continue to photos
           </Button>
         </div>
+      }
+    >
+      <form
+        id="check-in-plants-form"
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+        onSubmit={onSubmit}
+        noValidate
+      >
+        <div className="flex shrink-0 items-center gap-3">
+          <PlantStepPager
+            total={plants.length}
+            currentIndex={activePlantIndex}
+            onIndexChange={setActivePlantIndex}
+            isComplete={(index) => Boolean(plants[index]?.size)}
+          />
+          <Button type="button" variant="outline" className="ml-auto shrink-0" onClick={addPlant}>
+            Add plant
+          </Button>
+        </div>
+
+        <section
+          key={activePlant.clientId}
+          className="shrink-0 rounded-none border border-zinc-200 bg-white p-3"
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-zinc-900">Plant {activePlantIndex + 1}</h2>
+            {plants.length > 1 ? (
+              <button
+                type="button"
+                className="text-xs font-medium text-red-600 hover:text-red-700"
+                onClick={() => removePlant(activePlant.clientId)}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <fieldset>
+              <legend className={checkInLabelClassName}>Size</legend>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {PLANT_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    className={cn(
+                      "min-h-10 min-w-12 rounded-none border px-3 py-1.5 text-sm font-semibold transition-colors",
+                      activePlant.size === size
+                        ? "border-zinc-900 bg-zinc-900 text-white"
+                        : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400",
+                    )}
+                    onClick={() => updatePlant(activePlant.clientId, { size })}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+              {activeErrors.size ? (
+                <span className="mt-1 block text-sm text-red-600">{activeErrors.size}</span>
+              ) : null}
+            </fieldset>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={checkInLabelClassName}>
+                Name <span className="font-normal text-zinc-500">(optional)</span>
+                <input
+                  className={cn(checkInInputClassName, "py-2.5")}
+                  type="text"
+                  value={activePlant.name}
+                  onChange={(event) => updatePlant(activePlant.clientId, { name: event.target.value })}
+                  placeholder="e.g. Monty"
+                />
+              </label>
+
+              <label className={checkInLabelClassName}>
+                Species <span className="font-normal text-zinc-500">(optional)</span>
+                <input
+                  className={cn(checkInInputClassName, "py-2.5")}
+                  type="text"
+                  value={activePlant.species}
+                  onChange={(event) => updatePlant(activePlant.clientId, { species: event.target.value })}
+                  placeholder="e.g. Monstera deliciosa"
+                />
+              </label>
+            </div>
+
+            <label className={checkInLabelClassName}>
+              Notes <span className="font-normal text-zinc-500">(optional)</span>
+              <textarea
+                className={cn(checkInInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
+                rows={2}
+                value={activePlant.notes}
+                onChange={(event) => updatePlant(activePlant.clientId, { notes: event.target.value })}
+                placeholder="Visible issues, pot size, customer concerns…"
+              />
+            </label>
+          </div>
+        </section>
       </form>
-    </div>
+    </CheckInStepShell>
   );
 }
