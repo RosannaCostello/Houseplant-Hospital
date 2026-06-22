@@ -72,8 +72,8 @@ export function BottomNav({ isAdmin = false }: BottomNavProps) {
             className={cn(
               "flex min-h-[3.9rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-none px-2 py-2 text-xs font-medium uppercase leading-tight tracking-wide transition-all duration-200 sm:text-[13px]",
               active
-                ? "bg-hilda-coral text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
-                : "text-hilda-nav-ink hover:bg-hilda-nav-ink/10 hover:text-hilda-nav-ink",
+                ? "bg-hilda-heading text-hilda-gold"
+                : "text-hilda-nav-ink hover:bg-hilda-bg hover:text-hilda-nav-ink",
             )}
           >
             <Icon className="h-6 w-6 shrink-0" />

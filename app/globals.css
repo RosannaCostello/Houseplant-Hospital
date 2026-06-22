@@ -6,17 +6,29 @@
   --hilda-surface: #ffffff;
   --hilda-heading: #002c36;
   --hilda-text: #315f5f;
-  --hilda-nav-ink: #335c59; /* hilda.co main nav links */
+  --hilda-nav-ink: #335c59;
   --hilda-text-muted: rgba(49, 95, 95, 0.6);
   --hilda-border: #171d1a;
   --hilda-coral: #f1c1bd;
   --hilda-gold: #d3ac54;
-  --hilda-deep: #002c36;
+
+  /* Alias — same as hilda-heading; use hilda-heading in new code */
+  --hilda-deep: var(--hilda-heading);
+
+  /* Semantic */
+  --hilda-on-dark: #ffffff;
+  --hilda-bugs: var(--hilda-gold);
+  --hilda-warning-bg: #fffbeb;
+  --hilda-warning-border: #fcd34d;
+  --hilda-warning-text: #92400e;
+  --hilda-error-text: #dc2626;
+  --hilda-error-text-strong: #b91c1c;
+  --hilda-error-bg: #fef2f2;
+  --hilda-error-border: #fecaca;
 
   --background: var(--hilda-bg);
   --foreground: var(--hilda-text);
 
-  /* Fixed bottom nav bar — scroll clearance on overlay layouts */
   --bottom-nav-bar-height: 4.5rem;
   --bottom-nav-inset: calc(var(--bottom-nav-bar-height) + env(safe-area-inset-bottom, 0px));
 }
@@ -35,6 +47,16 @@
   --color-hilda-coral: var(--hilda-coral);
   --color-hilda-gold: var(--hilda-gold);
   --color-hilda-deep: var(--hilda-deep);
+  /* Tailwind class: hilda-inverse (not hilda-on-dark — "-dark" suffix breaks text-* utilities) */
+  --color-hilda-inverse: var(--hilda-on-dark);
+  --color-hilda-bugs: var(--hilda-bugs);
+  --color-hilda-warning-bg: var(--hilda-warning-bg);
+  --color-hilda-warning-border: var(--hilda-warning-border);
+  --color-hilda-warning-text: var(--hilda-warning-text);
+  --color-hilda-error-text: var(--hilda-error-text);
+  --color-hilda-error-text-strong: var(--hilda-error-text-strong);
+  --color-hilda-error-bg: var(--hilda-error-bg);
+  --color-hilda-error-border: var(--hilda-error-border);
 
   --font-sans: var(--font-libre-franklin), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-dm-serif), "DM Serif", ui-serif, Georgia, serif;
@@ -62,7 +84,6 @@ h4 {
   padding-bottom: var(--bottom-nav-inset);
 }
 
-/* Liquid glass bottom bar — explicit webkit prefixes for iPad Safari */
 .bottom-nav-glass {
   position: relative;
   isolation: isolate;

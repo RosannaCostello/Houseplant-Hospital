@@ -8,7 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "border border-hilda-coral bg-hilda-coral text-white hover:brightness-95",
+        default: "border border-hilda-coral bg-hilda-coral text-hilda-inverse hover:brightness-95",
         outline:
           "border border-hilda-border/30 bg-hilda-surface text-hilda-heading hover:bg-hilda-bg",
         ghost: "text-hilda-heading hover:bg-hilda-bg",

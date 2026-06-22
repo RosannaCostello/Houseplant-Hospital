@@ -115,10 +115,10 @@ export function PlantAutosaveTextarea({
         />
       )}
 
-      <div className="min-h-4 text-xs text-zinc-500" aria-live="polite">
+      <div className="min-h-4 text-xs text-hilda-text-muted" aria-live="polite">
         {status === "saving" ? "Saving…" : null}
         {status === "saved" ? "Saved" : null}
-        {status === "error" && error ? <span className="text-red-600">{error}</span> : null}
+        {status === "error" && error ? <span className="text-hilda-error-text">{error}</span> : null}
       </div>
     </div>
   );

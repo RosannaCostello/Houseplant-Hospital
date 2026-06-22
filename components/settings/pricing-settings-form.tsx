@@ -106,12 +106,12 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Shopify pricing</h2>
-              <p className="mt-1 text-sm text-zinc-600">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-hilda-text-muted">Shopify pricing</h2>
+              <p className="mt-1 text-sm text-hilda-text">
                 Base and pests treatment prices sync from Shopify daily. XS in the app maps to{" "}
                 <strong>Mini</strong> in Shopify on both products.
               </p>
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-hilda-text-muted">
                 Last synced: {formatSyncedAt(settings.shopifySyncedAt)}
               </p>
             </div>
@@ -120,25 +120,25 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
             </Button>
           </div>
 
-          <div className="overflow-x-auto rounded-none border border-zinc-200">
+          <div className="overflow-x-auto rounded-none border border-hilda-border/15">
             <table className="min-w-full text-sm">
-              <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              <thead className="bg-hilda-bg text-left text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
                 <tr>
                   <th className="px-4 py-3">Size</th>
                   <th className="px-4 py-3">Standard</th>
                   <th className="px-4 py-3">Pests (with bugs)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-hilda-border/10">
                 {PLANT_SIZES.map((size) => (
                   <tr key={size}>
-                    <td className="px-4 py-3 font-medium text-zinc-900">
+                    <td className="px-4 py-3 font-medium text-hilda-heading">
                       {sizeLabel(size, settings.shopifySizeLabels[size])}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-zinc-900">
+                    <td className="px-4 py-3 tabular-nums text-hilda-heading">
                       {formatGbp(settings.basePrices[size].amount)}
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-zinc-900">
+                    <td className="px-4 py-3 tabular-nums text-hilda-heading">
                       {settings.pestsPrices[size] != null
                         ? formatGbp(settings.pestsPrices[size])
                         : "—"}
@@ -150,15 +150,15 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
           </div>
 
           {syncMessage ? <p className="text-sm text-emerald-700">{syncMessage}</p> : null}
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
         </section>
       ) : null}
 
       {!shopifyMode ? (
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">Size-band pricing</h2>
-            <p className="mt-1 text-sm text-zinc-600">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-hilda-text-muted">Size-band pricing</h2>
+            <p className="mt-1 text-sm text-hilda-text">
               Base treatment prices by plant size. Used by the pricing engine on plant detail and collection.
             </p>
           </div>
@@ -201,7 +201,7 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
             </label>
           </div>
 
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
           {saved ? <p className="text-sm text-emerald-700">Pricing settings saved.</p> : null}
 
           <Button type="submit" disabled={isPending}>

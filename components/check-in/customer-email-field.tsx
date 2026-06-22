@@ -121,14 +121,14 @@ export function CustomerEmailField({
             }
           }}
         />
-        {error ? <span className="mt-1 block text-sm text-red-600">{error}</span> : null}
+        {error ? <span className="mt-1 block text-sm text-hilda-error-text">{error}</span> : null}
         {showHint ? (
-          <span className="mt-1 block text-sm text-zinc-500">
+          <span className="mt-1 block text-sm text-hilda-text-muted">
             Keep typing to search returning customers.
           </span>
         ) : null}
         {isSearching ? (
-          <span className="mt-1 block text-sm text-zinc-500">Searching…</span>
+          <span className="mt-1 block text-sm text-hilda-text-muted">Searching…</span>
         ) : null}
       </label>
 
@@ -136,20 +136,20 @@ export function CustomerEmailField({
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-none border border-zinc-200 bg-white py-1 shadow-lg"
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-none border border-hilda-border/15 bg-hilda-surface py-1 shadow-lg"
         >
           {suggestions.map((customer) => (
             <li key={customer.id} role="option">
               <button
                 type="button"
                 className={cn(
-                  "flex w-full flex-col items-start px-3 py-2.5 text-left transition-colors hover:bg-zinc-50",
+                  "flex w-full flex-col items-start px-3 py-2.5 text-left transition-colors hover:bg-hilda-bg",
                 )}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(customer)}
               >
-                <span className="text-sm font-medium text-zinc-900">{customer.email}</span>
-                <span className="mt-0.5 text-sm text-zinc-600">
+                <span className="text-sm font-medium text-hilda-heading">{customer.email}</span>
+                <span className="mt-0.5 text-sm text-hilda-text">
                   {customer.firstName} {customer.lastName}
                   {customer.phone ? ` · ${customer.phone}` : ""}
                 </span>

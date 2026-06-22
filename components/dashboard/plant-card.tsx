@@ -1,11 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
-import { formatPlantAge } from "@/lib/format-plant-age";
+import { formatDaysSinceCheckIn, formatPlantAge } from "@/lib/format-plant-age";
+import { formatCollectedBadgeLabel } from "@/lib/format-collected-date";
 import {
   formatDaysInQuarantine,
-  formatQuarantineBadgeDays,
 } from "@/lib/format-quarantine-age";
 import type { DashboardPlant } from "@/lib/dashboard/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
@@ -16,16 +18,8 @@ type PlantCardProps = {
   className?: string;
 };
 
-function plantDisplayName(plant: DashboardPlant): string {
-  if (plant.name?.trim()) return plant.name.trim();
-  if (plant.species?.trim()) return plant.species.trim();
-  return "Unnamed plant";
-}
-
-function plantSubtitle(plant: DashboardPlant): string | null {
-  if (plant.name?.trim() && plant.species?.trim()) return plant.species.trim();
-  return null;
-}
+const imageOverlayBadgeClass =
+  "inline-flex h-5 shrink-0 items-center justify-center rounded-none px-1.5 shadow-sm";
 
 function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
   if (thumbnailUrl?.startsWith("data:")) {
@@ -72,7 +66,13 @@ function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
 }
 
 export function PlantCard({ plant, className }: PlantCardProps) {
-  const subtitle = plantSubtitle(plant);
+  const showQuarantineBadge = plant.status === "quarantine" && plant.quarantineSince;
+  const showCheckInBadge = plant.status === "check_in";
+  const showOutpatientBadge = plant.status === "outpatient" && plant.outpatientCollectionBadge;
+  const showCollectedBadge = plant.status === "collected";
+  const showFooterBadge =
+    showQuarantineBadge || showCheckInBadge || showOutpatientBadge || showCollectedBadge;
+  const showPlantAge = !showCheckInBadge && !showCollectedBadge;
 
   return (
     <article
@@ -87,46 +87,63 @@ export function PlantCard({ plant, className }: PlantCardProps) {
       >
         <div className="relative aspect-[4/3] w-full overflow-hidden border-b border-hilda-border/10 bg-hilda-bg">
           <PlantThumbnail thumbnailUrl={plant.thumbnailUrl} />
-          {plant.status === "quarantine" && plant.quarantineSince ? (
+          <div className="absolute left-2 top-2 flex items-center gap-1.5">
             <span
-              className="absolute left-2 top-2 flex flex-col rounded-none bg-hilda-deep px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-tight tracking-wide text-white"
-              title={formatDaysInQuarantine(plant.quarantineSince)}
+              className={cn(
+                imageOverlayBadgeClass,
+                "bg-hilda-surface text-[11px] font-semibold uppercase tracking-wide text-hilda-heading",
+              )}
             >
-              <span>{formatQuarantineBadgeDays(plant.quarantineSince)}</span>
-              <span className="text-[9px] font-medium normal-case tracking-normal opacity-90">
-                in quarantine
-              </span>
+              {plant.size}
             </span>
-          ) : null}
-          {plant.bugsFound ? (
-            <BugsFoundBadge className="right-2 top-2 bg-hilda-gold" />
-          ) : null}
+            {plant.bugsFound ? (
+              <BugsFoundBadge
+                className={cn(imageOverlayBadgeClass, "bg-hilda-bugs py-0")}
+                iconClassName="h-3 w-3"
+              />
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-1.5 p-3">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="truncate text-sm font-medium text-hilda-heading">{plant.customerSurname}</p>
+            <p className="truncate text-sm font-medium text-hilda-heading">{plant.customerName}</p>
             <span className="shrink-0 tabular-nums text-[11px] font-semibold text-hilda-text-muted">
               {formatVisitPlantPosition(plant.visitPlantIndex, plant.visitPlantTotal)}
             </span>
           </div>
-          <div>
-            <p className="line-clamp-2 text-sm leading-snug text-hilda-text">{plantDisplayName(plant)}</p>
-            {subtitle ? (
-              <p className="mt-0.5 line-clamp-1 text-xs text-hilda-text-muted">{subtitle}</p>
-            ) : null}
-          </div>
 
-          <div className="flex items-center justify-between gap-2 pt-0.5">
-            <span className="rounded bg-hilda-bg px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-heading">
-              {plant.size}
-            </span>
-            <span className="text-[11px] text-hilda-text-muted">{formatPlantAge(plant.checkedInAt)}</span>
+          <div
+            className={cn(
+              "flex items-center gap-2",
+              showFooterBadge ? "justify-between" : "justify-end",
+            )}
+          >
+            {showQuarantineBadge ? (
+              <span className="rounded-none bg-hilda-heading px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hilda-inverse">
+                {formatDaysInQuarantine(plant.quarantineSince!)}
+              </span>
+            ) : showCheckInBadge ? (
+              <span className="rounded-none bg-hilda-gold px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hilda-heading">
+                {formatDaysSinceCheckIn(plant.checkedInAt)}
+              </span>
+            ) : showOutpatientBadge ? (
+              <span className="rounded-none bg-hilda-text px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hilda-inverse">
+                {plant.outpatientCollectionBadge}
+              </span>
+            ) : showCollectedBadge ? (
+              <span className="rounded-none border border-hilda-border/25 bg-hilda-bg px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hilda-heading">
+                {plant.collectedAt ? formatCollectedBadgeLabel(plant.collectedAt) : "Collected"}
+              </span>
+            ) : null}
+            {showPlantAge ? (
+              <span className="text-[11px] text-hilda-text-muted">{formatPlantAge(plant.checkedInAt)}</span>
+            ) : null}
           </div>
         </div>
       </Link>
 
-      <div className="border-t border-hilda-border/10 px-3 pb-3 pt-1.5">
+      <div className="px-3 pb-3 pt-1.5">
         <PlantCardStatusMenu plantId={plant.id} currentStatus={plant.status} />
       </div>
     </article>

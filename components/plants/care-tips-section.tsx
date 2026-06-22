@@ -37,15 +37,15 @@ export function CareTipsSection({
   }
 
   const sectionClass = compact
-    ? "space-y-3 rounded-none border border-zinc-200 bg-white p-3"
-    : "space-y-4 rounded-none border border-zinc-200 bg-white p-5 shadow-sm";
+    ? "space-y-3 rounded-none border border-hilda-border/15 bg-hilda-surface p-3"
+    : "space-y-4 rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
 
   return (
     <section className={sectionClass}>
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Care tips</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">Care tips</h2>
         {!compact ? (
-          <p className={cn("mt-1 text-sm text-zinc-600")}>
+          <p className={cn("mt-1 text-sm text-hilda-text")}>
             Advice for the customer when they collect their plant. Changes save automatically.
           </p>
         ) : null}

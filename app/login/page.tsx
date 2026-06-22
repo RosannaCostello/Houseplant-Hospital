@@ -74,7 +74,7 @@ function LoginForm() {
         />
       </label>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-hilda-error-text-strong">{error}</p> : null}
 
       <Button className="w-full" type="submit" size="lg" disabled={submitting}>
         {submitting ? "Signing in…" : "Sign in"}

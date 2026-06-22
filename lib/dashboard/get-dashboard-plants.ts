@@ -1,5 +1,10 @@
 import { signPhotoPaths } from "@/lib/photos/sign-photo-urls";
+import { resolveCollectedAtByPlantIds } from "@/lib/dashboard/get-collected-at";
 import { getQuarantineSinceByPlantIds } from "@/lib/dashboard/get-quarantine-since";
+import {
+  buildVisitPlantsByVisitId,
+  formatOutpatientCollectionBadge,
+} from "@/lib/dashboard/outpatient-collection-badge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLANT_STATUSES, type PlantStatus } from "@/lib/plant-status";
 import type { DashboardPlant } from "@/lib/dashboard/types";
@@ -23,6 +28,7 @@ type DashboardPlantRow = {
   visits: {
     checkin_date: string;
     customers: {
+      first_name: string;
       last_name: string;
     };
   };
@@ -49,11 +55,11 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     visits?:
       | {
           checkin_date: string;
-          customers: { last_name: string } | { last_name: string }[];
+          customers: { first_name: string; last_name: string } | { first_name: string; last_name: string }[];
         }
       | Array<{
           checkin_date: string;
-          customers: { last_name: string } | { last_name: string }[];
+          customers: { first_name: string; last_name: string } | { first_name: string; last_name: string }[];
         }>;
     plant_photos?: PlantPhotoRow[] | null;
   };
@@ -76,7 +82,7 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     created_at: row.created_at ?? visit.checkin_date,
     visits: {
       checkin_date: visit.checkin_date,
-      customers: { last_name: customer.last_name },
+      customers: { first_name: customer.first_name, last_name: customer.last_name },
     },
     plant_photos: row.plant_photos ?? null,
   };
@@ -114,6 +120,7 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       visits!inner (
         checkin_date,
         customers!inner (
+          first_name,
           last_name
         )
       ),
@@ -135,11 +142,17 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     .filter((row): row is DashboardPlantRow => row !== null);
 
   const visitPlantPositions = buildVisitPlantPositions(rows);
+  const visitPlantsByVisitId = buildVisitPlantsByVisitId(rows, isPlantStatus);
 
   const quarantinePlantIds = rows
     .filter((row) => row.status === "quarantine")
     .map((row) => row.id);
   const quarantineSinceByPlantId = await getQuarantineSinceByPlantIds(supabase, quarantinePlantIds);
+
+  const collectedPlantIds = rows
+    .filter((row) => row.status === "collected")
+    .map((row) => row.id);
+  const collectedAtByPlantId = await resolveCollectedAtByPlantIds(supabase, collectedPlantIds);
 
   const photoPaths = [
     ...new Set(
@@ -159,10 +172,14 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     const photoPath = latestPhotoPath(row.plant_photos);
     const position = visitPlantPositions.get(row.id) ?? { index: 1, total: 1 };
 
+    const visitPlants = visitPlantsByVisitId.get(row.visit_id) ?? [];
+    const collectedAt =
+      row.status === "collected" ? (collectedAtByPlantId.get(row.id) ?? null) : null;
+
     plants.push({
       id: row.id,
       status: row.status,
-      customerSurname: row.visits.customers.last_name,
+      customerName: `${row.visits.customers.first_name} ${row.visits.customers.last_name}`,
       name: row.name,
       species: row.species,
       size: row.size,
@@ -172,6 +189,8 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
         row.status === "quarantine" ? (quarantineSinceByPlantId.get(row.id) ?? null) : null,
       visitPlantIndex: position.index,
       visitPlantTotal: position.total,
+      outpatientCollectionBadge: formatOutpatientCollectionBadge(row.id, row.status, visitPlants),
+      collectedAt,
       thumbnailUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
     });
   }

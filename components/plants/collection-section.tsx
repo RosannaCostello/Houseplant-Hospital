@@ -83,15 +83,15 @@ export function CollectionSection({
   }
 
   const sectionClass = compact
-    ? "space-y-2 rounded-none border border-zinc-200 bg-white p-3"
-    : "space-y-4 rounded-none border border-zinc-200 bg-white p-5 shadow-sm";
+    ? "space-y-2 rounded-none border border-hilda-border/15 bg-hilda-surface p-3"
+    : "space-y-4 rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
 
   return (
     <section className={sectionClass}>
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Collection</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">Collection</h2>
         {!compact ? (
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-hilda-text">
             {isCollected
               ? "Final price charged at collection. Amend here if needed."
               : "Set the price to charge at the till. Move to Collected on the dashboard when the customer picks up."}
@@ -102,8 +102,8 @@ export function CollectionSection({
       {isCollected && collectedAt ? (
         <dl className="space-y-2 text-sm">
           <div className="flex items-baseline justify-between gap-4">
-            <dt className="text-zinc-600">Collected</dt>
-            <dd className="font-medium text-zinc-900">{formatCollectedAt(collectedAt)}</dd>
+            <dt className="text-hilda-text">Collected</dt>
+            <dd className="font-medium text-hilda-heading">{formatCollectedAt(collectedAt)}</dd>
           </div>
         </dl>
       ) : null}
@@ -128,12 +128,12 @@ export function CollectionSection({
           />
         </label>
         {!priceTouched && finalPrice == null && suggestedFinalPrice != null ? (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-hilda-text-muted">
             Suggested from current pricing estimate: {formatGbp(suggestedFinalPrice)}
           </p>
         ) : null}
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {savedMessage ? <p className="text-sm text-zinc-600">{savedMessage}</p> : null}
+        {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
+        {savedMessage ? <p className="text-sm text-hilda-text">{savedMessage}</p> : null}
         <Button type="submit" disabled={isPending}>
           {isPending ? "Saving…" : "Save price"}
         </Button>

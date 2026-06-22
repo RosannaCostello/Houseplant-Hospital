@@ -50,7 +50,7 @@ export function BugsFoundToggle({
 
   return (
     <div className="space-y-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
         Bugs found during treatment?
       </h2>
 
@@ -74,9 +74,9 @@ export function BugsFoundToggle({
                     "min-h-11 min-w-[5.5rem] rounded-none border px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-50",
                     selected
                       ? option.value
-                        ? "border-orange-600 bg-orange-600 text-white"
-                        : "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400",
+                        ? "border-hilda-bugs bg-hilda-bugs text-hilda-inverse"
+                        : "border-hilda-heading bg-hilda-heading text-hilda-inverse"
+                      : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
                   )}
                   disabled={isPending}
                   onClick={() => handleSelect(option.value)}
@@ -87,7 +87,7 @@ export function BugsFoundToggle({
             })}
             {selection == null ? (
               <div
-                className="inline-flex min-h-11 items-center rounded-none border border-dashed border-amber-300 bg-amber-50 px-3 text-xs font-semibold uppercase tracking-wide text-amber-900"
+                className="inline-flex min-h-11 items-center rounded-none border border-dashed border-hilda-warning-border bg-hilda-warning-bg px-3 text-xs font-semibold uppercase tracking-wide text-hilda-warning-text"
                 role="status"
               >
                 Not checked yet
@@ -98,7 +98,7 @@ export function BugsFoundToggle({
           {showClear ? (
             <button
               type="button"
-              className="text-sm font-medium text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline disabled:opacity-50"
+              className="text-sm font-medium text-hilda-text underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
               disabled={isPending}
               onClick={() => handleSelect(null)}
             >
@@ -107,18 +107,18 @@ export function BugsFoundToggle({
           ) : null}
         </>
       ) : selection != null ? (
-        <p className="text-xs text-zinc-500">Locked after collection.</p>
+        <p className="text-xs text-hilda-text-muted">Locked after collection.</p>
       ) : (
         <div
-          className="inline-flex min-h-11 items-center rounded-none border border-dashed border-amber-300 bg-amber-50 px-3 text-xs font-semibold uppercase tracking-wide text-amber-900"
+          className="inline-flex min-h-11 items-center rounded-none border border-dashed border-hilda-warning-border bg-hilda-warning-bg px-3 text-xs font-semibold uppercase tracking-wide text-hilda-warning-text"
           role="status"
         >
           Not recorded
         </div>
       )}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {isPending ? <p className="text-sm text-zinc-500">Saving…</p> : null}
+      {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
+      {isPending ? <p className="text-sm text-hilda-text-muted">Saving…</p> : null}
     </div>
   );
 }

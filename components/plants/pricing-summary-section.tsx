@@ -17,8 +17,8 @@ export function PricingSummarySection({
   compact = false,
 }: PricingSummarySectionProps) {
   const sectionClass = compact
-    ? "space-y-2 rounded-none border border-zinc-200 bg-white p-3"
-    : "space-y-4 rounded-none border border-zinc-200 bg-white p-5 shadow-sm";
+    ? "space-y-2 rounded-none border border-hilda-border/15 bg-hilda-surface p-3"
+    : "space-y-4 rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
 
   const bugsStatusKnown = bugsFound !== null;
   const showFinalCollectedPrice = isCollected && finalPrice != null;
@@ -27,21 +27,21 @@ export function PricingSummarySection({
     return (
       <section className={sectionClass}>
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Pricing</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">Pricing</h2>
           {!compact ? (
-            <p className="mt-2 text-sm text-amber-800">
+            <p className="mt-2 text-sm text-hilda-warning-text">
               Pricing estimate unavailable. The rest of this plant record is still usable — check admin
               settings or try again later.
             </p>
           ) : (
-            <p className="mt-1 text-xs text-amber-800">Estimate unavailable.</p>
+            <p className="mt-1 text-xs text-hilda-warning-text">Estimate unavailable.</p>
           )}
         </div>
         {isCollected && finalPrice != null ? (
           <dl className="space-y-2 text-sm">
-            <div className="flex items-baseline justify-between gap-4 border-t border-zinc-100 pt-3">
-              <dt className="font-semibold text-zinc-900">Final price charged</dt>
-              <dd className="text-base font-semibold tabular-nums text-zinc-900">{formatGbp(finalPrice)}</dd>
+            <div className="flex items-baseline justify-between gap-4 border-t border-hilda-border/10 pt-3">
+              <dt className="font-semibold text-hilda-heading">Final price charged</dt>
+              <dd className="text-base font-semibold tabular-nums text-hilda-heading">{formatGbp(finalPrice)}</dd>
             </div>
           </dl>
         ) : null}
@@ -52,9 +52,9 @@ export function PricingSummarySection({
   return (
     <section className={sectionClass}>
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Pricing</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">Pricing</h2>
         {!compact ? (
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-hilda-text">
             {isCollected
               ? "Price breakdown at time of estimate."
               : bugsStatusKnown
@@ -66,28 +66,28 @@ export function PricingSummarySection({
 
       <dl className="space-y-2 text-sm">
         <div className="flex items-baseline justify-between gap-4">
-          <dt className="text-zinc-600">Base treatment ({pricing.size})</dt>
-          <dd className="font-medium tabular-nums text-zinc-900">{formatGbp(pricing.baseAmount)}</dd>
+          <dt className="text-hilda-text">Base treatment ({pricing.size})</dt>
+          <dd className="font-medium tabular-nums text-hilda-heading">{formatGbp(pricing.baseAmount)}</dd>
         </div>
 
         {pricing.lines.map((line) => (
           <div key={line.adjustmentType} className="flex items-baseline justify-between gap-4">
-            <dt className="text-zinc-600">{line.label}</dt>
-            <dd className="font-medium tabular-nums text-zinc-900">+{formatGbp(line.amount)}</dd>
+            <dt className="text-hilda-text">{line.label}</dt>
+            <dd className="font-medium tabular-nums text-hilda-heading">+{formatGbp(line.amount)}</dd>
           </div>
         ))}
 
-        <div className="flex items-baseline justify-between gap-4 border-t border-zinc-100 pt-3">
-          <dt className="font-semibold text-zinc-900">
+        <div className="flex items-baseline justify-between gap-4 border-t border-hilda-border/10 pt-3">
+          <dt className="font-semibold text-hilda-heading">
             {showFinalCollectedPrice ? "Final price charged" : "Total"}
           </dt>
-          <dd className="text-base font-semibold tabular-nums text-zinc-900">
+          <dd className="text-base font-semibold tabular-nums text-hilda-heading">
             {showFinalCollectedPrice ? (
               formatGbp(finalPrice)
             ) : bugsStatusKnown ? (
               formatGbp(pricing.totalAmount)
             ) : (
-              <span className="text-sm font-medium text-amber-800">Awaiting bug status</span>
+              <span className="text-sm font-medium text-hilda-warning-text">Awaiting bug status</span>
             )}
           </dd>
         </div>

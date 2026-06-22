@@ -55,15 +55,15 @@ export function PlantPhotoCapture({
   return (
     <section
       className={cn(
-        "flex min-h-0 flex-1 flex-col rounded-none border border-zinc-200 bg-white p-3",
+        "flex min-h-0 flex-1 flex-col rounded-none border border-hilda-border/15 bg-hilda-surface p-3",
         className,
       )}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3 sm:flex-row sm:items-stretch">
         <div
           className={cn(
-            "relative min-h-0 w-full overflow-hidden rounded-none border border-dashed border-zinc-300 bg-zinc-50 sm:w-[44%] sm:shrink-0",
-            photo ? "border-solid border-zinc-200" : "",
+            "relative min-h-0 w-full overflow-hidden rounded-none border border-dashed border-hilda-border/25 bg-hilda-bg sm:w-[44%] sm:shrink-0",
+            photo ? "border-solid border-hilda-border/15" : "",
           )}
         >
           {photo ? (
@@ -72,8 +72,8 @@ export function PlantPhotoCapture({
               <img src={photo.dataUrl} alt="" className="h-full w-full object-cover" />
             </div>
           ) : (
-            <div className="flex aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full flex-col items-center justify-center gap-1 px-3 text-center text-xs text-zinc-500 sm:max-h-[min(34dvh,12.5rem)]">
-              <span className="font-medium text-zinc-600">Photo required</span>
+            <div className="flex aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full flex-col items-center justify-center gap-1 px-3 text-center text-xs text-hilda-text-muted sm:max-h-[min(34dvh,12.5rem)]">
+              <span className="font-medium text-hilda-text">Photo required</span>
               <span>Rear camera or library</span>
             </div>
           )}
@@ -81,11 +81,11 @@ export function PlantPhotoCapture({
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
           <div className="flex items-start justify-between gap-2">
-            <h2 className="text-sm font-semibold leading-snug text-zinc-900">{label}</h2>
+            <h2 className="text-sm font-semibold leading-snug text-hilda-heading">{label}</h2>
             {photo ? (
               <button
                 type="button"
-                className="shrink-0 text-xs font-medium text-red-600 hover:text-red-700"
+                className="shrink-0 text-xs font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
                 onClick={() => onPhotoChange(null)}
                 disabled={processing}
               >
@@ -95,13 +95,13 @@ export function PlantPhotoCapture({
           </div>
 
           {photo ? (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-hilda-text-muted">
               {formatImageByteSize(photo.byteSize)} · {photo.mimeType === "image/webp" ? "WebP" : "JPEG"}{" "}
               · {photo.width}×{photo.height}
             </p>
           ) : null}
 
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
 
           <div className="flex flex-wrap gap-2">
             <Button

@@ -65,8 +65,8 @@ export function PhotosStepForm() {
   if (!customer) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-semibold text-zinc-900">Check-in</h1>
-        <p className="text-zinc-600">Start with customer details before adding photos.</p>
+        <h1 className="text-2xl font-semibold text-hilda-heading">Check-in</h1>
+        <p className="text-hilda-text">Start with customer details before adding photos.</p>
         <Button asChild size="lg">
           <Link href="/app/check-in">Go to customer step</Link>
         </Button>
@@ -77,8 +77,8 @@ export function PhotosStepForm() {
   if (plants.length === 0) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-semibold text-zinc-900">Check-in</h1>
-        <p className="text-zinc-600">Add at least one plant before continuing to photos.</p>
+        <h1 className="text-2xl font-semibold text-hilda-heading">Check-in</h1>
+        <p className="text-hilda-text">Add at least one plant before continuing to photos.</p>
         <Button asChild size="lg">
           <Link href="/app/check-in/plants">Go to plants step</Link>
         </Button>
@@ -230,13 +230,13 @@ export function PhotosStepForm() {
       status={
         <>
           {displayPhotos.size > 0 && !submitting ? (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-hilda-text-muted">
               Photos are saved in this browser tab only — closing the tab or refreshing loses them.
               Complete check-in to save permanently.
             </p>
           ) : null}
-          {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
-          {submitStatus ? <p className="text-sm text-zinc-600">{submitStatus}</p> : null}
+          {formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
+          {submitStatus ? <p className="text-sm text-hilda-text">{submitStatus}</p> : null}
         </>
       }
       footer={

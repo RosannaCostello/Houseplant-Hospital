@@ -36,8 +36,8 @@ export function PlantsStepForm() {
   if (!customerName || !customer) {
     return (
       <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-semibold text-zinc-900">Check-in</h1>
-        <p className="text-zinc-600">Start with customer details before adding plants.</p>
+        <h1 className="text-2xl font-semibold text-hilda-heading">Check-in</h1>
+        <p className="text-hilda-text">Start with customer details before adding plants.</p>
         <Button asChild size="lg">
           <Link href="/app/check-in">Go to customer step</Link>
         </Button>
@@ -144,7 +144,7 @@ export function PlantsStepForm() {
           description={`Plants for ${customerName}. Size required; name and species optional.`}
         />
       }
-      status={formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+      status={formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Button asChild variant="outline" className="w-full sm:w-auto">
@@ -176,14 +176,14 @@ export function PlantsStepForm() {
 
         <section
           key={activePlant.clientId}
-          className="shrink-0 rounded-none border border-zinc-200 bg-white p-3"
+          className="shrink-0 rounded-none border border-hilda-border/15 bg-hilda-surface p-3"
         >
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-zinc-900">Plant {activePlantIndex + 1}</h2>
+            <h2 className="text-sm font-semibold text-hilda-heading">Plant {activePlantIndex + 1}</h2>
             {plants.length > 1 ? (
               <button
                 type="button"
-                className="text-xs font-medium text-red-600 hover:text-red-700"
+                className="text-xs font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
                 onClick={() => removePlant(activePlant.clientId)}
               >
                 Remove
@@ -202,8 +202,8 @@ export function PlantsStepForm() {
                     className={cn(
                       "min-h-10 min-w-12 rounded-none border px-3 py-1.5 text-sm font-semibold transition-colors",
                       activePlant.size === size
-                        ? "border-zinc-900 bg-zinc-900 text-white"
-                        : "border-zinc-300 bg-white text-zinc-800 hover:border-zinc-400",
+                        ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
+                        : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
                     )}
                     onClick={() => updatePlant(activePlant.clientId, { size })}
                   >
@@ -212,13 +212,13 @@ export function PlantsStepForm() {
                 ))}
               </div>
               {activeErrors.size ? (
-                <span className="mt-1 block text-sm text-red-600">{activeErrors.size}</span>
+                <span className="mt-1 block text-sm text-hilda-error-text">{activeErrors.size}</span>
               ) : null}
             </fieldset>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className={checkInLabelClassName}>
-                Name <span className="font-normal text-zinc-500">(optional)</span>
+                Name <span className="font-normal text-hilda-text-muted">(optional)</span>
                 <input
                   className={cn(checkInInputClassName, "py-2.5")}
                   type="text"
@@ -229,7 +229,7 @@ export function PlantsStepForm() {
               </label>
 
               <label className={checkInLabelClassName}>
-                Species <span className="font-normal text-zinc-500">(optional)</span>
+                Species <span className="font-normal text-hilda-text-muted">(optional)</span>
                 <input
                   className={cn(checkInInputClassName, "py-2.5")}
                   type="text"
@@ -241,7 +241,7 @@ export function PlantsStepForm() {
             </div>
 
             <label className={checkInLabelClassName}>
-              Notes <span className="font-normal text-zinc-500">(optional)</span>
+              Notes <span className="font-normal text-hilda-text-muted">(optional)</span>
               <textarea
                 className={cn(checkInInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
                 rows={2}

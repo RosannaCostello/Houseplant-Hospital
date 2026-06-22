@@ -10,7 +10,7 @@ export function BugsFoundBadge({ className, iconClassName }: BugsFoundBadgeProps
   return (
     <span
       className={cn(
-        "absolute flex items-center justify-center rounded-none p-1 text-white",
+        "inline-flex items-center justify-center rounded-none p-1 text-hilda-inverse",
         className,
       )}
       role="img"

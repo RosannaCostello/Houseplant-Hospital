@@ -112,7 +112,7 @@ export function CustomerStepForm() {
           description="Who dropped the plants off?"
         />
       }
-      status={formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+      status={formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Button asChild variant="outline" className="w-full sm:w-auto">
@@ -150,7 +150,7 @@ export function CustomerStepForm() {
               onChange={(event) => updateField("firstName", event.target.value)}
             />
             {fieldErrors.firstName ? (
-              <span className="mt-1 block text-sm text-red-600">{fieldErrors.firstName}</span>
+              <span className="mt-1 block text-sm text-hilda-error-text">{fieldErrors.firstName}</span>
             ) : null}
           </label>
 
@@ -166,13 +166,13 @@ export function CustomerStepForm() {
               onChange={(event) => updateField("lastName", event.target.value)}
             />
             {fieldErrors.lastName ? (
-              <span className="mt-1 block text-sm text-red-600">{fieldErrors.lastName}</span>
+              <span className="mt-1 block text-sm text-hilda-error-text">{fieldErrors.lastName}</span>
             ) : null}
           </label>
         </div>
 
         <label className={checkInLabelClassName}>
-          Phone <span className="font-normal text-zinc-500">(optional)</span>
+          Phone <span className="font-normal text-hilda-text-muted">(optional)</span>
           <input
             className={cn(checkInInputClassName, "py-2.5")}
             type="tel"
@@ -184,22 +184,22 @@ export function CustomerStepForm() {
             onChange={(event) => updateField("phone", event.target.value)}
           />
           {fieldErrors.phone ? (
-            <span className="mt-1 block text-sm text-red-600">{fieldErrors.phone}</span>
+            <span className="mt-1 block text-sm text-hilda-error-text">{fieldErrors.phone}</span>
           ) : null}
         </label>
 
-        <label className="flex items-start gap-2.5 rounded-none border border-zinc-200 bg-zinc-50 p-3">
+        <label className="flex items-start gap-2.5 rounded-none border border-hilda-border/15 bg-hilda-bg p-3">
           <input
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-300"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-hilda-border/25"
             type="checkbox"
             name="marketingConsent"
             checked={formValues.marketingConsent}
             onChange={(event) => updateField("marketingConsent", event.target.checked)}
           />
-          <span className="text-xs leading-snug text-zinc-700 sm:text-sm">
-            <span className="font-medium text-zinc-900">Marketing emails (pre-selected).</span> Customer
+          <span className="text-xs leading-snug text-hilda-text sm:text-sm">
+            <span className="font-medium text-hilda-heading">Marketing emails (pre-selected).</span> Customer
             agrees to Hilda newsletter, offers, and plant care tips.{" "}
-            <span className="text-zinc-600">Deselect if they opt out.</span> Hospital treatment updates
+            <span className="text-hilda-text">Deselect if they opt out.</span> Hospital treatment updates
             are always sent regardless of this box.
           </span>
         </label>

@@ -18,10 +18,6 @@ type PlantDetailViewProps = {
   pricing: PlantPriceBreakdown | null;
 };
 
-function customerPlantTitle(plant: PlantDetail): string {
-  return `${plant.customer.firstName} ${plant.customer.lastName}'s plant`;
-}
-
 function plantSubtitle(plant: PlantDetail): string | null {
   const name = plant.name?.trim();
   const species = plant.species?.trim();
@@ -42,24 +38,11 @@ export function PlantDetailView({
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-3 pb-[var(--bottom-nav-inset)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-semibold tracking-tight text-zinc-900">
-            {customerPlantTitle(plant)}
-          </h1>
-          {subtitle ? <p className="truncate text-sm text-zinc-600">{subtitle}</p> : null}
-        </div>
-        <Link
-          href="/app"
-          className="shrink-0 text-sm font-medium text-zinc-600 hover:text-zinc-900"
-        >
-          ← Dashboard
-        </Link>
-      </div>
+      {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-        <section className="overflow-hidden rounded-none border border-zinc-200 bg-white">
-          <div className="relative aspect-[4/3] max-h-[min(28dvh,11rem)] w-full bg-zinc-100 sm:max-h-[min(32dvh,12.5rem)]">
+        <section className="overflow-hidden rounded-none border border-hilda-border/15 bg-hilda-surface">
+          <div className="relative aspect-[4/3] max-h-[min(28dvh,11rem)] w-full bg-hilda-bg sm:max-h-[min(32dvh,12.5rem)]">
             {latestPhoto ? (
               <Image
                 src={latestPhoto.url}
@@ -71,19 +54,19 @@ export function PlantDetailView({
                 priority
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-500">No photo</div>
+              <div className="flex h-full items-center justify-center text-sm text-hilda-text-muted">No photo</div>
             )}
             {plant.bugsFound ? (
-              <BugsFoundBadge className="right-2 top-2 bg-orange-500" />
+              <BugsFoundBadge className="absolute right-2 top-2 bg-hilda-bugs" />
             ) : null}
           </div>
 
           {plant.photos.length > 1 ? (
-            <div className="flex gap-1.5 overflow-x-auto border-t border-zinc-100 p-2">
+            <div className="flex gap-1.5 overflow-x-auto border-t border-hilda-border/10 p-2">
               {plant.photos.map((photo) => (
                 <div
                   key={photo.id}
-                  className="relative h-12 w-14 shrink-0 overflow-hidden rounded-none border border-zinc-200"
+                  className="relative h-12 w-14 shrink-0 overflow-hidden rounded-none border border-hilda-border/15"
                 >
                   <Image
                     src={photo.thumbnailUrl ?? photo.url}
@@ -99,40 +82,40 @@ export function PlantDetailView({
           ) : null}
         </section>
 
-        <div className="rounded-none border border-zinc-200 bg-white p-3">
+        <div className="rounded-none border border-hilda-border/15 bg-hilda-surface p-3">
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Status</dt>
-              <dd className="mt-0.5 font-medium text-zinc-900">{plantStatusLabel(plant.status)}</dd>
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Status</dt>
+              <dd className="mt-0.5 font-medium text-hilda-heading">{plantStatusLabel(plant.status)}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Size</dt>
-              <dd className="mt-0.5 font-medium text-zinc-900">{plant.size}</dd>
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Size</dt>
+              <dd className="mt-0.5 font-medium text-hilda-heading">{plant.size}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Customer</dt>
-              <dd className="mt-0.5 text-zinc-900">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Customer</dt>
+              <dd className="mt-0.5 text-hilda-heading">
                 {plant.customer.firstName} {plant.customer.lastName}
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Check-in</dt>
-              <dd className="mt-0.5 text-zinc-900">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Check-in</dt>
+              <dd className="mt-0.5 text-hilda-heading">
                 {new Date(plant.checkedInAt).toLocaleString("en-GB", {
                   dateStyle: "medium",
                   timeStyle: "short",
                 })}{" "}
-                <span className="text-zinc-500">({formatPlantAge(plant.checkedInAt)})</span>
+                <span className="text-hilda-text-muted">({formatPlantAge(plant.checkedInAt)})</span>
               </dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Contact</dt>
-              <dd className="mt-0.5 text-zinc-900">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Contact</dt>
+              <dd className="mt-0.5 text-hilda-heading">
                 <a className="hover:underline" href={`mailto:${plant.customer.email}`}>
                   {plant.customer.email}
                 </a>
                 {plant.customer.phone ? (
-                  <span className="text-zinc-600">
+                  <span className="text-hilda-text">
                     {" "}
                     ·{" "}
                     <a className="hover:underline" href={`tel:${plant.customer.phone}`}>
@@ -144,18 +127,18 @@ export function PlantDetailView({
             </div>
             {plant.visitNotes ? (
               <div className="sm:col-span-2">
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Notes</dt>
-                <dd className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-zinc-900">{plant.visitNotes}</dd>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Notes</dt>
+                <dd className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-hilda-heading">{plant.visitNotes}</dd>
               </div>
             ) : null}
             <div className="sm:col-span-2">
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
                 Plants in visit
               </dt>
-              <dd className="mt-0.5 font-medium tabular-nums text-zinc-900">
+              <dd className="mt-0.5 font-medium tabular-nums text-hilda-heading">
                 {plant.visitPlantTotal}
                 {plant.visitPlantTotal > 1 ? (
-                  <span className="font-normal text-zinc-600">
+                  <span className="font-normal text-hilda-text">
                     {" "}
                     · {formatVisitPlantPosition(plant.visitPlantIndex, plant.visitPlantTotal)}
                   </span>
@@ -170,7 +153,7 @@ export function PlantDetailView({
         </div>
       </div>
 
-      <section className="rounded-none border border-zinc-200 bg-white p-3">
+      <section className="rounded-none border border-hilda-border/15 bg-hilda-surface p-3">
         <BugsFoundToggle
           plantId={plant.id}
           bugsFound={plant.bugsFound}
@@ -192,7 +175,7 @@ export function PlantDetailView({
 
       <PlantCaseLink
         plantId={plant.id}
-        className="inline-flex min-h-10 w-full items-center justify-center rounded-none border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 sm:w-auto"
+        className="inline-flex min-h-10 w-full items-center justify-center rounded-none border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm font-medium text-hilda-heading hover:bg-hilda-bg sm:w-auto"
       />
     </div>
   );

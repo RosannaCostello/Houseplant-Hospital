@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { SetPageTitle } from "@/components/app/app-page-title";
 import { CustomerDetailView } from "@/components/customers/customer-detail-view";
+import { formatCustomerDisplayName } from "@/lib/customers/format-customer-display-name";
 import { getCustomerDetail } from "@/lib/customers/get-customer-detail";
 import { isValidRouteId } from "@/lib/validation/parse-route-id";
 
@@ -20,5 +22,10 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
     notFound();
   }
 
-  return <CustomerDetailView customer={customer} />;
+  return (
+    <>
+      <SetPageTitle title={formatCustomerDisplayName(customer)} />
+      <CustomerDetailView customer={customer} />
+    </>
+  );
 }

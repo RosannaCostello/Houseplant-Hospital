@@ -15,14 +15,14 @@ export function PublicPlantCaseView({ plant }: PublicPlantCaseViewProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{plantTitle(plant)}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-hilda-heading">{plantTitle(plant)}</h1>
         {plant.name?.trim() && plant.species?.trim() ? (
-          <p className="mt-1 text-base text-zinc-600">{plant.species}</p>
+          <p className="mt-1 text-base text-hilda-text">{plant.species}</p>
         ) : null}
       </div>
 
-      <section className="overflow-hidden rounded-none border border-zinc-200 bg-white shadow-sm">
-        <div className="relative aspect-[4/3] w-full bg-zinc-100">
+      <section className="overflow-hidden rounded-none border border-hilda-border/15 bg-hilda-surface shadow-sm">
+        <div className="relative aspect-[4/3] w-full bg-hilda-bg">
           {plant.photoUrl ? (
             <Image
               src={plant.photoUrl}
@@ -34,18 +34,18 @@ export function PublicPlantCaseView({ plant }: PublicPlantCaseViewProps) {
               priority
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-zinc-500">No photo</div>
+            <div className="flex h-full items-center justify-center text-sm text-hilda-text-muted">No photo</div>
           )}
         </div>
       </section>
 
-      <section className="rounded-none border border-zinc-200 bg-white p-5 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Status</p>
-        <p className="mt-1 text-lg font-semibold text-zinc-900">{plant.statusLabel}</p>
-        <p className="mt-2 text-sm leading-6 text-zinc-600">{plant.statusMessage}</p>
+      <section className="rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+        <p className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Status</p>
+        <p className="mt-1 text-lg font-semibold text-hilda-heading">{plant.statusLabel}</p>
+        <p className="mt-2 text-sm leading-6 text-hilda-text">{plant.statusMessage}</p>
       </section>
 
-      <p className="text-center text-xs text-zinc-500">
+      <p className="text-center text-xs text-hilda-text-muted">
         Checked in{" "}
         {new Date(plant.checkedInAt).toLocaleString("en-GB", {
           dateStyle: "medium",
