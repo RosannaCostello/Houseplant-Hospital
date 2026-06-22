@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: "Houseplant Hospital",
   description: "Internal operations app for Hilda's Houseplant Hospital",
   applicationName: "Houseplant Hospital",
+  appleWebApp: {
+    capable: true,
+    title: "Houseplant Hospital",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
