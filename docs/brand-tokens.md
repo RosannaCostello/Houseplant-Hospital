@@ -19,7 +19,7 @@ Loaded via `next/font/google` in `app/layout.tsx` as **DM Serif Display** (the G
 
 | Token | Hex | Tailwind examples |
 |-------|-----|-------------------|
-| `hilda-bg` | `#f1f1f1` | `bg-hilda-bg` |
+| `hilda-bg` | washed sage (`hilda-nav-ink` @ 14% on white) | `bg-hilda-bg` |
 | `hilda-surface` | `#ffffff` | `bg-hilda-surface` |
 | `hilda-heading` | `#002c36` | `text-hilda-heading`, `bg-hilda-heading` |
 | `hilda-text` | `#315f5f` | `text-hilda-text`, `bg-hilda-text` |

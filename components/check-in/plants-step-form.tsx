@@ -2,51 +2,111 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { deleteCheckInDraft, updateCheckInDraftPlants } from "@/app/actions/check-in-draft";
+import {
+  deferPosCheckout,
+  fetchDraftCheckoutState,
+  queuePosCheckout,
+} from "@/app/actions/pos-checkout";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
-import { PlantStepPager } from "@/components/check-in/plant-step-pager";
+import { BugsFoundToggleField } from "@/components/plants/bugs-found-toggle-field";
 import { Button } from "@/components/ui/button";
+import type { DraftCheckoutState } from "@/lib/check-in/pos-checkout";
+import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
 import {
   checkInPlantsStepSchema,
   createEmptyPlant,
   type CheckInPlantInput,
 } from "@/lib/check-in/plant-schema";
 import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
-import { loadCheckInDraft, saveCheckInDraft } from "@/lib/check-in/draft";
 import { PLANT_SIZES } from "@/lib/plant-size";
-import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
+import type { PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
+import { canProceedToPhotosStep } from "@/lib/shopify/pos-checkout-types";
 import { cn } from "@/lib/utils";
 
-export function PlantsStepForm() {
-  const router = useRouter();
-  const draft = useCheckInDraft();
-  const customer = draft?.customer;
-  const customerName = customer ? `${customer.firstName} ${customer.lastName}` : null;
+type PlantsStepFormProps = {
+  draftId: string;
+  customer: CheckInCustomer;
+  initialPlants: CheckInPlantInput[];
+  posCheckoutRequired: boolean;
+  initialCheckout: DraftCheckoutState;
+};
 
+function plantsReadyForCheckout(plants: CheckInPlantInput[]): boolean {
+  const parsed = checkInPlantsStepSchema.safeParse({ plants });
+  if (!parsed.success) return false;
+  return parsed.data.plants.every((plant) => plant.bugsFound !== null);
+}
+
+function checkoutStatusLabel(status: PosPaymentStatus): string {
+  switch (status) {
+    case "paid":
+      return "Paid";
+    case "pay_at_collection":
+      return "Pay at collection";
+    case "queued":
+    case "loaded":
+      return "Waiting for payment in Shopify POS";
+    default:
+      return "Payment required";
+  }
+}
+
+export function PlantsStepForm({
+  draftId,
+  customer,
+  initialPlants,
+  posCheckoutRequired,
+  initialCheckout,
+}: PlantsStepFormProps) {
+  const router = useRouter();
+  const plantSectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [editedPlants, setEditedPlants] = useState<CheckInPlantInput[] | null>(null);
-  const [activePlantIndex, setActivePlantIndex] = useState(0);
+  const [checkout, setCheckout] = useState(initialCheckout);
   const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [plantErrors, setPlantErrors] = useState<Record<string, Partial<Record<keyof CheckInPlantInput, string>>>>({});
 
-  const plants =
-    editedPlants ??
-    (draft?.plants?.length ? draft.plants : [createEmptyPlant()]);
+  const plants = editedPlants ?? (initialPlants.length ? initialPlants : [createEmptyPlant()]);
+  const readyForCheckout = plantsReadyForCheckout(plants);
+  const canContinueToPhotos = canProceedToPhotosStep(checkout.status, posCheckoutRequired);
+  const awaitingPosPayment =
+    posCheckoutRequired && (checkout.status === "queued" || checkout.status === "loaded");
 
-  if (!customerName || !customer) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-semibold text-hilda-heading">Check-in</h1>
-        <p className="text-hilda-text">Start with customer details before adding plants.</p>
-        <Button asChild size="lg">
-          <Link href="/app/check-in">Go to customer step</Link>
-        </Button>
-      </div>
-    );
+  useEffect(() => {
+    if (!awaitingPosPayment) return;
+
+    const interval = window.setInterval(() => {
+      void fetchDraftCheckoutState(draftId).then((state) => {
+        if (!state) return;
+        setCheckout({
+          status: state.status,
+          queuedAt: state.queuedAt,
+          paidAt: state.paidAt,
+          shopifyOrderId: state.shopifyOrderId,
+          summaryLines: state.summaryLines,
+        });
+      });
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [awaitingPosPayment, draftId]);
+
+  function scrollToPlant(clientId: string) {
+    requestAnimationFrame(() => {
+      plantSectionRefs.current.get(clientId)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   }
 
-  const activePlant = plants[Math.min(activePlantIndex, plants.length - 1)];
-  const activeErrors = plantErrors[activePlant.clientId] ?? {};
+  function setPlantSectionRef(clientId: string, element: HTMLElement | null) {
+    if (element) {
+      plantSectionRefs.current.set(clientId, element);
+    } else {
+      plantSectionRefs.current.delete(clientId);
+    }
+  }
 
   function updatePlants(next: CheckInPlantInput[]) {
     setEditedPlants(next);
@@ -59,27 +119,17 @@ export function PlantsStepForm() {
   }
 
   function addPlant() {
-    const next = [...plants, createEmptyPlant()];
-    updatePlants(next);
-    setActivePlantIndex(next.length - 1);
+    const newPlant = createEmptyPlant();
+    updatePlants([...plants, newPlant]);
+    scrollToPlant(newPlant.clientId);
   }
 
   function removePlant(clientId: string) {
     if (plants.length === 1) return;
-
-    const removedIndex = plants.findIndex((plant) => plant.clientId === clientId);
-    const next = plants.filter((plant) => plant.clientId !== clientId);
-    updatePlants(next);
-
-    if (removedIndex >= 0 && activePlantIndex >= removedIndex) {
-      setActivePlantIndex(Math.max(0, activePlantIndex - 1));
-    }
+    updatePlants(plants.filter((plant) => plant.clientId !== clientId));
   }
 
-  function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!customer) return;
-
+  function collectPlantValidationErrors() {
     const parsed = checkInPlantsStepSchema.safeParse({ plants });
 
     if (!parsed.success) {
@@ -109,7 +159,10 @@ export function PlantsStepForm() {
       }
 
       if (firstErrorIndex !== null) {
-        setActivePlantIndex(firstErrorIndex);
+        const errorPlant = plants[firstErrorIndex];
+        if (errorPlant) {
+          scrollToPlant(errorPlant.clientId);
+        }
       }
 
       setPlantErrors(errors);
@@ -119,18 +172,111 @@ export function PlantsStepForm() {
             ? "Check the highlighted fields and try again."
             : "Could not save plants. Try again."),
       );
+      return null;
+    }
+
+    return parsed.data.plants;
+  }
+
+  async function onContinueToPhotos(event: React.FormEvent) {
+    event.preventDefault();
+
+    const validPlants = collectPlantValidationErrors();
+    if (!validPlants) return;
+
+    if (posCheckoutRequired && !canProceedToPhotosStep(checkout.status, true)) {
+      setFormError("Complete checkout in Shopify POS or choose Pay at collection before continuing.");
       return;
     }
 
-    const existing = loadCheckInDraft();
-    saveCheckInDraft({
-      customer,
-      plants: parsed.data.plants,
-      photos: existing?.photos?.filter((photo) =>
-        parsed.data.plants.some((plant) => plant.clientId === photo.plantClientId),
-      ),
+    setSubmitting(true);
+    setFormError(null);
+
+    const result = await updateCheckInDraftPlants(draftId, validPlants);
+
+    setSubmitting(false);
+
+    if (!result.success) {
+      setFormError(result.error);
+      return;
+    }
+
+    router.push(`/app/check-in/photos?draft=${draftId}`);
+  }
+
+  async function onGoToCheckout() {
+    const validPlants = collectPlantValidationErrors();
+    if (!validPlants) return;
+
+    if (!readyForCheckout) {
+      setFormError("Select whether bugs were found for each plant before checkout.");
+      return;
+    }
+
+    setSubmitting(true);
+    setFormError(null);
+
+    const result = await queuePosCheckout(draftId, validPlants);
+
+    setSubmitting(false);
+
+    if (!result.success) {
+      setFormError(result.error);
+      return;
+    }
+
+    setCheckout({
+      status: "queued",
+      queuedAt: new Date().toISOString(),
+      paidAt: null,
+      shopifyOrderId: null,
+      summaryLines: result.summaryLines,
     });
-    router.push("/app/check-in/photos");
+  }
+
+  async function onPayAtCollection() {
+    const validPlants = collectPlantValidationErrors();
+    if (!validPlants) return;
+
+    if (
+      !window.confirm(
+        "Mark this check-in as pay at collection? You can take payment in Shopify POS when the customer collects their plants.",
+      )
+    ) {
+      return;
+    }
+
+    setSubmitting(true);
+    setFormError(null);
+
+    const result = await deferPosCheckout(draftId, validPlants);
+
+    setSubmitting(false);
+
+    if (!result.success) {
+      setFormError(result.error);
+      return;
+    }
+
+    setCheckout((current) => ({ ...current, status: "pay_at_collection" }));
+  }
+
+  async function onDiscard() {
+    if (!window.confirm("Discard this incomplete check-in? This cannot be undone.")) {
+      return;
+    }
+
+    setSubmitting(true);
+    const result = await deleteCheckInDraft(draftId);
+    setSubmitting(false);
+
+    if (!result.success) {
+      setFormError(result.error);
+      return;
+    }
+
+    router.push("/app");
+    router.refresh();
   }
 
   return (
@@ -140,118 +286,193 @@ export function PlantsStepForm() {
         <CheckInStepHeader
           step={2}
           totalSteps={3}
-          title="Plants"
-          description={`Plants for ${customerName}. Size required; name and species optional.`}
+          title={`${customer.firstName} ${customer.lastName}'s Plants`}
         />
       }
-      status={formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
+      status={
+        <>
+          {posCheckoutRequired ? (
+            <p className="text-xs text-hilda-text-muted">
+              Payment status: {checkoutStatusLabel(checkout.status)}
+            </p>
+          ) : null}
+          {formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
+        </>
+      }
       footer={
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/app/check-in">Back to customer</Link>
-          </Button>
-          <Button type="submit" form="check-in-plants-form" className="w-full sm:w-auto">
-            Continue to photos
-          </Button>
+        <div className="flex flex-col gap-2">
+          {posCheckoutRequired && awaitingPosPayment ? (
+            <div className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3 text-sm text-hilda-text">
+              <p className="font-medium text-hilda-heading">Open Shopify POS to take payment</p>
+              <p className="mt-1 text-hilda-text-muted">
+                Tap the <strong>Houseplant Hospital</strong> tile, load this check-in, then complete checkout.
+              </p>
+              {checkout.summaryLines.length > 0 ? (
+                <ul className="mt-2 list-inside list-disc text-xs text-hilda-text-muted">
+                  {checkout.summaryLines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button asChild variant="outline" className="w-full sm:w-auto" disabled={submitting}>
+                <Link href={`/app/check-in?draft=${draftId}`}>Back to customer</Link>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                disabled={submitting}
+                onClick={() => void onDiscard()}
+              >
+                Discard draft
+              </Button>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {posCheckoutRequired && !canContinueToPhotos ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    disabled={submitting || !readyForCheckout}
+                    onClick={() => void onPayAtCollection()}
+                  >
+                    Pay at collection
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto"
+                    disabled={submitting || !readyForCheckout || awaitingPosPayment}
+                    onClick={() => void onGoToCheckout()}
+                  >
+                    {submitting ? "Working…" : awaitingPosPayment ? "Waiting for POS…" : "Go to checkout"}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="submit"
+                  form="check-in-plants-form"
+                  className="w-full sm:w-auto"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving…" : "Continue to photos"}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       }
     >
       <form
         id="check-in-plants-form"
         className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
-        onSubmit={onSubmit}
+        onSubmit={(event) => void onContinueToPhotos(event)}
         noValidate
       >
-        <div className="flex shrink-0 items-center gap-3">
-          <PlantStepPager
-            total={plants.length}
-            currentIndex={activePlantIndex}
-            onIndexChange={setActivePlantIndex}
-            isComplete={(index) => Boolean(plants[index]?.size)}
-          />
-          <Button type="button" variant="outline" className="ml-auto shrink-0" onClick={addPlant}>
+        <div className="flex shrink-0 justify-end">
+          <Button type="button" variant="outline" onClick={addPlant}>
             Add plant
           </Button>
         </div>
 
-        <section
-          key={activePlant.clientId}
-          className="shrink-0 rounded-none border border-hilda-border/15 bg-hilda-surface p-3"
-        >
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-hilda-heading">Plant {activePlantIndex + 1}</h2>
-            {plants.length > 1 ? (
-              <button
-                type="button"
-                className="text-xs font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
-                onClick={() => removePlant(activePlant.clientId)}
+        <div className="flex flex-col gap-3">
+          {plants.map((plant, index) => {
+            const errors = plantErrors[plant.clientId] ?? {};
+
+            return (
+              <section
+                key={plant.clientId}
+                ref={(element) => setPlantSectionRef(plant.clientId, element)}
+                className="shrink-0 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3"
               >
-                Remove
-              </button>
-            ) : null}
-          </div>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold text-hilda-heading">Plant {index + 1}</h2>
+                  {plants.length > 1 ? (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
+                      onClick={() => removePlant(plant.clientId)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
 
-          <div className="space-y-3">
-            <fieldset>
-              <legend className={checkInLabelClassName}>Size</legend>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {PLANT_SIZES.map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    className={cn(
-                      "min-h-10 min-w-12 rounded-none border px-3 py-1.5 text-sm font-semibold transition-colors",
-                      activePlant.size === size
-                        ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
-                        : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
-                    )}
-                    onClick={() => updatePlant(activePlant.clientId, { size })}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-              {activeErrors.size ? (
-                <span className="mt-1 block text-sm text-hilda-error-text">{activeErrors.size}</span>
-              ) : null}
-            </fieldset>
+                <div className="space-y-3">
+                  <fieldset>
+                    <legend className={checkInLabelClassName}>Size</legend>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {PLANT_SIZES.map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          className={cn(
+                            "min-h-10 min-w-12 rounded-hilda-sm border px-3 py-1.5 text-sm font-semibold transition-colors",
+                            plant.size === size
+                              ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
+                              : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
+                          )}
+                          onClick={() => updatePlant(plant.clientId, { size })}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                    {errors.size ? (
+                      <span className="mt-1 block text-sm text-hilda-error-text">{errors.size}</span>
+                    ) : null}
+                  </fieldset>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className={checkInLabelClassName}>
-                Name <span className="font-normal text-hilda-text-muted">(optional)</span>
-                <input
-                  className={cn(checkInInputClassName, "py-2.5")}
-                  type="text"
-                  value={activePlant.name}
-                  onChange={(event) => updatePlant(activePlant.clientId, { name: event.target.value })}
-                  placeholder="e.g. Monty"
-                />
-              </label>
+                  <BugsFoundToggleField
+                    value={plant.bugsFound ?? null}
+                    onChange={(bugsFound) => updatePlant(plant.clientId, { bugsFound })}
+                  />
 
-              <label className={checkInLabelClassName}>
-                Species <span className="font-normal text-hilda-text-muted">(optional)</span>
-                <input
-                  className={cn(checkInInputClassName, "py-2.5")}
-                  type="text"
-                  value={activePlant.species}
-                  onChange={(event) => updatePlant(activePlant.clientId, { species: event.target.value })}
-                  placeholder="e.g. Monstera deliciosa"
-                />
-              </label>
-            </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className={checkInLabelClassName}>
+                      Name <span className="font-normal text-hilda-text-muted">(optional)</span>
+                      <input
+                        className={cn(checkInInputClassName, "py-2.5")}
+                        type="text"
+                        value={plant.name}
+                        onChange={(event) => updatePlant(plant.clientId, { name: event.target.value })}
+                        placeholder="e.g. Monty"
+                      />
+                    </label>
 
-            <label className={checkInLabelClassName}>
-              Notes <span className="font-normal text-hilda-text-muted">(optional)</span>
-              <textarea
-                className={cn(checkInInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
-                rows={2}
-                value={activePlant.notes}
-                onChange={(event) => updatePlant(activePlant.clientId, { notes: event.target.value })}
-                placeholder="Visible issues, pot size, customer concerns…"
-              />
-            </label>
-          </div>
-        </section>
+                    <label className={checkInLabelClassName}>
+                      Species <span className="font-normal text-hilda-text-muted">(optional)</span>
+                      <input
+                        className={cn(checkInInputClassName, "py-2.5")}
+                        type="text"
+                        value={plant.species}
+                        onChange={(event) => updatePlant(plant.clientId, { species: event.target.value })}
+                        placeholder="e.g. Monstera deliciosa"
+                      />
+                    </label>
+                  </div>
+
+                  <label className={checkInLabelClassName}>
+                    Notes <span className="font-normal text-hilda-text-muted">(optional)</span>
+                    <textarea
+                      className={cn(checkInInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
+                      rows={2}
+                      value={plant.notes}
+                      onChange={(event) => updatePlant(plant.clientId, { notes: event.target.value })}
+                      placeholder="Visible issues, pot size, customer concerns…"
+                    />
+                  </label>
+                </div>
+              </section>
+            );
+          })}
+        </div>
       </form>
     </CheckInStepShell>
   );

@@ -120,7 +120,7 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
             </Button>
           </div>
 
-          <div className="overflow-x-auto rounded-none border border-hilda-border/15">
+          <div className="overflow-x-auto rounded-hilda border border-hilda-border/15">
             <table className="min-w-full text-sm">
               <thead className="bg-hilda-bg text-left text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
                 <tr>

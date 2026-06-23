@@ -21,7 +21,7 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
   return (
     <Link
       href={`/app/plants/${plant.id}`}
-      className="flex items-center justify-between gap-3 rounded-none border border-hilda-border/15 bg-hilda-bg px-3 py-2 transition-colors hover:border-hilda-border/20 hover:bg-hilda-surface"
+      className="flex items-center justify-between gap-3 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg px-3 py-2 transition-colors hover:border-hilda-border/20 hover:bg-hilda-surface"
     >
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-hilda-heading">{plantTitle(plant)}</p>
@@ -29,11 +29,11 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {plant.bugsFound ? (
-          <span className="rounded bg-hilda-bugs px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hilda-inverse">
+          <span className="rounded-hilda-sm bg-hilda-bugs px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hilda-inverse">
             Bugs
           </span>
         ) : null}
-        <span className="rounded bg-hilda-surface px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-text ring-1 ring-hilda-border/15">
+        <span className="rounded-hilda-sm bg-hilda-surface px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-text ring-1 ring-hilda-border/15">
           {plant.size}
         </span>
       </div>
@@ -43,7 +43,7 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
 
 function VisitHistoryCard({ visit }: { visit: CustomerDetailVisit }) {
   return (
-    <article className="rounded-none border border-hilda-border/15 bg-hilda-bg p-4">
+    <article className="rounded-hilda border border-hilda-border/15 bg-hilda-bg p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-hilda-heading">
@@ -56,7 +56,7 @@ function VisitHistoryCard({ visit }: { visit: CustomerDetailVisit }) {
         </div>
         <Link
           href={`/app/visits/${visit.id}`}
-          className="rounded-none border border-hilda-border/25 bg-hilda-surface px-3 py-1.5 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
+          className="rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-1.5 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
         >
           View visit
         </Link>
@@ -87,7 +87,7 @@ export function CustomerDetailView({ customer }: CustomerDetailViewProps) {
 
   return (
     <div className="mx-auto w-full max-w-3xl pb-bottom-nav">
-      <section className="space-y-6 rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+      <section className="space-y-6 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Email</dt>
@@ -128,7 +128,7 @@ export function CustomerDetailView({ customer }: CustomerDetailViewProps) {
               ))}
             </div>
           ) : (
-            <p className="rounded-none border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
+            <p className="rounded-hilda border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
               No visits recorded for this customer yet.
             </p>
           )}

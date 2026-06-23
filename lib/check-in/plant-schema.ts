@@ -7,6 +7,7 @@ export const checkInPlantSchema = z.object({
   name: z.string().trim(),
   species: z.string().trim(),
   notes: z.string().trim(),
+  bugsFound: z.union([z.literal(true), z.literal(false), z.null()]).default(null),
 });
 
 export const checkInPlantsStepSchema = z.object({
@@ -23,5 +24,6 @@ export function createEmptyPlant(): CheckInPlantInput {
     name: "",
     species: "",
     notes: "",
+    bugsFound: null,
   };
 }

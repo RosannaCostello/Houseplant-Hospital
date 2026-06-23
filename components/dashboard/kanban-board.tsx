@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { DraftCheckInCard } from "@/components/dashboard/draft-check-in-card";
+import { IncompleteCheckInsLane } from "@/components/dashboard/incomplete-check-ins-lane";
 import { KanbanLane } from "@/components/dashboard/kanban-lane";
 import { PlantCard } from "@/components/dashboard/plant-card";
 import {
@@ -10,10 +12,12 @@ import {
   type DashboardLaneSortOrder,
 } from "@/lib/dashboard/sort-dashboard-plants";
 import type { DashboardPlant } from "@/lib/dashboard/types";
+import type { IncompleteCheckInDraft } from "@/lib/check-in/check-in-draft-types";
 import { PLANT_STATUS_LANES, type PlantStatus } from "@/lib/plant-status";
 
 type KanbanBoardProps = {
   plants?: DashboardPlant[];
+  incompleteDrafts?: IncompleteCheckInDraft[];
 };
 
 const DEFAULT_SORT_ORDER: DashboardLaneSortOrder = "newest";
@@ -36,7 +40,7 @@ function initialSortByLane(): Record<PlantStatus, DashboardLaneSortOrder> {
   ) as Record<PlantStatus, DashboardLaneSortOrder>;
 }
 
-export function KanbanBoard({ plants = [] }: KanbanBoardProps) {
+export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardProps) {
   const [sortByLane, setSortByLane] = useState(initialSortByLane);
   const plantsByStatus = groupPlantsByStatus(plants);
 
@@ -48,11 +52,17 @@ export function KanbanBoard({ plants = [] }: KanbanBoardProps) {
   }, []);
 
   return (
-    <div className="relative min-h-0 flex-1 basis-0 overflow-hidden">
+    <div className="relative min-h-0 flex-1 basis-0">
       <div
-        className="flex h-full max-h-full min-h-0 w-full flex-nowrap items-stretch gap-3 overflow-x-auto overscroll-x-contain px-1 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]"
+        className="flex h-full max-h-full min-h-0 w-full flex-nowrap items-stretch gap-8 overflow-x-auto overflow-y-visible overscroll-x-contain px-1 py-2 snap-x snap-mandatory scroll-smooth [-webkit-overflow-scrolling:touch]"
         aria-label="Plant workflow lanes"
       >
+        <IncompleteCheckInsLane count={incompleteDrafts.length}>
+          {incompleteDrafts.map((draft) => (
+            <DraftCheckInCard key={draft.id} draft={draft} />
+          ))}
+        </IncompleteCheckInsLane>
+
         {PLANT_STATUS_LANES.map((lane) => {
           const lanePlants = sortDashboardPlants(
             plantsByStatus[lane.status],

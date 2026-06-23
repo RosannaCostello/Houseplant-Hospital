@@ -37,12 +37,12 @@ export default async function SettingsPage() {
   return (
     <div className="pb-bottom-nav mx-auto max-w-5xl space-y-8">
       {autoSyncError ? (
-        <p className="rounded-none border border-hilda-error-border bg-hilda-error-bg px-4 py-3 text-sm text-hilda-error-text-strong">
+        <p className="rounded-hilda border border-hilda-error-border bg-hilda-error-bg px-4 py-3 text-sm text-hilda-error-text-strong">
           Automatic Shopify sync failed: {autoSyncError}
         </p>
       ) : null}
 
-      <section className="rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <PricingSettingsForm settings={settings} />
       </section>
     </div>

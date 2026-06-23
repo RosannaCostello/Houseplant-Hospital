@@ -41,7 +41,7 @@ export function PlantDetailView({
       {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-        <section className="overflow-hidden rounded-none border border-hilda-border/15 bg-hilda-surface">
+        <section className="overflow-hidden rounded-hilda border border-hilda-border/15 bg-hilda-surface">
           <div className="relative aspect-[4/3] max-h-[min(28dvh,11rem)] w-full bg-hilda-bg sm:max-h-[min(32dvh,12.5rem)]">
             {latestPhoto ? (
               <Image
@@ -66,7 +66,7 @@ export function PlantDetailView({
               {plant.photos.map((photo) => (
                 <div
                   key={photo.id}
-                  className="relative h-12 w-14 shrink-0 overflow-hidden rounded-none border border-hilda-border/15"
+                  className="relative h-12 w-14 shrink-0 overflow-hidden rounded-hilda-sm border border-hilda-border/15"
                 >
                   <Image
                     src={photo.thumbnailUrl ?? photo.url}
@@ -82,7 +82,7 @@ export function PlantDetailView({
           ) : null}
         </section>
 
-        <div className="rounded-none border border-hilda-border/15 bg-hilda-surface p-3">
+        <div className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Status</dt>
@@ -153,7 +153,7 @@ export function PlantDetailView({
         </div>
       </div>
 
-      <section className="rounded-none border border-hilda-border/15 bg-hilda-surface p-3">
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
         <BugsFoundToggle
           plantId={plant.id}
           bugsFound={plant.bugsFound}
@@ -175,7 +175,7 @@ export function PlantDetailView({
 
       <PlantCaseLink
         plantId={plant.id}
-        className="inline-flex min-h-10 w-full items-center justify-center rounded-none border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm font-medium text-hilda-heading hover:bg-hilda-bg sm:w-auto"
+        className="inline-flex min-h-10 w-full items-center justify-center rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm font-medium text-hilda-heading hover:bg-hilda-bg sm:w-auto"
       />
     </div>
   );

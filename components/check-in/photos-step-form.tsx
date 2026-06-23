@@ -2,219 +2,169 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { createCheckInRecords, rollbackCheckIn } from "@/app/actions/complete-check-in";
+import { useMemo, useRef, useState } from "react";
+import {
+  deleteCheckInDraft,
+  deleteCheckInDraftPhoto,
+  finalizeCheckInDraft,
+  uploadCheckInDraftPhoto,
+} from "@/app/actions/check-in-draft";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
-import { PlantStepPager } from "@/components/check-in/plant-step-pager";
 import { Button } from "@/components/ui/button";
-import { saveCheckInDraft, clearCheckInDraft } from "@/lib/check-in/draft";
+import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
+import type { CheckInDraftPhotoView } from "@/lib/check-in/photo-schema";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
-import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
-import { removePlantPhotoFiles, uploadPlantPhoto } from "@/lib/photos/upload-plant-photo";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import type { CheckInPlant } from "@/lib/check-in/plant-schema";
 
-function photosByPlantId(photos: CheckInPlantPhoto[] | undefined): Map<string, CheckInPlantPhoto> {
-  return new Map((photos ?? []).map((photo) => [photo.plantClientId, photo]));
+function photosByPlantId(photos: CheckInDraftPhotoView[]): Map<string, CheckInDraftPhotoView> {
+  return new Map(photos.map((photo) => [photo.plantClientId, photo]));
 }
 
-function nextPlantIndexWithoutPhoto(
-  plants: { clientId: string }[],
-  photos: Map<string, CheckInPlantPhoto>,
-  afterIndex: number,
-): number | null {
-  for (let index = afterIndex + 1; index < plants.length; index += 1) {
-    if (!photos.has(plants[index].clientId)) {
-      return index;
+type PhotosStepFormProps = {
+  draftId: string;
+  customer: CheckInCustomer;
+  plants: CheckInPlant[];
+  initialPhotos: CheckInDraftPhotoView[];
+};
+
+export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: PhotosStepFormProps) {
+  const router = useRouter();
+  const plantSectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const initialPhotoMap = useMemo(() => photosByPlantId(initialPhotos), [initialPhotos]);
+  const [displayPhotos, setDisplayPhotos] = useState<Map<string, CheckInDraftPhotoView>>(initialPhotoMap);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadingPlantId, setUploadingPlantId] = useState<string | null>(null);
+  const [submitStatus, setSubmitStatus] = useState<string | null>(null);
+
+  function scrollToPlant(clientId: string) {
+    requestAnimationFrame(() => {
+      plantSectionRefs.current.get(clientId)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }
+
+  function setPlantSectionRef(clientId: string, element: HTMLElement | null) {
+    if (element) {
+      plantSectionRefs.current.set(clientId, element);
+    } else {
+      plantSectionRefs.current.delete(clientId);
     }
   }
 
-  return null;
-}
+  async function updatePhoto(plantClientId: string, photo: CheckInPlantPhoto | null) {
+    setFormError(null);
 
-export function PhotosStepForm() {
-  const router = useRouter();
-  const draft = useCheckInDraft();
-  const customer = draft?.customer;
-  const plants = draft?.plants ?? [];
+    if (!photo) {
+      setUploadingPlantId(plantClientId);
+      const result = await deleteCheckInDraftPhoto(draftId, plantClientId);
+      setUploadingPlantId(null);
 
-  const draftPhotoMap = useMemo(() => photosByPlantId(draft?.photos), [draft?.photos]);
-  const [editedPhotos, setEditedPhotos] = useState<Map<string, CheckInPlantPhoto> | null>(null);
-  const [activePlantIndex, setActivePlantIndex] = useState(0);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<string | null>(null);
+      if (!result.success) {
+        setFormError(result.error);
+        return;
+      }
 
-  const displayPhotos = editedPhotos ?? draftPhotoMap;
-
-  useEffect(() => {
-    if (submitting || displayPhotos.size === 0) {
+      setDisplayPhotos((current) => {
+        const next = new Map(current);
+        next.delete(plantClientId);
+        return next;
+      });
       return;
     }
 
-    function onBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
+    setUploadingPlantId(plantClientId);
+    const result = await uploadCheckInDraftPhoto({
+      draftId,
+      plantClientId,
+      mimeType: photo.mimeType,
+      dataUrl: photo.dataUrl,
+      thumbnailDataUrl: photo.thumbnailDataUrl,
+      byteSize: photo.byteSize,
+      width: photo.width,
+      height: photo.height,
+    });
+    setUploadingPlantId(null);
+
+    if (!result.success) {
+      setFormError(result.error);
+      return;
     }
 
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [displayPhotos.size, submitting]);
+    const view: CheckInDraftPhotoView = {
+      plantClientId,
+      mimeType: photo.mimeType,
+      previewUrl: photo.dataUrl,
+      byteSize: photo.byteSize,
+      width: photo.width,
+      height: photo.height,
+    };
 
-  if (!customer) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-semibold text-hilda-heading">Check-in</h1>
-        <p className="text-hilda-text">Start with customer details before adding photos.</p>
-        <Button asChild size="lg">
-          <Link href="/app/check-in">Go to customer step</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  if (plants.length === 0) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-4">
-        <h1 className="text-2xl font-semibold text-hilda-heading">Check-in</h1>
-        <p className="text-hilda-text">Add at least one plant before continuing to photos.</p>
-        <Button asChild size="lg">
-          <Link href="/app/check-in/plants">Go to plants step</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const activePlant = plants[Math.min(activePlantIndex, plants.length - 1)];
-
-  function persistPhotos(next: Map<string, CheckInPlantPhoto>) {
-    if (!customer) return;
-
-    saveCheckInDraft({
-      customer,
-      plants,
-      photos: Array.from(next.values()),
-    });
-  }
-
-  function updatePhoto(plantClientId: string, photo: CheckInPlantPhoto | null, plantIndex: number) {
-    setFormError(null);
-
-    setEditedPhotos((current) => {
-      const next = new Map(current ?? draftPhotoMap);
-
-      if (photo) {
-        next.set(plantClientId, { ...photo, plantClientId });
-      } else {
-        next.delete(plantClientId);
-      }
-
-      persistPhotos(next);
-
-      if (photo) {
-        const nextIndex = nextPlantIndexWithoutPhoto(plants, next, plantIndex);
-        if (nextIndex !== null) {
-          setActivePlantIndex(nextIndex);
-        }
-      }
-
+    setDisplayPhotos((current) => {
+      const next = new Map(current);
+      next.set(plantClientId, view);
       return next;
     });
+
+    router.refresh();
   }
 
   async function onComplete(event: React.FormEvent) {
     event.preventDefault();
-    if (!customer) return;
 
     const missing = plants.filter((plant) => !displayPhotos.has(plant.clientId));
 
     if (missing.length > 0) {
-      const firstMissing = plants.findIndex((plant) => !displayPhotos.has(plant.clientId));
-      if (firstMissing >= 0) {
-        setActivePlantIndex(firstMissing);
+      const firstMissingPlant = missing[0];
+      if (firstMissingPlant) {
+        scrollToPlant(firstMissingPlant.clientId);
       }
 
       setFormError(`Add a photo for each plant (${missing.length} remaining).`);
       return;
     }
 
-    const stalePhotos = plants.filter((plant) => {
-      const photo = displayPhotos.get(plant.clientId);
-      return photo && !photo.thumbnailDataUrl;
-    });
+    setSubmitting(true);
+    setFormError(null);
+    setSubmitStatus("Completing check-in…");
 
-    if (stalePhotos.length > 0) {
-      setFormError("Some photos need to be retaken (saved before thumbnails were added).");
+    const result = await finalizeCheckInDraft(draftId);
+
+    setSubmitting(false);
+
+    if (!result.success) {
+      setSubmitStatus(null);
+      setFormError(result.error);
+      return;
+    }
+
+    setSubmitStatus("Done! Opening dashboard…");
+    router.push("/app");
+    router.refresh();
+  }
+
+  async function onDiscard() {
+    if (!window.confirm("Discard this incomplete check-in? This cannot be undone.")) {
       return;
     }
 
     setSubmitting(true);
-    setFormError(null);
-    setSubmitStatus("Saving customer and plants…");
+    const result = await deleteCheckInDraft(draftId);
+    setSubmitting(false);
 
-    let visitId: string | null = null;
-    const uploadedPaths: string[] = [];
-    let succeeded = false;
-
-    try {
-      const records = await createCheckInRecords({ customer, plants });
-
-      if (!records.success) {
-        setFormError(records.error);
-        return;
-      }
-
-      visitId = records.visitId;
-      const plantIdByClientId = new Map(records.plants.map((row) => [row.clientId, row.plantId]));
-
-      const supabase = createSupabaseBrowserClient();
-      for (let index = 0; index < plants.length; index += 1) {
-        const plant = plants[index];
-        const photo = displayPhotos.get(plant.clientId)!;
-        const plantId = plantIdByClientId.get(plant.clientId);
-
-        if (!plantId) {
-          throw new Error("Could not match plant to photo.");
-        }
-
-        setSubmitStatus(`Uploading photo ${index + 1} of ${plants.length}…`);
-
-        const uploaded = await uploadPlantPhoto(supabase, {
-          plantId,
-          mimeType: photo.mimeType,
-          dataUrl: photo.dataUrl,
-          thumbnailDataUrl: photo.thumbnailDataUrl,
-        });
-        uploadedPaths.push(uploaded.storagePath, uploaded.thumbnailPath);
-      }
-
-      clearCheckInDraft();
-      setSubmitStatus("Done! Opening dashboard…");
-      succeeded = true;
-      router.push("/app");
-      router.refresh();
-    } catch (error) {
-      if (uploadedPaths.length > 0) {
-        const supabase = createSupabaseBrowserClient();
-        await removePlantPhotoFiles(supabase, uploadedPaths);
-      }
-
-      if (visitId) {
-        await rollbackCheckIn(visitId);
-      }
-
-      const message = error instanceof Error ? error.message : "Check-in failed";
-      setFormError(message);
-    } finally {
-      setSubmitting(false);
-      if (succeeded) {
-        setSubmitStatus(null);
-      }
+    if (!result.success) {
+      setFormError(result.error);
+      return;
     }
+
+    router.push("/app");
+    router.refresh();
   }
 
   const buttonLabel = submitStatus ?? (submitting ? "Working…" : "Complete check-in");
+  const customerFullName = `${customer.firstName} ${customer.lastName}`;
+  const photosStepTitle = `Photos of ${customerFullName}'s ${plants.length === 1 ? "plant" : "plants"}`;
 
   return (
     <CheckInStepShell
@@ -223,27 +173,34 @@ export function PhotosStepForm() {
         <CheckInStepHeader
           step={3}
           totalSteps={3}
-          title="Photos"
-          description="One photo per plant. Images are compressed before upload."
+          title={photosStepTitle}
         />
       }
       status={
         <>
-          {displayPhotos.size > 0 && !submitting ? (
-            <p className="text-xs text-hilda-text-muted">
-              Photos are saved in this browser tab only — closing the tab or refreshing loses them.
-              Complete check-in to save permanently.
-            </p>
-          ) : null}
+          <p className="text-xs text-hilda-text-muted">
+            Photos are saved to this draft check-in. You can leave and resume from the dashboard at any time.
+          </p>
           {formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
           {submitStatus ? <p className="text-sm text-hilda-text">{submitStatus}</p> : null}
         </>
       }
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Button asChild variant="outline" className="w-full sm:w-auto" disabled={submitting}>
-            <Link href="/app/check-in/plants">Back to plants</Link>
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button asChild variant="outline" className="w-full sm:w-auto" disabled={submitting}>
+              <Link href={`/app/check-in/plants?draft=${draftId}`}>Back to plants</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              disabled={submitting}
+              onClick={() => void onDiscard()}
+            >
+              Discard draft
+            </Button>
+          </div>
           <Button type="submit" form="check-in-photos-form" className="w-full sm:w-auto" disabled={submitting}>
             {buttonLabel}
           </Button>
@@ -252,23 +209,27 @@ export function PhotosStepForm() {
     >
       <form
         id="check-in-photos-form"
-        className="flex min-h-0 flex-1 flex-col gap-3"
-        onSubmit={onComplete}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+        onSubmit={(event) => void onComplete(event)}
         noValidate
       >
-        <PlantStepPager
-          total={plants.length}
-          currentIndex={activePlantIndex}
-          onIndexChange={setActivePlantIndex}
-          isComplete={(index) => displayPhotos.has(plants[index].clientId)}
-        />
-
-        <PlantPhotoCapture
-          key={activePlant.clientId}
-          label={checkInPlantLabel(activePlant, activePlantIndex)}
-          photo={displayPhotos.get(activePlant.clientId)}
-          onPhotoChange={(photo) => updatePhoto(activePlant.clientId, photo, activePlantIndex)}
-        />
+        <div className="flex flex-col gap-3">
+          {plants.map((plant, index) => (
+            <div
+              key={plant.clientId}
+              ref={(element) => setPlantSectionRef(plant.clientId, element)}
+              className="shrink-0"
+            >
+              <PlantPhotoCapture
+                label={checkInPlantLabel(plant, index)}
+                photo={displayPhotos.get(plant.clientId)}
+                uploading={uploadingPlantId === plant.clientId}
+                className="flex-none"
+                onPhotoChange={(photo) => void updatePhoto(plant.clientId, photo)}
+              />
+            </div>
+          ))}
+        </div>
       </form>
     </CheckInStepShell>
   );

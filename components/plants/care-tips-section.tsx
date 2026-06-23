@@ -37,8 +37,8 @@ export function CareTipsSection({
   }
 
   const sectionClass = compact
-    ? "space-y-3 rounded-none border border-hilda-border/15 bg-hilda-surface p-3"
-    : "space-y-4 rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
+    ? "space-y-3 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3"
+    : "space-y-4 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
 
   return (
     <section className={sectionClass}>

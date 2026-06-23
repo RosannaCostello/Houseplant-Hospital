@@ -136,7 +136,7 @@ export function CustomerEmailField({
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-none border border-hilda-border/15 bg-hilda-surface py-1 shadow-lg"
+          className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface py-1 shadow-lg"
         >
           {suggestions.map((customer) => (
             <li key={customer.id} role="option">

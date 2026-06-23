@@ -2,15 +2,17 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
+import type { CheckInDraftPhotoView, CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
+import { photoPreviewSrc } from "@/lib/check-in/photo-schema";
 import { compressImageFile, formatImageByteSize } from "@/lib/photos/compress-image";
 import { cn } from "@/lib/utils";
 
 type PlantPhotoCaptureProps = {
   label: string;
-  photo?: CheckInPlantPhoto;
+  photo?: CheckInPlantPhoto | CheckInDraftPhotoView;
   onPhotoChange: (photo: CheckInPlantPhoto | null) => void;
   className?: string;
+  uploading?: boolean;
 };
 
 export function PlantPhotoCapture({
@@ -18,6 +20,7 @@ export function PlantPhotoCapture({
   photo,
   onPhotoChange,
   className,
+  uploading = false,
 }: PlantPhotoCaptureProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
@@ -55,21 +58,21 @@ export function PlantPhotoCapture({
   return (
     <section
       className={cn(
-        "flex min-h-0 flex-1 flex-col rounded-none border border-hilda-border/15 bg-hilda-surface p-3",
+        "flex min-h-0 flex-1 flex-col rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3",
         className,
       )}
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3 sm:flex-row sm:items-stretch">
         <div
           className={cn(
-            "relative min-h-0 w-full overflow-hidden rounded-none border border-dashed border-hilda-border/25 bg-hilda-bg sm:w-[44%] sm:shrink-0",
+            "relative min-h-0 w-full overflow-hidden rounded-hilda-sm border border-dashed border-hilda-border/25 bg-hilda-bg sm:w-[44%] sm:shrink-0",
             photo ? "border-solid border-hilda-border/15" : "",
           )}
         >
           {photo ? (
             <div className="aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full sm:max-h-[min(34dvh,12.5rem)]">
-              {/* eslint-disable-next-line @next/next/no-img-element -- preview of client-compressed data URL */}
-              <img src={photo.dataUrl} alt="" className="h-full w-full object-cover" />
+              {/* eslint-disable-next-line @next/next/no-img-element -- preview of captured or stored photo */}
+              <img src={photoPreviewSrc(photo)} alt="" className="h-full w-full object-cover" />
             </div>
           ) : (
             <div className="flex aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full flex-col items-center justify-center gap-1 px-3 text-center text-xs text-hilda-text-muted sm:max-h-[min(34dvh,12.5rem)]">
@@ -87,7 +90,7 @@ export function PlantPhotoCapture({
                 type="button"
                 className="shrink-0 text-xs font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
                 onClick={() => onPhotoChange(null)}
-                disabled={processing}
+                disabled={processing || uploading}
               >
                 Remove
               </button>
@@ -107,16 +110,16 @@ export function PlantPhotoCapture({
             <Button
               type="button"
               className="min-h-10 flex-1 sm:flex-none"
-              disabled={processing}
+              disabled={processing || uploading}
               onClick={() => cameraInputRef.current?.click()}
             >
-              {processing ? "Processing…" : photo ? "Retake" : "Take photo"}
+              {processing || uploading ? "Saving…" : photo ? "Retake" : "Take photo"}
             </Button>
             <Button
               type="button"
               variant="outline"
               className="min-h-10 flex-1 sm:flex-none"
-              disabled={processing}
+              disabled={processing || uploading}
               onClick={() => libraryInputRef.current?.click()}
             >
               Library

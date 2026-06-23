@@ -75,7 +75,7 @@ export function PlantCardStatusMenu({
       <button
         ref={triggerRef}
         type="button"
-        className="flex w-full items-center justify-center rounded-none border border-hilda-border/15 bg-hilda-surface px-2.5 py-2 text-sm font-normal uppercase tracking-[0.08em] text-hilda-heading transition-colors hover:bg-hilda-bg disabled:opacity-50"
+        className="flex w-full items-center justify-center rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface px-2.5 py-2 text-sm font-normal uppercase tracking-[0.08em] text-hilda-heading transition-colors hover:bg-hilda-bg disabled:opacity-50"
         disabled={isPending}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -100,7 +100,7 @@ export function PlantCardStatusMenu({
                 aria-modal="true"
                 aria-labelledby={dialogTitleId}
                 aria-describedby={dialogDescriptionId}
-                className="relative z-10 w-full max-w-sm border border-hilda-border/15 bg-hilda-surface shadow-xl"
+                className="relative z-10 w-full max-w-sm overflow-hidden rounded-hilda border border-hilda-border/15 bg-hilda-surface shadow-xl"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="border-b border-hilda-border/10 px-4 py-3">
@@ -149,7 +149,7 @@ export function PlantCardStatusMenu({
                 <div className="border-t border-hilda-border/10 px-4 py-3">
                   <button
                     type="button"
-                    className="w-full border border-hilda-border/20 bg-hilda-bg px-3 py-2 text-sm font-medium text-hilda-heading transition-colors hover:bg-hilda-surface"
+                    className="w-full rounded-hilda-sm border border-hilda-border/20 bg-hilda-bg px-3 py-2 text-sm font-medium text-hilda-heading transition-colors hover:bg-hilda-surface"
                     onClick={() => setOpen(false)}
                   >
                     Cancel

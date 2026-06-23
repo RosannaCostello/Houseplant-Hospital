@@ -49,7 +49,7 @@ export function AppHeader({ userEmail }: AppHeaderProps) {
           <form action="/auth/signout" method="post">
             <button
               type="submit"
-              className="border border-hilda-gold/45 bg-transparent px-4 py-2 text-xs font-medium uppercase tracking-[0.08em] text-hilda-gold transition-colors hover:border-hilda-gold hover:bg-hilda-gold/10"
+              className="rounded-hilda-sm border border-hilda-gold/45 bg-transparent px-4 py-2 text-xs font-medium uppercase tracking-[0.08em] text-hilda-gold transition-colors hover:border-hilda-gold hover:bg-hilda-gold/10"
             >
               Log out
             </button>

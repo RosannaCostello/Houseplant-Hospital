@@ -26,9 +26,9 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
   return (
     <Link
       href={`/app/plants/${plant.id}`}
-      className="flex gap-4 rounded-none border border-hilda-border/15 bg-hilda-surface p-3 shadow-sm transition-colors hover:border-hilda-border/20 hover:bg-hilda-bg"
+      className="flex gap-4 rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface p-3 shadow-sm transition-colors hover:border-hilda-border/20 hover:bg-hilda-bg"
     >
-      <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-none border border-hilda-border/10 bg-hilda-bg">
+      <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-hilda-sm border border-hilda-border/10 bg-hilda-bg">
         {plant.thumbnailUrl ? (
           <Image
             src={plant.thumbnailUrl}
@@ -52,7 +52,7 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
         <p className="truncate text-sm font-semibold text-hilda-heading">{plantTitle(plant)}</p>
         {subtitle ? <p className="truncate text-xs text-hilda-text-muted">{subtitle}</p> : null}
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
-          <span className="rounded bg-hilda-bg px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-text">
+          <span className="rounded-hilda-sm bg-hilda-bg px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-text">
             {plant.size}
           </span>
           <span className="text-xs text-hilda-text">{plantStatusLabel(plant.status)}</span>
@@ -84,7 +84,7 @@ export function VisitDetailView({ visit }: VisitDetailViewProps) {
         </p>
       </div>
 
-      <dl className="grid gap-4 rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm sm:grid-cols-2">
+      <dl className="grid gap-4 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm sm:grid-cols-2">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Customer</dt>
           <dd className="mt-1 text-sm text-hilda-heading">
@@ -135,7 +135,7 @@ export function VisitDetailView({ visit }: VisitDetailViewProps) {
             ))}
           </ul>
         ) : (
-          <p className="rounded-none border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
+          <p className="rounded-hilda border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
             No plants linked to this visit.
           </p>
         )}

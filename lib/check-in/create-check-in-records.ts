@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreateCheckInInput } from "@/lib/check-in/create-check-in-input";
+import { resolveCheckInCustomerId } from "@/lib/check-in/resolve-check-in-customer";
 import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
 
 export type CreateCheckInRecordsResult =
@@ -9,71 +10,6 @@ export type CreateCheckInRecordsResult =
       plants: Array<{ clientId: string; plantId: string }>;
     }
   | { success: false; error: string };
-
-function normalizeName(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-async function resolveCheckInCustomerId(
-  supabase: SupabaseClient,
-  customer: CreateCheckInInput["customer"],
-): Promise<{ id: string } | { error: string }> {
-  const email = customer.email.toLowerCase();
-
-  const { data: existing, error: lookupError } = await supabase
-    .from("customers")
-    .select("id, first_name, last_name")
-    .eq("email", email)
-    .maybeSingle();
-
-  if (lookupError) {
-    return { error: lookupError.message };
-  }
-
-  if (existing) {
-    if (
-      normalizeName(existing.first_name) !== normalizeName(customer.firstName) ||
-      normalizeName(existing.last_name) !== normalizeName(customer.lastName)
-    ) {
-      return {
-        error:
-          "A customer with this email already exists under a different name. Check the email address.",
-      };
-    }
-
-    const { error: updateError } = await supabase
-      .from("customers")
-      .update({
-        phone: customer.phone || null,
-        marketing_consent: customer.marketingConsent,
-      })
-      .eq("id", existing.id);
-
-    if (updateError) {
-      return { error: updateError.message };
-    }
-
-    return { id: existing.id };
-  }
-
-  const { data: inserted, error: insertError } = await supabase
-    .from("customers")
-    .insert({
-      first_name: customer.firstName,
-      last_name: customer.lastName,
-      email,
-      phone: customer.phone || null,
-      marketing_consent: customer.marketingConsent,
-    })
-    .select("id")
-    .single();
-
-  if (insertError || !inserted) {
-    return { error: insertError?.message ?? "Could not save customer" };
-  }
-
-  return { id: inserted.id };
-}
 
 function buildVisitNotes(plants: CreateCheckInInput["plants"]): string | null {
   const lines = plants
@@ -139,7 +75,7 @@ export async function createCheckInRecordsWithClient(
           species: plant.species.trim() || null,
           size: plant.size,
           status: "check_in",
-          bugs_found: null,
+          bugs_found: plant.bugsFound ?? null,
         })
         .select("id")
         .single();

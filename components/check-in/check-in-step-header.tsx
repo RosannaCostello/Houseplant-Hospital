@@ -2,7 +2,7 @@ type CheckInStepHeaderProps = {
   step: number;
   totalSteps: number;
   title: string;
-  description: string;
+  description?: string;
 };
 
 export function CheckInStepHeader({ step, totalSteps, title, description }: CheckInStepHeaderProps) {
@@ -13,7 +13,7 @@ export function CheckInStepHeader({ step, totalSteps, title, description }: Chec
       </p>
       <div>
         <h1 className="text-xl font-semibold tracking-tight text-hilda-heading">{title}</h1>
-        <p className="mt-1 text-sm leading-snug text-hilda-text">{description}</p>
+        {description ? <p className="mt-1 text-sm leading-snug text-hilda-text">{description}</p> : null}
       </div>
     </div>
   );

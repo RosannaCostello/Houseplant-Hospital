@@ -12,7 +12,9 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "deploy:live": "node scripts/clean-build-dirs.mjs && cp .env.local .dev.vars && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
-    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "db:verify": "node scripts/verify-migrations.mjs",
+    "db:apply-0013": "node scripts/apply-migration-0013.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.11",
@@ -34,6 +36,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "pg": "^8.16.3",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.100.0"

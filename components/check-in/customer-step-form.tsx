@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  createCheckInDraft,
+  deleteCheckInDraft,
+  updateCheckInDraftCustomer,
+} from "@/app/actions/check-in-draft";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
 import { CustomerEmailField } from "@/components/check-in/customer-email-field";
@@ -12,12 +17,11 @@ import {
   type CheckInCustomer,
   type CheckInCustomerInput,
 } from "@/lib/check-in/customer-schema";
-import { saveCheckInDraft, loadCheckInDraft } from "@/lib/check-in/draft";
-import { useCheckInDraft } from "@/lib/check-in/use-check-in-draft";
 import type { CustomerSearchResult } from "@/lib/customers/search-customers";
 import { cn } from "@/lib/utils";
 
 import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+
 const defaultValues: CheckInCustomerInput = {
   firstName: "",
   lastName: "",
@@ -36,17 +40,21 @@ function toFormValues(customer: CheckInCustomer): CheckInCustomerInput {
   };
 }
 
-export function CustomerStepForm() {
+type CustomerStepFormProps = {
+  draftId?: string;
+  initialCustomer?: CheckInCustomer;
+};
+
+export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormProps) {
   const router = useRouter();
-  const draft = useCheckInDraft();
   const [editedValues, setEditedValues] = useState<CheckInCustomerInput | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof CheckInCustomerInput, string>>>(
     {},
   );
   const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const formValues =
-    editedValues ?? (draft?.customer ? toFormValues(draft.customer) : defaultValues);
+  const formValues = editedValues ?? (initialCustomer ? toFormValues(initialCustomer) : defaultValues);
 
   function updateField<K extends keyof CheckInCustomerInput>(key: K, value: CheckInCustomerInput[K]) {
     setEditedValues((current) => ({ ...(current ?? formValues), [key]: value }));
@@ -72,7 +80,7 @@ export function CustomerStepForm() {
     setFormError(null);
   }
 
-  function onSubmit(event: React.FormEvent) {
+  async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
 
     const parsed = checkInCustomerSchema.safeParse(formValues);
@@ -93,13 +101,50 @@ export function CustomerStepForm() {
       return;
     }
 
-    const existing = loadCheckInDraft();
-    saveCheckInDraft({
-      customer: parsed.data,
-      plants: existing?.plants,
-      photos: existing?.photos,
-    });
-    router.push("/app/check-in/plants");
+    setSubmitting(true);
+    setFormError(null);
+
+    const result = draftId
+      ? await updateCheckInDraftCustomer(draftId, parsed.data)
+      : await createCheckInDraft(parsed.data);
+
+    setSubmitting(false);
+
+    if (!result.success) {
+      setFormError(result.error);
+      return;
+    }
+
+    const nextDraftId = draftId ?? ("draftId" in result ? result.draftId : null);
+    if (!nextDraftId) {
+      setFormError("Could not save draft check-in.");
+      return;
+    }
+
+    router.push(`/app/check-in/plants?draft=${nextDraftId}`);
+  }
+
+  async function onDiscard() {
+    if (!draftId) {
+      router.push("/app");
+      return;
+    }
+
+    if (!window.confirm("Discard this incomplete check-in? This cannot be undone.")) {
+      return;
+    }
+
+    setSubmitting(true);
+    const result = await deleteCheckInDraft(draftId);
+    setSubmitting(false);
+
+    if (!result.success) {
+      setFormError(result.error);
+      return;
+    }
+
+    router.push("/app");
+    router.refresh();
   }
 
   return (
@@ -109,17 +154,33 @@ export function CustomerStepForm() {
           step={1}
           totalSteps={3}
           title="Customer details"
-          description="Who dropped the plants off?"
         />
       }
       status={formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/app">Cancel</Link>
-          </Button>
-          <Button type="submit" form="check-in-customer-form" className="w-full sm:w-auto">
-            Continue to plants
+          {draftId ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              disabled={submitting}
+              onClick={() => void onDiscard()}
+            >
+              Discard draft
+            </Button>
+          ) : (
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href="/app">Cancel</Link>
+            </Button>
+          )}
+          <Button
+            type="submit"
+            form="check-in-customer-form"
+            className="w-full sm:w-auto"
+            disabled={submitting}
+          >
+            {submitting ? "Saving…" : "Continue to plants"}
           </Button>
         </div>
       }
@@ -127,7 +188,7 @@ export function CustomerStepForm() {
       <form
         id="check-in-customer-form"
         className="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
-        onSubmit={onSubmit}
+        onSubmit={(event) => void onSubmit(event)}
         noValidate
       >
         <CustomerEmailField
@@ -188,19 +249,35 @@ export function CustomerStepForm() {
           ) : null}
         </label>
 
-        <label className="flex items-start gap-2.5 rounded-none border border-hilda-border/15 bg-hilda-bg p-3">
-          <input
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-hilda-border/25"
-            type="checkbox"
-            name="marketingConsent"
-            checked={formValues.marketingConsent}
-            onChange={(event) => updateField("marketingConsent", event.target.checked)}
-          />
+        <label className="flex items-start gap-2.5 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg p-3">
+          <span className="relative mt-0.5 h-4 w-4 shrink-0">
+            <input
+              className="peer sr-only"
+              type="checkbox"
+              name="marketingConsent"
+              checked={formValues.marketingConsent}
+              onChange={(event) => updateField("marketingConsent", event.target.checked)}
+            />
+            <span
+              aria-hidden
+              className="block h-4 w-4 rounded-hilda-sm border border-hilda-border/30 bg-hilda-surface transition-colors peer-checked:border-hilda-gold peer-checked:bg-hilda-gold peer-focus-visible:ring-2 peer-focus-visible:ring-hilda-gold/40"
+            />
+            <svg
+              aria-hidden
+              className="pointer-events-none absolute inset-0 m-auto hidden h-3 w-3 text-hilda-heading peer-checked:block"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
           <span className="text-xs leading-snug text-hilda-text sm:text-sm">
-            <span className="font-medium text-hilda-heading">Marketing emails (pre-selected).</span> Customer
-            agrees to Hilda newsletter, offers, and plant care tips.{" "}
-            <span className="text-hilda-text">Deselect if they opt out.</span> Hospital treatment updates
-            are always sent regardless of this box.
+            <span className="font-medium text-hilda-heading">Marketing emails.</span> Customer agrees to
+            offers, Hilda newsletter, and plant care tips. Hospital treatment updates are always sent
+            regardless of this box.{" "}
+            <span className="text-hilda-text">Deselect to opt out.</span>
           </span>
         </label>
       </form>

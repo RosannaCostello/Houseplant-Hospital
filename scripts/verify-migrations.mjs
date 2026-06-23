@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Verify pending migrations 0006, 0011, 0012 against the linked Supabase project.
- * Apply DDL via Supabase SQL editor: scripts/apply-migrations-0006-0011-0012.sql
+ * Verify pending migrations against the linked Supabase project.
+ * Apply DDL via Supabase SQL editor (see scripts/apply-migration-*.sql).
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -49,6 +49,16 @@ const checks = [
     label: "treatment_notes.updated_at",
     run: () => supabase.from("treatment_notes").select("updated_at").limit(1),
   },
+  {
+    id: "0013",
+    label: "check_in_drafts + check_in_draft_photos",
+    run: () => supabase.from("check_in_drafts").select("id").limit(1),
+  },
+  {
+    id: "0014",
+    label: "pos_checkout_status on check_in_drafts",
+    run: () => supabase.from("check_in_drafts").select("pos_checkout_status").limit(1),
+  },
 ];
 
 let missing = 0;
@@ -64,7 +74,7 @@ for (const check of checks) {
 }
 
 if (missing > 0) {
-  console.log("\nRun scripts/apply-migrations-0006-0011-0012.sql in the Supabase SQL editor.");
+  console.log("\nApply missing migrations in the Supabase SQL editor (scripts/apply-migration-*.sql).");
   process.exit(1);
 }
 

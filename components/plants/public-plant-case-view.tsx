@@ -21,7 +21,7 @@ export function PublicPlantCaseView({ plant }: PublicPlantCaseViewProps) {
         ) : null}
       </div>
 
-      <section className="overflow-hidden rounded-none border border-hilda-border/15 bg-hilda-surface shadow-sm">
+      <section className="overflow-hidden rounded-hilda border border-hilda-border/15 bg-hilda-surface shadow-sm">
         <div className="relative aspect-[4/3] w-full bg-hilda-bg">
           {plant.photoUrl ? (
             <Image
@@ -39,7 +39,7 @@ export function PublicPlantCaseView({ plant }: PublicPlantCaseViewProps) {
         </div>
       </section>
 
-      <section className="rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <p className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Status</p>
         <p className="mt-1 text-lg font-semibold text-hilda-heading">{plant.statusLabel}</p>
         <p className="mt-2 text-sm leading-6 text-hilda-text">{plant.statusMessage}</p>

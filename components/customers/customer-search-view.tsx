@@ -15,7 +15,7 @@ function CustomerResultRow({ customer }: { customer: CustomerSearchResult }) {
   return (
     <Link
       href={`/app/customers/${customer.id}`}
-      className="block rounded-none border border-hilda-border/15 bg-hilda-bg p-4 transition-colors hover:border-hilda-border/20 hover:bg-hilda-surface"
+      className="block rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg p-4 transition-colors hover:border-hilda-border/20 hover:bg-hilda-surface"
     >
       <p className="text-sm font-semibold text-hilda-heading">
         {customer.firstName} {customer.lastName}
@@ -57,7 +57,7 @@ export function CustomerSearchView({ initialQuery, results }: CustomerSearchView
 
   return (
     <div className="mx-auto w-full max-w-2xl pb-bottom-nav">
-      <section className="space-y-6 rounded-none border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+      <section className="space-y-6 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <div className="space-y-2">
           <h2 className="font-serif text-xl font-normal text-hilda-heading">Customer Search</h2>
           <label className="block">
@@ -77,7 +77,7 @@ export function CustomerSearchView({ initialQuery, results }: CustomerSearchView
         </div>
 
         {!hasQuery ? (
-          <p className="rounded-none border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
+          <p className="rounded-hilda border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
             Start typing to search customers.
           </p>
         ) : results.length > 0 ? (
@@ -89,7 +89,7 @@ export function CustomerSearchView({ initialQuery, results }: CustomerSearchView
             ))}
           </ul>
         ) : (
-          <p className="rounded-none border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
+          <p className="rounded-hilda border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
             No customers match &ldquo;{initialQuery.trim()}&rdquo;.
           </p>
         )}
