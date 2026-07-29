@@ -19,7 +19,7 @@ Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md)
 | 2 — Core operations | **Complete** | HIL-39 verified (iPad + Mac) |
 | 3 — Workflow and pricing | **Complete** | HIL-50 verified (iPad + Mac) |
 | **Shopify pricing (HIL-52)** | **Complete** (live) | Sync standard + pests from Shopify |
-| 4 — Label printing | **Not started** | Needs [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12) (printer at store) |
+| 4 — Label printing | **In progress** | [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12) hardware + [HIL-80](https://linear.app/hilda-houseplant-hospital/issue/HIL-80) print-bridge scaffold |
 | 5 — Mailchimp | **Complete** — HIL-53–60 done | HIL-59 optional |
 | 6 — Polish and go-live | **In progress** — [HIL-61](https://linear.app/hilda-houseplant-hospital/issue/HIL-61), [HIL-63](https://linear.app/hilda-houseplant-hospital/issue/HIL-63) in progress | HIL-62–68 |
 

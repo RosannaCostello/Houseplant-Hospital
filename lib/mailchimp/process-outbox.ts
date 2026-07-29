@@ -38,6 +38,17 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Mailchimp Events API property values must be strings ≤ 255 chars. */
+const MAILCHIMP_EVENT_PROPERTY_MAX = 255;
+
+function truncateEventProperty(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= MAILCHIMP_EVENT_PROPERTY_MAX) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, MAILCHIMP_EVENT_PROPERTY_MAX - 3)}...`;
+}
+
 function payloadToEventProperties(payload: MailchimpEventPayload): Record<string, string> {
   const properties: Record<string, string> = {};
 
@@ -47,6 +58,14 @@ function payloadToEventProperties(payload: MailchimpEventPayload): Record<string
   if (payload.previousStatus) properties.previous_status = payload.previousStatus;
   if (payload.newStatus) properties.new_status = payload.newStatus;
   if (payload.bugsFound !== undefined) properties.bugs_found = String(payload.bugsFound);
+  if (payload.awaitingPlantCount !== undefined) {
+    properties.awaiting_plant_count = String(payload.awaitingPlantCount);
+  }
+  if (payload.plantName) properties.plant_name = truncateEventProperty(payload.plantName);
+  if (payload.treatmentNotes) {
+    properties.treatment_notes = truncateEventProperty(payload.treatmentNotes);
+  }
+  if (payload.careTips) properties.care_tips = truncateEventProperty(payload.careTips);
 
   return properties;
 }

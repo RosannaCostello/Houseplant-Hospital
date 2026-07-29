@@ -14,7 +14,7 @@ export function BugsFoundBadge({ className, iconClassName }: BugsFoundBadgeProps
         className,
       )}
       role="img"
-      aria-label="Bugs found"
+      aria-label="Pests found"
     >
       <BugsIcon className={iconClassName} />
     </span>

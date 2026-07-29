@@ -1,20 +1,20 @@
-api_version = "2025-01"
+api_version = "2025-10"
+uid = "1fd3c212-c1eb-0b21-c940-807d9f3c1cf61d4f522b"
 
 [[extensions]]
 type = "ui_extension"
-name = "Houseplant Hospital Checkout"
+name = "Houseplant Hospital"
 handle = "hh-pos-checkout"
-uid = "hh-pos-checkout-001"
-description = "Load pending Houseplant Hospital check-ins into POS cart"
+description = "Load pending Houseplant Hospital check-ins into the POS cart"
 
 [[extensions.targeting]]
 target = "pos.home.tile.render"
-module = "./src/Tile.tsx"
+module = "./src/Tile.jsx"
 
 [[extensions.targeting]]
 target = "pos.home.modal.render"
-module = "./src/Modal.tsx"
+module = "./src/Modal.jsx"
 
 [extensions.capabilities]
-api_access = true
+api_access = false
 network_access = true

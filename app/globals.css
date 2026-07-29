@@ -21,6 +21,7 @@
   --hilda-warning-bg: #fffbeb;
   --hilda-warning-border: #fcd34d;
   --hilda-warning-text: #92400e;
+  --hilda-success-text: #2f6b4f;
   --hilda-error-text: #dc2626;
   --hilda-error-text-strong: #b91c1c;
   --hilda-error-bg: #fef2f2;
@@ -56,6 +57,7 @@
   --color-hilda-warning-bg: var(--hilda-warning-bg);
   --color-hilda-warning-border: var(--hilda-warning-border);
   --color-hilda-warning-text: var(--hilda-warning-text);
+  --color-hilda-success-text: var(--hilda-success-text);
   --color-hilda-error-text: var(--hilda-error-text);
   --color-hilda-error-text-strong: var(--hilda-error-text-strong);
   --color-hilda-error-bg: var(--hilda-error-bg);

@@ -7,6 +7,21 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/** POS UI extensions fetch from Shopify origins; Shopify requires wildcard CORS. */
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+function jsonWithCors(body: unknown, init?: { status?: number }) {
+  return NextResponse.json(body, {
+    status: init?.status,
+    headers: CORS_HEADERS,
+  });
+}
+
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return false;
@@ -15,20 +30,24 @@ function isAuthorized(request: Request): boolean {
   return auth === `Bearer ${secret}`;
 }
 
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function GET(request: Request) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonWithCors({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = createSupabaseAdminClient();
   const pending = await listPendingPosCheckoutsWithClient(supabase);
 
-  return NextResponse.json({ pending });
+  return jsonWithCors({ pending });
 }
 
 export async function POST(request: Request) {
   if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonWithCors({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = (await request.json()) as { type?: string; id?: string };
@@ -36,15 +55,15 @@ export async function POST(request: Request) {
   const id = body.id;
 
   if (!type || !id) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    return jsonWithCors({ error: "Invalid payload" }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();
   const result = await markPosCheckoutLoadedWithClient(supabase, { type, id });
 
   if (!result.success) {
-    return NextResponse.json(result, { status: 500 });
+    return jsonWithCors(result, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return jsonWithCors({ success: true });
 }

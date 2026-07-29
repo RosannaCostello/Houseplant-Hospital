@@ -27,7 +27,7 @@ export function BugsFoundToggleField({
   return (
     <div className="space-y-3">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
-        Bugs found during treatment?
+        Pests found during treatment?
       </h2>
 
       {!disabled ? (
@@ -35,7 +35,7 @@ export function BugsFoundToggleField({
           <div
             className="flex flex-wrap items-stretch gap-2"
             role="radiogroup"
-            aria-label="Bugs found during treatment"
+            aria-label="Pests found during treatment"
           >
             {OPTIONS.map((option) => {
               const selected = value === option.value;

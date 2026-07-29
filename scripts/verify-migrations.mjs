@@ -59,6 +59,45 @@ const checks = [
     label: "pos_checkout_status on check_in_drafts",
     run: () => supabase.from("check_in_drafts").select("pos_checkout_status").limit(1),
   },
+  {
+    id: "0015",
+    label: "plant propagation category and lineage",
+    run: () => supabase.from("plants").select("plant_category, source_plant_id").limit(1),
+  },
+  {
+    id: "0015",
+    label: "plant propagation pricing",
+    run: () =>
+      supabase
+        .from("pricing_rules")
+        .select("shopify_propagation_variant_id, propagation_amount")
+        .limit(1),
+  },
+  {
+    id: "0016",
+    label: "admin analytics RPC",
+    run: async () => {
+      const { error } = await supabase.rpc("get_admin_analytics", {
+        p_start: "2026-01-01T00:00:00.000Z",
+        p_end: "2026-01-02T00:00:00.000Z",
+        p_previous_start: "2025-12-31T00:00:00.000Z",
+        p_previous_end: "2026-01-01T00:00:00.000Z",
+        p_bucket: "day",
+      });
+
+      return error?.message.includes("Admin access required.") ? { error: null } : { error };
+    },
+  },
+  {
+    id: "0017",
+    label: "visits.payment_settled_via",
+    run: () => supabase.from("visits").select("payment_settled_via").limit(1),
+  },
+  {
+    id: "0018",
+    label: "check_in_drafts.acuity_appointment_id",
+    run: () => supabase.from("check_in_drafts").select("acuity_appointment_id").limit(1),
+  },
 ];
 
 let missing = 0;

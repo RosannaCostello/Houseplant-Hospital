@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
+import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
 import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
+import { PropagationBadge } from "@/components/plants/propagation-badge";
 import { formatDaysSinceCheckIn, formatPlantAge } from "@/lib/format-plant-age";
 import { formatCollectedBadgeLabel } from "@/lib/format-collected-date";
 import {
@@ -65,53 +66,61 @@ function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
   );
 }
 
-/** Wide crop — height tracks lane width (~⅓ of card width), keeping cards compact. */
-const CARD_IMAGE_ASPECT_CLASS = "aspect-[3/1]";
+const CARD_IMAGE_ASPECT_CLASS = "aspect-[4/3]";
 
 const footerStatusClass = "text-[11px] text-hilda-text";
 
 export function PlantCard({ plant, className }: PlantCardProps) {
   const showQuarantineBadge = plant.status === "quarantine" && plant.quarantineSince;
   const showCheckInBadge = plant.status === "check_in";
+  const showPropagationAge = plant.status === "propagation";
   const showOutpatientBadge = plant.status === "outpatient" && plant.outpatientCollectionBadge;
   const showCollectedBadge = plant.status === "collected";
   const showFooterBadge =
-    showQuarantineBadge || showCheckInBadge || showOutpatientBadge || showCollectedBadge;
-  const showPlantAge = !showCheckInBadge && !showCollectedBadge;
+    showQuarantineBadge ||
+    showCheckInBadge ||
+    showPropagationAge ||
+    showOutpatientBadge ||
+    showCollectedBadge;
+  const showPlantAge = !showCheckInBadge && !showPropagationAge && !showCollectedBadge;
 
   return (
-    <div className={cn("rounded-hilda hilda-card-shadow", className)}>
+    <div className={cn("relative rounded-hilda hilda-card-shadow", className)}>
       <article className="flex w-full flex-col overflow-hidden rounded-hilda bg-hilda-surface">
         <div
           className={cn(
-            "relative w-full shrink-0 overflow-hidden bg-hilda-bg",
+            "relative block w-full shrink-0 overflow-hidden bg-hilda-bg",
             CARD_IMAGE_ASPECT_CLASS,
           )}
         >
           <PlantThumbnail thumbnailUrl={plant.thumbnailUrl} />
           <div className="absolute left-2 top-1.5 flex items-center gap-1.5">
-          <span
-            className={cn(
-              imageOverlayBadgeClass,
-              "bg-hilda-surface text-[11px] font-semibold uppercase tracking-wide text-hilda-heading",
-            )}
-          >
-            {plant.size}
-          </span>
-          {plant.bugsFound ? (
-            <BugsFoundBadge
-              className={cn(imageOverlayBadgeClass, "bg-hilda-bugs py-0")}
-              iconClassName="h-3 w-3"
-            />
+            <span
+              className={cn(
+                imageOverlayBadgeClass,
+                "bg-hilda-surface text-[11px] font-semibold uppercase tracking-wide text-hilda-heading",
+              )}
+            >
+              {plant.size}
+            </span>
+            {plant.plantCategory === "propagation" ? <PropagationBadge /> : null}
+            {plant.bugsFound ? (
+              <BugsFoundBadge
+                className={cn(imageOverlayBadgeClass, "bg-hilda-bugs py-0")}
+                iconClassName="h-3 w-3"
+              />
             ) : null}
+            <PaymentStatusBadge
+              status={plant.paymentStatus}
+              shopifyOrderId={plant.shopifyOrderId}
+              compact
+              className="shadow-sm"
+            />
           </div>
         </div>
 
         <div className="shrink-0">
-          <Link
-            href={`/app/plants/${plant.id}`}
-            className="block space-y-1 p-2.5 pb-1 transition-colors hover:bg-hilda-bg"
-          >
+          <div className="block space-y-1 p-2.5">
             <div className="flex items-baseline justify-between gap-2">
               <p className="truncate text-sm font-medium text-hilda-heading">{plant.customerName}</p>
               <span className="shrink-0 tabular-nums text-[11px] font-semibold text-hilda-text-muted">
@@ -133,6 +142,10 @@ export function PlantCard({ plant, className }: PlantCardProps) {
                 <span className={footerStatusClass}>
                   {formatDaysSinceCheckIn(plant.checkedInAt)}
                 </span>
+              ) : showPropagationAge ? (
+                <span className={footerStatusClass}>
+                  {formatPlantAge(plant.checkedInAt)} in propagation
+                </span>
               ) : showOutpatientBadge ? (
                 <span className={footerStatusClass}>{plant.outpatientCollectionBadge}</span>
               ) : showCollectedBadge ? (
@@ -144,13 +157,19 @@ export function PlantCard({ plant, className }: PlantCardProps) {
                 <span className="text-[11px] text-hilda-text-muted">{formatPlantAge(plant.checkedInAt)}</span>
               ) : null}
             </div>
-          </Link>
-
-          <div className="px-2.5 pb-2.5 pt-1">
-            <PlantCardStatusMenu plantId={plant.id} currentStatus={plant.status} />
           </div>
         </div>
       </article>
+      <PlantCardStatusMenu
+        plantId={plant.id}
+        currentStatus={plant.status}
+        size={plant.size}
+        bugsFound={plant.bugsFound}
+        plantCategory={plant.plantCategory}
+        hasPropagation={plant.hasPropagation}
+        customerName={plant.customerName}
+        paymentStatus={plant.paymentStatus}
+      />
     </div>
   );
 }

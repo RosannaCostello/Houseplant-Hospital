@@ -23,7 +23,7 @@ export async function setBugsFoundWithClient(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { success: false, error: "You must be signed in to update bugs found." };
+    return { success: false, error: "You must be signed in to update pests found." };
   }
 
   const { data: plant, error: fetchError } = await supabase
@@ -151,7 +151,7 @@ export async function setBugsFoundWithClient(
       adjustment_type: BUGS_ADJUSTMENT_TYPE,
       percent: surchargePercent,
       amount: null,
-      reason: "Bugs found during treatment",
+      reason: "Pests found during treatment",
     });
 
     if (insertError) {

@@ -18,6 +18,11 @@ export function customerPlantStatus(status: PlantStatus): CustomerPlantStatus {
         label: "In treatment",
         message: "We're caring for your plant. We'll let you know when it's ready.",
       };
+    case "propagation":
+      return {
+        label: "Propagation",
+        message: "Your new plant propagation is settling in and receiving care from our team.",
+      };
     case "outpatient":
       return {
         label: "Ready for collection",

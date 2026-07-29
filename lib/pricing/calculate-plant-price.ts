@@ -3,7 +3,7 @@ import { roundMoney } from "@/lib/pricing/round-money";
 import type { PlantPriceBreakdown, PlantPriceLine, PricingAdjustmentInput } from "@/lib/pricing/types";
 
 const ADJUSTMENT_LABELS: Record<string, string> = {
-  bugs_surcharge: "Bugs surcharge",
+  bugs_surcharge: "Pests surcharge",
 };
 
 function adjustmentLabel(adjustment: PricingAdjustmentInput): string {

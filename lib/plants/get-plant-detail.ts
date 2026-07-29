@@ -3,6 +3,8 @@ import { PLANT_STATUSES } from "@/lib/plant-status";
 import { signPhotoPaths } from "@/lib/photos/sign-photo-urls";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { visitPlantPositionFromOrderedIds } from "@/lib/visits/visit-plant-position";
+import { isPosPaymentStatus, type PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
+import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
 
 export type PlantDetailPhoto = {
   id: string;
@@ -18,10 +20,15 @@ export type PlantDetail = {
   size: string;
   status: PlantStatus;
   bugsFound: boolean | null;
+  plantCategory: PlantCategory;
+  sourcePlantId: string | null;
+  hasPropagation: boolean;
   finalPrice: number | null;
   collectedAt: string | null;
   checkedInAt: string;
   visitId: string;
+  paymentStatus: PosPaymentStatus | null;
+  shopifyOrderId: string | null;
   visitPlantIndex: number;
   visitPlantTotal: number;
   visitNotes: string | null;
@@ -52,11 +59,17 @@ function isPlantStatus(value: string): value is PlantStatus {
   return (PLANT_STATUSES as readonly string[]).includes(value);
 }
 
+function parsePaymentStatus(value: string | null | undefined): PosPaymentStatus | null {
+  return value && isPosPaymentStatus(value) ? value : null;
+}
+
 const PLANT_DETAIL_RELATIONS = `
       visits!inner (
         id,
         checkin_date,
         notes,
+        payment_status,
+        shopify_order_id,
         customers!inner (
           first_name,
           last_name,
@@ -87,6 +100,8 @@ const PLANT_DETAIL_SELECT = `
       size,
       status,
       bugs_found,
+      plant_category,
+      source_plant_id,
       final_price,
       collected_at,
       created_at,
@@ -100,6 +115,8 @@ const PLANT_DETAIL_SELECT_LEGACY = `
       size,
       status,
       bugs_found,
+      plant_category,
+      source_plant_id,
       created_at,
       ${PLANT_DETAIL_RELATIONS}
 `;
@@ -140,6 +157,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     size?: string;
     status?: string;
     bugs_found?: boolean;
+    plant_category?: string;
+    source_plant_id?: string | null;
     final_price?: number | null;
     collected_at?: string | null;
     visits?:
@@ -147,6 +166,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
           id: string;
           checkin_date: string;
           notes: string | null;
+          payment_status?: string | null;
+          shopify_order_id?: string | null;
           customers:
             | {
                 first_name: string;
@@ -165,6 +186,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
           id: string;
           checkin_date: string;
           notes: string | null;
+          payment_status?: string | null;
+          shopify_order_id?: string | null;
           customers:
             | {
                 first_name: string;
@@ -256,6 +279,17 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     row.id,
     (visitPlants ?? []).map((plant) => plant.id),
   );
+  const paymentStatus = parsePaymentStatus(visit.payment_status);
+  const { data: propagationChild, error: propagationChildError } = await supabase
+    .from("plants")
+    .select("id")
+    .eq("source_plant_id", row.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (propagationChildError) {
+    throw new Error(`Failed to load plant propagation: ${propagationChildError.message}`);
+  }
 
   return {
     id: row.id,
@@ -264,10 +298,15 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     size: row.size,
     status: row.status,
     bugsFound: row.bugs_found ?? null,
+    plantCategory: isPlantCategory(row.plant_category) ? row.plant_category : "standard",
+    sourcePlantId: row.source_plant_id ?? null,
+    hasPropagation: Boolean(propagationChild),
     finalPrice: row.final_price != null ? Number(row.final_price) : null,
     collectedAt: row.collected_at ?? null,
     checkedInAt: visit.checkin_date,
     visitId: visit.id,
+    paymentStatus,
+    shopifyOrderId: visit.shopify_order_id ?? null,
     visitPlantIndex: visitPlantPosition.index,
     visitPlantTotal: visitPlantPosition.total,
     visitNotes: visit.notes,

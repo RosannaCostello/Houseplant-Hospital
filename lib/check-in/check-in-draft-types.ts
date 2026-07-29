@@ -32,6 +32,8 @@ export type IncompleteCheckInDraft = {
   plantCount: number;
   updatedAt: string;
   thumbnailUrl: string | null;
+  /** Present when draft was created from an Acuity booking webhook. */
+  fromAcuity: boolean;
 };
 
 export function checkInDraftResumePath(draftId: string, draftStep: CheckInDraftStep): string {

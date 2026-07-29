@@ -7,6 +7,7 @@ type DraftListRow = {
   plants: unknown;
   draft_step: "plants" | "photos";
   updated_at: string;
+  acuity_appointment_id?: string | null;
   customers:
     | { first_name: string; last_name: string }
     | Array<{ first_name: string; last_name: string }>;
@@ -25,12 +26,24 @@ function plantCount(plants: unknown): number {
 export async function getIncompleteCheckInDrafts(): Promise<IncompleteCheckInDraft[]> {
   const supabase = await createSupabaseServerClient();
 
-  const { data: rows, error } = await supabase
+  const withAcuity = await supabase
     .from("check_in_drafts")
     .select(
-      "id, plants, draft_step, updated_at, customers ( first_name, last_name )",
+      "id, plants, draft_step, updated_at, acuity_appointment_id, customers ( first_name, last_name )",
     )
     .order("updated_at", { ascending: false });
+
+  let rows = withAcuity.data;
+  let error = withAcuity.error;
+
+  if (error?.message.includes("acuity_appointment_id")) {
+    const legacy = await supabase
+      .from("check_in_drafts")
+      .select("id, plants, draft_step, updated_at, customers ( first_name, last_name )")
+      .order("updated_at", { ascending: false });
+    rows = (legacy.data ?? null) as typeof rows;
+    error = legacy.error;
+  }
 
   if (error || !rows) {
     return [];
@@ -71,6 +84,7 @@ export async function getIncompleteCheckInDrafts(): Promise<IncompleteCheckInDra
         plantCount: plantCount(row.plants),
         updatedAt: row.updated_at,
         thumbnailUrl: thumbPath ? (signed.get(thumbPath) ?? null) : null,
+        fromAcuity: Boolean(row.acuity_appointment_id),
       };
     })
     .filter((draft): draft is IncompleteCheckInDraft => draft !== null);

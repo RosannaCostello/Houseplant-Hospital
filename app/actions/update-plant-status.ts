@@ -9,6 +9,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const updatePlantStatusSchema = z.object({
   plantId: z.string().uuid(),
   newStatus: z.enum(PLANT_STATUSES),
+  paidAnotherWay: z.boolean().optional(),
 });
 
 export type UpdatePlantStatusActionResult = Awaited<
@@ -18,8 +19,13 @@ export type UpdatePlantStatusActionResult = Awaited<
 export async function updatePlantStatusAction(
   plantId: string,
   newStatus: z.infer<typeof updatePlantStatusSchema>["newStatus"],
+  options: { paidAnotherWay?: boolean } = {},
 ): Promise<UpdatePlantStatusActionResult> {
-  const parsed = updatePlantStatusSchema.safeParse({ plantId, newStatus });
+  const parsed = updatePlantStatusSchema.safeParse({
+    plantId,
+    newStatus,
+    paidAnotherWay: options.paidAnotherWay,
+  });
 
   if (!parsed.success) {
     return { success: false, error: "Invalid plant or status." };
@@ -30,6 +36,7 @@ export async function updatePlantStatusAction(
     supabase,
     parsed.data.plantId,
     parsed.data.newStatus,
+    { paidAnotherWay: parsed.data.paidAnotherWay },
   );
 
   if (result.success) {

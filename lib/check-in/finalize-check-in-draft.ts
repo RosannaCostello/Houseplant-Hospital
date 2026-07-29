@@ -7,10 +7,30 @@ import {
 } from "@/lib/check-in/pos-checkout";
 import { checkInPlantsStepSchema } from "@/lib/check-in/plant-schema";
 import { copyDraftPhotoToPlant } from "@/lib/photos/upload-draft-photo";
+import type { PosCheckoutPayload } from "@/lib/shopify/pos-checkout-types";
 
 export type FinalizeCheckInDraftResult =
   | { success: true; visitId: string }
   | { success: false; error: string };
+
+function rewritePosPayloadForVisit(
+  payload: PosCheckoutPayload | null,
+  visitId: string,
+): PosCheckoutPayload | null {
+  if (!payload?.lineItems?.length) return payload;
+
+  return {
+    ...payload,
+    draftId: undefined,
+    visitId,
+    cartNote: `Houseplant Hospital collection visit: ${payload.customerName} (${visitId})`,
+    lineItems: payload.lineItems.map((lineItem) => ({
+      variantId: lineItem.variantId,
+      quantity: lineItem.quantity,
+      properties: [{ name: "_hh_visit_id", value: visitId }],
+    })),
+  };
+}
 
 export async function finalizeCheckInDraftWithClient(
   supabase: SupabaseClient,
@@ -67,7 +87,10 @@ export async function finalizeCheckInDraftWithClient(
           payment_status: visitPaymentStatus,
           shopify_order_id: paymentSnapshot?.shopifyOrderId ?? null,
           shopify_paid_at: paymentSnapshot?.paidAt ?? null,
-          pos_line_items: paymentSnapshot?.posLineItems ?? null,
+          pos_line_items: rewritePosPayloadForVisit(
+            paymentSnapshot?.posLineItems ?? null,
+            records.visitId,
+          ),
         })
         .eq("id", records.visitId);
 

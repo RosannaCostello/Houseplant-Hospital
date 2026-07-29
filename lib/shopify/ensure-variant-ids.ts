@@ -32,6 +32,7 @@ export async function ensureShopifyVariantIdsOnRules(supabase: SupabaseClient): 
         .update({
           shopify_variant_id: mapping.standardVariantId,
           shopify_pests_variant_id: mapping.pestsVariantId,
+          shopify_propagation_variant_id: mapping.propagationVariantId,
         })
         .eq("id", ruleId);
 
@@ -49,6 +50,7 @@ export async function ensureShopifyVariantIdsOnRules(supabase: SupabaseClient): 
       active: true,
       shopify_variant_id: mapping.standardVariantId,
       shopify_pests_variant_id: mapping.pestsVariantId,
+      shopify_propagation_variant_id: mapping.propagationVariantId,
     });
 
     if (insertError) {
@@ -59,7 +61,7 @@ export async function ensureShopifyVariantIdsOnRules(supabase: SupabaseClient): 
 
 export type VariantPriceTarget = {
   size: PlantSize;
-  kind: "standard" | "pests";
+  kind: "standard" | "pests" | "propagation";
   variantId: string;
 };
 
@@ -69,6 +71,7 @@ export function shopifyVariantPriceTargets(): VariantPriceTarget[] {
     return [
       { size, kind: "standard" as const, variantId: mapping.standardVariantId },
       { size, kind: "pests" as const, variantId: mapping.pestsVariantId },
+      { size, kind: "propagation" as const, variantId: mapping.propagationVariantId },
     ];
   });
 }

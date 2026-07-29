@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
-import type { PlantStatus } from "@/lib/plant-status";
-import { PLANT_STATUSES } from "@/lib/plant-status";
+import {
+  canTransitionPlantStatus,
+  PLANT_STATUSES,
+  type PlantStatus,
+} from "@/lib/plant-status";
 import { roundMoney } from "@/lib/pricing/round-money";
 
 export type CollectPlantResult =
@@ -46,6 +49,10 @@ export async function collectPlantWithClient(
 
   if (plant.status === "collected") {
     return { success: false, error: "This plant is already collected." };
+  }
+
+  if (!canTransitionPlantStatus(plant.status, "collected")) {
+    return { success: false, error: "Only an outpatient plant can be marked collected." };
   }
 
   const collectedAt = new Date().toISOString();

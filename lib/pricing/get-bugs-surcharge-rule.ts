@@ -7,7 +7,7 @@ export type BugsSurchargeRule = {
   percent: number;
 };
 
-/** Active bugs surcharge from pricing_rules (admin read), with HIL-9 default fallback. */
+/** Active pests surcharge from pricing_rules (admin read), with HIL-9 default fallback. */
 export async function getBugsSurchargeRule(): Promise<BugsSurchargeRule> {
   const supabase = createSupabaseAdminClient();
 
@@ -21,7 +21,7 @@ export async function getBugsSurchargeRule(): Promise<BugsSurchargeRule> {
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Failed to load bugs surcharge rule: ${error.message}`);
+    throw new Error(`Failed to load pests surcharge rule: ${error.message}`);
   }
 
   if (!data) {

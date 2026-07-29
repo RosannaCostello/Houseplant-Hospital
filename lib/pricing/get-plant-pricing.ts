@@ -2,7 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlantSize } from "@/lib/plant-size";
 import { calculatePlantPrice } from "@/lib/pricing/calculate-plant-price";
 import { getBasePriceForSize, getBasePriceRules } from "@/lib/pricing/get-base-price-rules";
-import { getPestsPriceRules } from "@/lib/shopify/sync-pricing-from-shopify";
+import {
+  getPestsPriceRules,
+  getPropagationPriceRules,
+} from "@/lib/shopify/sync-pricing-from-shopify";
 import { isShopifyPricingConfigured } from "@/lib/shopify/env";
 import { roundMoney } from "@/lib/pricing/round-money";
 import type { PlantPriceBreakdown } from "@/lib/pricing/types";
@@ -29,12 +32,13 @@ export async function getPlantPricingWithClient(
   plantId: string,
   basePriceRules?: Awaited<ReturnType<typeof getBasePriceRules>>,
 ): Promise<PlantPriceBreakdown | null> {
-  const [rules, pestsRules, plantResult, adjustmentsResult] = await Promise.all([
+  const [rules, pestsRules, propagationRules, plantResult, adjustmentsResult] = await Promise.all([
     basePriceRules ?? getBasePriceRules(),
     getPestsPriceRules(),
+    getPropagationPriceRules(),
     supabase
       .from("plants")
-      .select("size, pricing_modifier")
+      .select("size, pricing_modifier, plant_category")
       .eq("id", plantId)
       .maybeSingle(),
     supabase
@@ -58,6 +62,13 @@ export async function getPlantPricingWithClient(
   }
 
   const baseAmount = getBasePriceForSize(rules, plant.size);
+  if (plant.plant_category === "propagation") {
+    return calculatePlantPrice({
+      size: plant.size,
+      baseAmount: propagationRules[plant.size] ?? baseAmount,
+    });
+  }
+
   const adjustments = mapAdjustments(adjustmentsResult.data ?? []);
   const hasBugsAdjustment = adjustments.some(
     (adjustment) => adjustment.adjustmentType === "bugs_surcharge",

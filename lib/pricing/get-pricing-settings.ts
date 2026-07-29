@@ -22,6 +22,7 @@ export type PricingSettings = {
   shopifySyncedAt: string | null;
   basePrices: Record<PlantSize, PricingRuleRef>;
   pestsPrices: Record<PlantSize, number | null>;
+  propagationPrices: Record<PlantSize, number | null>;
   shopifySizeLabels: Record<PlantSize, string>;
   bugsSurcharge: PricingPercentRuleRef;
 };
@@ -39,7 +40,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
 
   const { data, error } = await admin
     .from("pricing_rules")
-    .select("id, size, rule_type, amount, percent, pests_amount, shopify_synced_at")
+    .select("id, size, rule_type, amount, percent, pests_amount, propagation_amount, shopify_synced_at")
     .eq("active", true)
     .in("rule_type", ["base_price", "bugs_surcharge"]);
 
@@ -52,6 +53,10 @@ export async function getPricingSettings(): Promise<PricingSettings> {
   ) as Record<PlantSize, PricingRuleRef>;
 
   const pestsPrices = Object.fromEntries(PLANT_SIZES.map((size) => [size, null])) as Record<
+    PlantSize,
+    number | null
+  >;
+  const propagationPrices = Object.fromEntries(PLANT_SIZES.map((size) => [size, null])) as Record<
     PlantSize,
     number | null
   >;
@@ -71,6 +76,8 @@ export async function getPricingSettings(): Promise<PricingSettings> {
       };
 
       pestsPrices[row.size] = row.pests_amount != null ? Number(row.pests_amount) : null;
+      propagationPrices[row.size] =
+        row.propagation_amount != null ? Number(row.propagation_amount) : null;
 
       if (row.shopify_synced_at) {
         const rowSync = String(row.shopify_synced_at);
@@ -97,6 +104,7 @@ export async function getPricingSettings(): Promise<PricingSettings> {
     shopifySyncedAt,
     basePrices,
     pestsPrices,
+    propagationPrices,
     shopifySizeLabels,
     bugsSurcharge,
   };

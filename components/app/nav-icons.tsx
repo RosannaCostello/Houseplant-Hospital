@@ -31,6 +31,16 @@ export function DashboardNavIcon({ className }: NavIconProps) {
   );
 }
 
+/** Compact line/bar chart for admin analytics. */
+export function AnalyticsNavIcon({ className }: NavIconProps) {
+  return (
+    <NavIconSvg className={className}>
+      <path d="M2.667 13.333a.667.667 0 0 1-.667-.666V3.333a.667.667 0 1 1 1.333 0V12h9.334a.667.667 0 1 1 0 1.333h-10Z" />
+      <path d="M5.333 10.667a.667.667 0 0 1-.666-.667V7.333a.667.667 0 1 1 1.333 0V10a.667.667 0 0 1-.667.667ZM8.667 10.667A.667.667 0 0 1 8 10V5.333a.667.667 0 1 1 1.333 0V10a.667.667 0 0 1-.666.667ZM12 10.667a.667.667 0 0 1-.667-.667V2.667a.667.667 0 1 1 1.334 0V10a.667.667 0 0 1-.667.667Z" />
+    </NavIconSvg>
+  );
+}
+
 /** Mingcute Choice Line — from checkin.svg */
 export function CheckInNavIcon({ className }: NavIconProps) {
   return (

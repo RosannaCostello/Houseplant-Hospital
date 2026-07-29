@@ -12,6 +12,7 @@ function headerPageLabel(pathname: string): string | null {
   if (pathname === "/app") return "Dashboard";
   if (pathname.startsWith("/app/check-in")) return "Check-in";
   if (pathname === "/app/customers") return "Customers";
+  if (pathname.startsWith("/app/analytics")) return "Analytics";
   if (pathname.startsWith("/settings")) return "Settings";
   return null;
 }

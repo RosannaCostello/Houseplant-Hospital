@@ -1,10 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
 import { checkInPlantsStepSchema, type CheckInPlant } from "@/lib/check-in/plant-schema";
-import { buildPosCartFromPlants } from "@/lib/shopify/build-pos-cart-from-plants";
+import {
+  buildPosCartFromPlants,
+  buildPosCartFromVisitPlants,
+} from "@/lib/shopify/build-pos-cart-from-plants";
 import { isShopifyPricingConfigured } from "@/lib/shopify/env";
 import type { PosCheckoutPayload, PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
-import { isPosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
+import { isPosPaymentStatus, isVisitUnpaid } from "@/lib/shopify/pos-checkout-types";
 import {
   saveShopifyCustomerIdOnRecord,
   upsertShopifyCustomerByEmail,
@@ -171,11 +174,53 @@ export async function deferPosCheckoutForDraftWithClient(
   supabase: SupabaseClient,
   draftId: string,
   plants: CheckInPlant[],
-): Promise<{ success: true } | { success: false; error: string }> {
+): Promise<{ success: true; summaryLines: string[] } | { success: false; error: string }> {
   const plantsParsed = checkInPlantsStepSchema.safeParse({ plants });
   if (!plantsParsed.success) {
     return { success: false, error: "Plant details are incomplete." };
   }
+
+  const { data: draft, error: draftError } = await supabase
+    .from("check_in_drafts")
+    .select(
+      "id, customer_id, customers ( first_name, last_name, email, phone, marketing_consent, shopify_customer_id )",
+    )
+    .eq("id", draftId)
+    .maybeSingle();
+
+  if (draftError || !draft) {
+    return { success: false, error: "Draft check-in not found." };
+  }
+
+  const customer = unwrapCustomerRow(draft.customers);
+  if (!customer) {
+    return { success: false, error: "Customer details are missing." };
+  }
+
+  let shopifyCustomerId = shopifyCustomerIdFromRow(draft.customers);
+
+  if (!shopifyCustomerId) {
+    const synced = await upsertShopifyCustomerByEmail(customer);
+    if (synced.success) {
+      shopifyCustomerId = synced.shopifyCustomerId;
+      await saveShopifyCustomerIdOnRecord(supabase, draft.customer_id, synced.shopifyCustomerId);
+    }
+  }
+
+  const built = buildPosCartFromPlants({
+    plants: plantsParsed.data.plants,
+    customer,
+    draftId,
+    shopifyCustomerId,
+    allowUnresolvedBugs: true,
+    cartNotePrefix: "Houseplant Hospital collection",
+  });
+
+  if (!built.success) {
+    return built;
+  }
+
+  const now = new Date().toISOString();
 
   const { error } = await supabase
     .from("check_in_drafts")
@@ -183,6 +228,8 @@ export async function deferPosCheckoutForDraftWithClient(
       plants: plantsParsed.data.plants,
       draft_step: "plants",
       pos_checkout_status: "pay_at_collection",
+      pos_checkout_queued_at: now,
+      pos_line_items: built.payload,
     })
     .eq("id", draftId);
 
@@ -190,7 +237,155 @@ export async function deferPosCheckoutForDraftWithClient(
     return { success: false, error: error.message };
   }
 
+  return { success: true, summaryLines: built.summaryLines };
+}
+
+export async function ensureVisitPosCartWithClient(
+  supabase: SupabaseClient,
+  visitId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  const { data: visit, error: visitError } = await supabase
+    .from("visits")
+    .select(
+      "id, payment_status, customers ( first_name, last_name, email, phone, marketing_consent, shopify_customer_id )",
+    )
+    .eq("id", visitId)
+    .maybeSingle();
+
+  if (visitError || !visit) {
+    return { success: false, error: "Visit not found." };
+  }
+
+  if (!isVisitUnpaid(isPosPaymentStatus(visit.payment_status) ? visit.payment_status : null)) {
+    return { success: true };
+  }
+
+  const customer = unwrapCustomerRow(visit.customers);
+  if (!customer) {
+    return { success: false, error: "Customer details are missing." };
+  }
+
+  let shopifyCustomerId = shopifyCustomerIdFromRow(visit.customers);
+
+  if (!shopifyCustomerId) {
+    const { data: customerRow } = await supabase
+      .from("visits")
+      .select("customer_id")
+      .eq("id", visitId)
+      .maybeSingle();
+
+    if (customerRow?.customer_id) {
+      const synced = await upsertShopifyCustomerByEmail(customer);
+      if (synced.success) {
+        shopifyCustomerId = synced.shopifyCustomerId;
+        await saveShopifyCustomerIdOnRecord(
+          supabase,
+          customerRow.customer_id,
+          synced.shopifyCustomerId,
+        );
+      }
+    }
+  }
+
+  const { data: plants, error: plantsError } = await supabase
+    .from("plants")
+    .select("size, bugs_found, plant_category")
+    .eq("visit_id", visitId)
+    .neq("status", "dead");
+
+  if (plantsError) {
+    return { success: false, error: plantsError.message };
+  }
+
+  if (!plants?.length) {
+    return { success: false, error: "This visit has no plants to charge." };
+  }
+
+  const built = buildPosCartFromVisitPlants({
+    plants: plants.map((plant) => ({
+      size: plant.size,
+      bugsFound: plant.bugs_found,
+      plantCategory: plant.plant_category,
+    })),
+    customer,
+    visitId,
+    shopifyCustomerId,
+    cartNotePrefix: "Houseplant Hospital collection",
+  });
+
+  if (!built.success) {
+    return built;
+  }
+
+  const { error: updateError } = await supabase
+    .from("visits")
+    .update({ pos_line_items: built.payload })
+    .eq("id", visitId);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
   return { success: true };
+}
+
+export async function settleVisitPaymentOutsideShopifyWithClient(
+  supabase: SupabaseClient,
+  visitId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  const now = new Date().toISOString();
+  const unpaidStatuses = ["queued", "loaded", "pay_at_collection"] as const;
+
+  async function settle(withSettledVia: boolean) {
+    return supabase
+      .from("visits")
+      .update(
+        withSettledVia
+          ? {
+              payment_status: "paid",
+              shopify_paid_at: now,
+              payment_settled_via: "other",
+            }
+          : {
+              payment_status: "paid",
+              shopify_paid_at: now,
+            },
+      )
+      .eq("id", visitId)
+      .in("payment_status", [...unpaidStatuses])
+      .select("id")
+      .maybeSingle();
+  }
+
+  let { data, error } = await settle(true);
+
+  if (error?.message.includes("payment_settled_via")) {
+    ({ data, error } = await settle(false));
+  }
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  if (data) {
+    return { success: true };
+  }
+
+  const { data: visit, error: visitError } = await supabase
+    .from("visits")
+    .select("payment_status")
+    .eq("id", visitId)
+    .maybeSingle();
+
+  if (visitError) {
+    return { success: false, error: visitError.message };
+  }
+
+  if (visit?.payment_status === "paid") {
+    return { success: true };
+  }
+
+  return { success: false, error: "Could not mark this visit as paid outside Shopify." };
 }
 
 export type PendingPosCheckout = {
@@ -203,6 +398,19 @@ export type PendingPosCheckout = {
   lineItems: PosCheckoutPayload["lineItems"];
   queuedAt: string;
 };
+
+function posLineItemsForCheckout(
+  payload: PosCheckoutPayload,
+  input: { type: "draft" | "visit"; id: string },
+): PosCheckoutPayload["lineItems"] {
+  const propertyName = input.type === "draft" ? "_hh_draft_id" : "_hh_visit_id";
+
+  return payload.lineItems.map((lineItem) => ({
+    variantId: lineItem.variantId,
+    quantity: lineItem.quantity,
+    properties: [{ name: propertyName, value: input.id }],
+  }));
+}
 
 export async function listPendingPosCheckoutsWithClient(
   supabase: SupabaseClient,
@@ -228,7 +436,7 @@ export async function listPendingPosCheckoutsWithClient(
       customerEmail: payload.customerEmail,
       shopifyCustomerId: payload.shopifyCustomerId,
       cartNote: payload.cartNote,
-      lineItems: payload.lineItems,
+      lineItems: posLineItemsForCheckout(payload, { type: "draft", id: draft.id }),
       queuedAt: draft.pos_checkout_queued_at,
     });
   }
@@ -252,7 +460,7 @@ export async function listPendingPosCheckoutsWithClient(
       customerEmail: payload.customerEmail,
       shopifyCustomerId: payload.shopifyCustomerId,
       cartNote: payload.cartNote,
-      lineItems: payload.lineItems,
+      lineItems: posLineItemsForCheckout(payload, { type: "visit", id: visit.id }),
       queuedAt: visit.checkin_date,
     });
   }

@@ -68,6 +68,14 @@ export async function syncCheckInToMailchimp(
   const email = input.customer.email.trim().toLowerCase();
 
   for (const plant of input.plants) {
+    const { data: plantRow } = await input.supabase
+      .from("plants")
+      .select("name")
+      .eq("id", plant.plantId)
+      .maybeSingle();
+
+    const plantName = plantRow?.name?.trim() || undefined;
+
     const queued = await adapter.queueEvent({
       eventName: MAILCHIMP_EVENT_NAMES.plantCheckedIn,
       customerId: input.customerId,
@@ -77,6 +85,7 @@ export async function syncCheckInToMailchimp(
         visitId: input.visitId,
         customerId: input.customerId,
         plantId: plant.plantId,
+        plantName,
       },
     });
 

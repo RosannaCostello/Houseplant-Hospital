@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (pathname.startsWith("/settings")) {
+  if (pathname.startsWith("/settings") || pathname.startsWith("/app/analytics")) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")

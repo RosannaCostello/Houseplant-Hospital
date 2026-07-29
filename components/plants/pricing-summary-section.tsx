@@ -59,7 +59,7 @@ export function PricingSummarySection({
               ? "Price breakdown at time of estimate."
               : bugsStatusKnown
                 ? `Treatment price from size band${pricing.lines.length > 0 ? " and adjustments" : ""}.`
-                : "Base treatment shown — total appears once bugs found is answered above."}
+                : "Base treatment shown — total appears once pests found is answered above."}
           </p>
         ) : null}
       </div>
@@ -87,7 +87,7 @@ export function PricingSummarySection({
             ) : bugsStatusKnown ? (
               formatGbp(pricing.totalAmount)
             ) : (
-              <span className="text-sm font-medium text-hilda-warning-text">Awaiting bug status</span>
+              <span className="text-sm font-medium text-hilda-warning-text">Awaiting pest status</span>
             )}
           </dd>
         </div>

@@ -19,7 +19,7 @@ export async function setBugsFoundAction(
   const parsed = setBugsFoundSchema.safeParse({ plantId, bugsFound });
 
   if (!parsed.success) {
-    return { success: false, error: "Invalid plant or bugs flag." };
+    return { success: false, error: "Invalid plant or pests flag." };
   }
 
   const supabase = await createSupabaseServerClient();

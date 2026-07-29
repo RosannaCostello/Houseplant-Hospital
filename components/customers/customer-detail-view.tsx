@@ -30,7 +30,7 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
       <div className="flex shrink-0 items-center gap-2">
         {plant.bugsFound ? (
           <span className="rounded-hilda-sm bg-hilda-bugs px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hilda-inverse">
-            Bugs
+            Pests
           </span>
         ) : null}
         <span className="rounded-hilda-sm bg-hilda-surface px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-text ring-1 ring-hilda-border/15">

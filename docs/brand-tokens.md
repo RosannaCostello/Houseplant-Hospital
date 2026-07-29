@@ -26,7 +26,7 @@ Loaded via `next/font/google` in `app/layout.tsx` as **DM Serif Display** (the G
 | `hilda-text-muted` | `rgba(49, 95, 95, 0.6)` | `text-hilda-text-muted` |
 | `hilda-nav-ink` | `#335c59` | `text-hilda-nav-ink` (bottom nav) |
 | `hilda-border` | `#171d1a` | `border-hilda-border/15` (use opacity steps) |
-| `hilda-coral` | `#f1c1bd` | `bg-hilda-coral` — primary buttons, surgery lane |
+| `hilda-coral` | `#f1c1bd` | `bg-hilda-coral` — surgery lane accent (not primary buttons) |
 | `hilda-gold` | `#d3ac54` | `bg-hilda-gold` — check-in lane, highlights |
 | `hilda-deep` | *alias of `hilda-heading`* | Legacy alias — prefer `hilda-heading` |
 
@@ -41,7 +41,8 @@ Loaded via `next/font/google` in `app/layout.tsx` as **DM Serif Display** (the G
 | `hilda-warning-bg` | `#fffbeb` | “Not checked yet”, pricing hints |
 | `hilda-warning-border` | `#fcd34d` | Warning dashed borders |
 | `hilda-warning-text` | `#92400e` | Warning copy |
-| `hilda-error-text` | `#dc2626` | Inline form errors |
+| `hilda-success-text` | `#2f6b4f` | Positive / improved metric deltas |
+| `hilda-error-text` | `#dc2626` | Inline form errors; negative metric deltas |
 | `hilda-error-text-strong` | `#b91c1c` | Stronger error emphasis |
 | `hilda-error-bg` | `#fef2f2` | Error alert surfaces |
 | `hilda-error-border` | `#fecaca` | Error alert borders |
@@ -61,7 +62,7 @@ Do **not** use Tailwind `zinc-*`, `orange-*`, `amber-*`, or `red-*` in app UI �
 
 ## Buttons
 
-- **Primary:** `bg-hilda-coral`, `text-hilda-inverse`, coral border
+- **Primary:** `bg-hilda-bugs` (gold), `text-hilda-inverse`, gold border
 - **Outline:** `bg-hilda-surface`, `border-hilda-border/30`, `text-hilda-heading`
 - **Ghost:** `text-hilda-heading`, `hover:bg-hilda-bg`
 

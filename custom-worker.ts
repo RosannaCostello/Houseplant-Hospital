@@ -59,8 +59,48 @@ async function runCronRoute(
   console.log(`[cron] ${route} ok: ${await response.text()}`);
 }
 
+const POS_PENDING_PATH = "/api/shopify/pos/pending";
+
+const POS_CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+function isPosPendingRequest(request: Request): boolean {
+  try {
+    return new URL(request.url).pathname === POS_PENDING_PATH;
+  } catch {
+    return false;
+  }
+}
+
 export default {
-  fetch: handler.fetch,
+  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
+    // OpenNext often answers OPTIONS without app-route CORS headers.
+    // POS UI extensions require a proper preflight for Authorization.
+    if (request.method === "OPTIONS" && isPosPendingRequest(request)) {
+      return new Response(null, { status: 204, headers: POS_CORS_HEADERS });
+    }
+
+    const response = await handler.fetch(request, env, ctx);
+
+    if (!isPosPendingRequest(request)) {
+      return response;
+    }
+
+    const headers = new Headers(response.headers);
+    for (const [key, value] of Object.entries(POS_CORS_HEADERS)) {
+      headers.set(key, value);
+    }
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  },
 
   async scheduled(controller: ScheduledController, env: CloudflareEnv) {
     const routes = routesForCron(controller.cron);

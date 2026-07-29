@@ -47,7 +47,7 @@ export async function updatePricingSettingsWithClient(
 
   const bugsPercent = Number(input.bugsSurchargePercent);
   if (!Number.isFinite(bugsPercent) || bugsPercent < 0) {
-    return { success: false, error: "Bugs surcharge percent must be zero or greater." };
+    return { success: false, error: "Pests surcharge percent must be zero or greater." };
   }
 
   const { data: rules, error: rulesError } = await supabase

@@ -1,0 +1,3 @@
+node_modules/
+.shopify/
+extensions/hh-pos-checkout/src/config.js

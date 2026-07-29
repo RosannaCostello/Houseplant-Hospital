@@ -1,11 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
+import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
 import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
 import { BugsFoundToggle } from "@/components/plants/bugs-found-toggle";
 import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
 import { PricingSummarySection } from "@/components/plants/pricing-summary-section";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
+import { PropagationBadge } from "@/components/plants/propagation-badge";
+import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
 import { Button } from "@/components/ui/button";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import type { PlantDetail } from "@/lib/plants/get-plant-detail";
@@ -35,14 +39,21 @@ export function PlantDetailView({
   const latestPhoto = plant.photos[0] ?? null;
   const isCollected = plant.status === "collected";
   const subtitle = plantSubtitle(plant);
+  const isPropagation = plant.plantCategory === "propagation";
+  const showPropagate = plant.status === "in_surgery" && !isPropagation;
+  const propagateDisabledReason = plant.hasPropagation
+    ? "This plant has already been propagated."
+    : plant.bugsFound !== false
+      ? "Plants with pests cannot be propagated."
+      : undefined;
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-3 pb-[var(--bottom-nav-inset)]">
       {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-        <section className="overflow-hidden rounded-hilda border border-hilda-border/15 bg-hilda-surface">
-          <div className="relative aspect-[4/3] max-h-[min(28dvh,11rem)] w-full bg-hilda-bg sm:max-h-[min(32dvh,12.5rem)]">
+        <section className="flex flex-col overflow-hidden rounded-hilda border border-hilda-border/15 bg-hilda-surface">
+          <div className="relative aspect-[4/3] w-full flex-1 bg-hilda-bg sm:aspect-auto sm:min-h-[12.5rem]">
             {latestPhoto ? (
               <Image
                 src={latestPhoto.url}
@@ -59,6 +70,7 @@ export function PlantDetailView({
             {plant.bugsFound ? (
               <BugsFoundBadge className="absolute right-2 top-2 bg-hilda-bugs" />
             ) : null}
+            {isPropagation ? <PropagationBadge className="absolute left-2 top-2" /> : null}
           </div>
 
           {plant.photos.length > 1 ? (
@@ -89,8 +101,27 @@ export function PlantDetailView({
               <dd className="mt-0.5 font-medium text-hilda-heading">{plantStatusLabel(plant.status)}</dd>
             </div>
             <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Size</dt>
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                {isPropagation ? "Plant propagation size" : "Size"}
+              </dt>
               <dd className="mt-0.5 font-medium text-hilda-heading">{plant.size}</dd>
+            </div>
+            {isPropagation ? (
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                  Category
+                </dt>
+                <dd className="mt-0.5 font-medium text-hilda-heading">Propagation</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Payment</dt>
+              <dd className="mt-1">
+                <PaymentStatusBadge
+                  status={plant.paymentStatus}
+                  shopifyOrderId={plant.shopifyOrderId}
+                />
+              </dd>
             </div>
             <div>
               <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Customer</dt>
@@ -150,16 +181,41 @@ export function PlantDetailView({
           <Button asChild variant="outline" className="mt-3 w-full">
             <Link href={`/app/visits/${plant.visitId}`}>View visit</Link>
           </Button>
+          <PlantCardStatusMenu
+            plantId={plant.id}
+            currentStatus={plant.status}
+            size={plant.size}
+            bugsFound={plant.bugsFound}
+            plantCategory={plant.plantCategory}
+            hasPropagation={plant.hasPropagation}
+            customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
+            paymentStatus={plant.paymentStatus}
+            variant="button"
+            hideUpdatePlantLink
+            className="mt-2 block w-full [&_button]:w-full"
+          />
         </div>
       </div>
 
-      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
-        <BugsFoundToggle
-          plantId={plant.id}
-          bugsFound={plant.bugsFound}
-          disabled={isCollected}
-        />
-      </section>
+      {showPropagate ? (
+        <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+          <PropagatePlantButton
+            plantId={plant.id}
+            initialSize={plant.size}
+            disabledReason={propagateDisabledReason}
+          />
+        </section>
+      ) : null}
+
+      {!isPropagation ? (
+        <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+          <BugsFoundToggle
+            plantId={plant.id}
+            bugsFound={plant.bugsFound}
+            disabled={isCollected}
+          />
+        </section>
+      ) : null}
 
       <TreatmentNotesSection plantId={plant.id} treatmentNote={plant.treatmentNote} compact />
 
@@ -173,10 +229,24 @@ export function PlantDetailView({
         compact
       />
 
-      <PlantCaseLink
-        plantId={plant.id}
-        className="inline-flex min-h-10 w-full items-center justify-center rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm font-medium text-hilda-heading hover:bg-hilda-bg sm:w-auto"
-      />
+      <div className="flex items-center justify-between gap-3">
+        <PlantCaseLink
+          plantId={plant.id}
+          className="inline-flex min-h-10 items-center justify-center rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
+        />
+        <PlantCardStatusMenu
+          plantId={plant.id}
+          currentStatus={plant.status}
+          size={plant.size}
+          bugsFound={plant.bugsFound}
+          plantCategory={plant.plantCategory}
+          hasPropagation={plant.hasPropagation}
+          customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
+          paymentStatus={plant.paymentStatus}
+          variant="button"
+          hideUpdatePlantLink
+        />
+      </div>
     </div>
   );
 }

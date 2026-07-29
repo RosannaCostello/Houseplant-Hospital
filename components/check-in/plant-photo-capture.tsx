@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { PlantCameraViewfinder } from "@/components/check-in/plant-camera-viewfinder";
 import { Button } from "@/components/ui/button";
 import type { CheckInDraftPhotoView, CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import { photoPreviewSrc } from "@/lib/check-in/photo-schema";
@@ -22,8 +23,8 @@ export function PlantPhotoCapture({
   className,
   uploading = false,
 }: PlantPhotoCaptureProps) {
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,7 +78,7 @@ export function PlantPhotoCapture({
           ) : (
             <div className="flex aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full flex-col items-center justify-center gap-1 px-3 text-center text-xs text-hilda-text-muted sm:max-h-[min(34dvh,12.5rem)]">
               <span className="font-medium text-hilda-text">Photo required</span>
-              <span>Rear camera or library</span>
+              <span>Camera guide or library</span>
             </div>
           )}
         </div>
@@ -111,7 +112,7 @@ export function PlantPhotoCapture({
               type="button"
               className="min-h-10 flex-1 sm:flex-none"
               disabled={processing || uploading}
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={() => setCameraOpen(true)}
             >
               {processing || uploading ? "Saving…" : photo ? "Retake" : "Take photo"}
             </Button>
@@ -129,17 +130,6 @@ export function PlantPhotoCapture({
       </div>
 
       <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(event) => {
-          void handleFile(event.target.files?.[0]);
-          event.target.value = "";
-        }}
-      />
-      <input
         ref={libraryInputRef}
         type="file"
         accept="image/*"
@@ -148,6 +138,12 @@ export function PlantPhotoCapture({
           void handleFile(event.target.files?.[0]);
           event.target.value = "";
         }}
+      />
+
+      <PlantCameraViewfinder
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={(file) => handleFile(file)}
       />
     </section>
   );

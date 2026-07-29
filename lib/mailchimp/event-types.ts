@@ -6,6 +6,8 @@ export const MAILCHIMP_EVENT_NAMES = {
   plantInSurgery: "plant_in_surgery",
   bugsFound: "bugs_found",
   plantOutpatient: "plant_outpatient",
+  /** Multi-plant visit: this plant is outpatient but siblings still block collection notice. */
+  plantOutpatientPartial: "plant_outpatient_partial",
   plantCollected: "plant_collected",
   plantDead: "plant_dead",
   plantQuarantined: "plant_quarantined",
@@ -30,6 +32,14 @@ export type MailchimpEventPayload = {
   previousStatus?: PlantStatus;
   newStatus?: PlantStatus;
   bugsFound?: boolean;
+  /** Sibling plants still blocking ready-to-collect (outpatient partial only). */
+  awaitingPlantCount?: number;
+  /** Plant display name for journey email copy (HIL-98). */
+  plantName?: string;
+  /** Latest treatment note content (HIL-98). */
+  treatmentNotes?: string;
+  /** Latest care tips content (HIL-98). */
+  careTips?: string;
   /** Set by outbox worker (HIL-57) when delivery fails. */
   _deliveryError?: string;
   _failedAt?: string;

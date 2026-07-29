@@ -13,8 +13,14 @@
     "deploy:live": "node scripts/clean-build-dirs.mjs && cp .env.local .dev.vars && opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "test:analytics-dates": "node --experimental-strip-types scripts/test-analytics-date-range.mjs",
     "db:verify": "node scripts/verify-migrations.mjs",
-    "db:apply-0013": "node scripts/apply-migration-0013.mjs"
+    "db:apply-0013": "node scripts/apply-migration-0013.mjs",
+    "db:apply-0015": "node scripts/apply-migration-0015.mjs",
+    "import:zoho-mailchimp": "node scripts/import-zoho-mailchimp.mjs",
+    "import:zoho-plants": "node scripts/import-zoho-plants.mjs",
+    "backfill:zoho-prices": "node scripts/backfill-zoho-null-prices.mjs",
+    "backfill:zoho-bugs": "node scripts/backfill-zoho-null-bugs.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.11",
@@ -23,9 +29,12 @@
     "@supabase/supabase-js": "^2.108.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "recharts": "^3.10.0",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },

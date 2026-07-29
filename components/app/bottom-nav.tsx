@@ -4,8 +4,8 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  AnalyticsNavIcon,
   CheckInNavIcon,
-  CustomersNavIcon,
   DashboardNavIcon,
   SettingsNavIcon,
 } from "@/components/app/nav-icons";
@@ -32,11 +32,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: DashboardNavIcon,
     isActive: (pathname) => pathname === "/app",
   },
+  // Customers nav hidden for now — route `/app/customers` remains available via links.
   {
-    href: "/app/customers",
-    label: "Customers",
-    icon: CustomersNavIcon,
-    isActive: (pathname) => pathname.startsWith("/app/customers"),
+    href: "/app/analytics",
+    label: "Analytics",
+    icon: AnalyticsNavIcon,
+    isActive: (pathname) => pathname.startsWith("/app/analytics"),
+    adminOnly: true,
   },
   {
     href: "/settings",

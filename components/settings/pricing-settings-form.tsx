@@ -108,8 +108,8 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-hilda-text-muted">Shopify pricing</h2>
               <p className="mt-1 text-sm text-hilda-text">
-                Base and pests treatment prices sync from Shopify daily. XS in the app maps to{" "}
-                <strong>Mini</strong> in Shopify on both products.
+                Standard, pests treatment and propagation prices sync from Shopify daily. XS in the app
+                maps to <strong>Mini</strong> in Shopify.
               </p>
               <p className="mt-1 text-xs text-hilda-text-muted">
                 Last synced: {formatSyncedAt(settings.shopifySyncedAt)}
@@ -126,7 +126,8 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
                 <tr>
                   <th className="px-4 py-3">Size</th>
                   <th className="px-4 py-3">Standard</th>
-                  <th className="px-4 py-3">Pests (with bugs)</th>
+                  <th className="px-4 py-3">Pests treatment</th>
+                  <th className="px-4 py-3">Propagation</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-hilda-border/10">
@@ -141,6 +142,11 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
                     <td className="px-4 py-3 tabular-nums text-hilda-heading">
                       {settings.pestsPrices[size] != null
                         ? formatGbp(settings.pestsPrices[size])
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-hilda-heading">
+                      {settings.propagationPrices[size] != null
+                        ? formatGbp(settings.propagationPrices[size])
                         : "—"}
                     </td>
                   </tr>
@@ -183,7 +189,7 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
 
           <div>
             <label className={checkInLabelClassName}>
-              Bugs surcharge (%)
+              Pests surcharge (%)
               <input
                 className={checkInInputClassName}
                 type="number"

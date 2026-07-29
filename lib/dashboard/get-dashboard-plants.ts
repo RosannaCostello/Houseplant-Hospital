@@ -9,6 +9,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PLANT_STATUSES, type PlantStatus } from "@/lib/plant-status";
 import type { DashboardPlant } from "@/lib/dashboard/types";
 import { buildVisitPlantPositions } from "@/lib/visits/visit-plant-position";
+import { isPosPaymentStatus, type PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
+import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
 
 type PlantPhotoRow = {
   storage_path: string;
@@ -24,9 +26,15 @@ type DashboardPlantRow = {
   size: string;
   status: string;
   bugs_found: boolean | null;
+  plant_category: PlantCategory;
+  source_plant_id: string | null;
   created_at: string;
+  collected_at: string | null;
   visits: {
     checkin_date: string;
+    payment_status: string | null;
+    shopify_order_id: string | null;
+    notes: string | null;
     customers: {
       first_name: string;
       last_name: string;
@@ -51,14 +59,23 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     size?: string;
     status?: string;
     bugs_found?: boolean;
+    plant_category?: string;
+    source_plant_id?: string | null;
     created_at?: string;
+    collected_at?: string | null;
     visits?:
       | {
           checkin_date: string;
+          payment_status?: string | null;
+          shopify_order_id?: string | null;
+          notes?: string | null;
           customers: { first_name: string; last_name: string } | { first_name: string; last_name: string }[];
         }
       | Array<{
           checkin_date: string;
+          payment_status?: string | null;
+          shopify_order_id?: string | null;
+          notes?: string | null;
           customers: { first_name: string; last_name: string } | { first_name: string; last_name: string }[];
         }>;
     plant_photos?: PlantPhotoRow[] | null;
@@ -71,6 +88,11 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     return null;
   }
 
+  // Historic Zoho imports belong in Analytics, not the live ops board.
+  if (visit.notes === "zoho-import" || visit.notes === "zoho-import-final") {
+    return null;
+  }
+
   return {
     id: row.id,
     visit_id: row.visit_id,
@@ -79,9 +101,15 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     size: row.size,
     status: row.status,
     bugs_found: row.bugs_found ?? null,
+    plant_category: isPlantCategory(row.plant_category) ? row.plant_category : "standard",
+    source_plant_id: row.source_plant_id ?? null,
     created_at: row.created_at ?? visit.checkin_date,
+    collected_at: row.collected_at ?? null,
     visits: {
       checkin_date: visit.checkin_date,
+      payment_status: visit.payment_status ?? null,
+      shopify_order_id: visit.shopify_order_id ?? null,
+      notes: visit.notes ?? null,
       customers: { first_name: customer.first_name, last_name: customer.last_name },
     },
     plant_photos: row.plant_photos ?? null,
@@ -90,6 +118,10 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
 
 function isPlantStatus(value: string): value is PlantStatus {
   return (PLANT_STATUSES as readonly string[]).includes(value);
+}
+
+function parsePaymentStatus(value: string | null): PosPaymentStatus | null {
+  return value && isPosPaymentStatus(value) ? value : null;
 }
 
 function latestPhotoPath(photos: PlantPhotoRow[] | null | undefined): string | null {
@@ -105,7 +137,7 @@ function latestPhotoPath(photos: PlantPhotoRow[] | null | undefined): string | n
 export async function getDashboardPlants(): Promise<DashboardPlant[]> {
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const initialResult = await supabase
     .from("plants")
     .select(
       `
@@ -116,9 +148,15 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       size,
       status,
       bugs_found,
+      plant_category,
+      source_plant_id,
       created_at,
+      collected_at,
       visits!inner (
         checkin_date,
+        payment_status,
+        shopify_order_id,
+        notes,
         customers!inner (
           first_name,
           last_name
@@ -132,6 +170,46 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     `,
     )
     .order("created_at", { ascending: false });
+  let data: unknown[] | null = initialResult.data;
+  let error = initialResult.error;
+
+  if (
+    error &&
+    (error.message.includes("plant_category") ||
+      error.message.includes("source_plant_id") ||
+      error.message.includes("collected_at"))
+  ) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(
+        `
+        id,
+        visit_id,
+        name,
+        species,
+        size,
+        status,
+        bugs_found,
+        created_at,
+        visits!inner (
+          checkin_date,
+          payment_status,
+          shopify_order_id,
+          notes,
+          customers!inner (
+            first_name,
+            last_name
+          )
+        ),
+        plant_photos (
+          storage_path,
+          thumbnail_path,
+          created_at
+        )
+      `,
+      )
+      .order("created_at", { ascending: false }));
+  }
 
   if (error) {
     throw new Error(`Failed to load dashboard plants: ${error.message}`);
@@ -143,16 +221,34 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
 
   const visitPlantPositions = buildVisitPlantPositions(rows);
   const visitPlantsByVisitId = buildVisitPlantsByVisitId(rows, isPlantStatus);
+  const propagatedSourceIds = new Set(
+    rows.map((row) => row.source_plant_id).filter((id): id is string => Boolean(id)),
+  );
 
   const quarantinePlantIds = rows
     .filter((row) => row.status === "quarantine")
     .map((row) => row.id);
   const quarantineSinceByPlantId = await getQuarantineSinceByPlantIds(supabase, quarantinePlantIds);
 
-  const collectedPlantIds = rows
-    .filter((row) => row.status === "collected")
-    .map((row) => row.id);
-  const collectedAtByPlantId = await resolveCollectedAtByPlantIds(supabase, collectedPlantIds);
+  // Prefer collected_at from the main query; only hit status_history for gaps.
+  const collectedAtByPlantId = new Map<string, string>();
+  const missingCollectedAtIds: string[] = [];
+
+  for (const row of rows) {
+    if (row.status !== "collected") continue;
+    if (row.collected_at) {
+      collectedAtByPlantId.set(row.id, row.collected_at);
+    } else {
+      missingCollectedAtIds.push(row.id);
+    }
+  }
+
+  if (missingCollectedAtIds.length > 0) {
+    const resolved = await resolveCollectedAtByPlantIds(supabase, missingCollectedAtIds);
+    for (const [id, at] of resolved) {
+      collectedAtByPlantId.set(id, at);
+    }
+  }
 
   const photoPaths = [
     ...new Set(
@@ -175,6 +271,7 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     const visitPlants = visitPlantsByVisitId.get(row.visit_id) ?? [];
     const collectedAt =
       row.status === "collected" ? (collectedAtByPlantId.get(row.id) ?? null) : null;
+    const paymentStatus = parsePaymentStatus(row.visits.payment_status);
 
     plants.push({
       id: row.id,
@@ -184,6 +281,8 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       species: row.species,
       size: row.size,
       bugsFound: row.bugs_found ?? null,
+      plantCategory: row.plant_category,
+      hasPropagation: propagatedSourceIds.has(row.id),
       checkedInAt: row.visits.checkin_date,
       quarantineSince:
         row.status === "quarantine" ? (quarantineSinceByPlantId.get(row.id) ?? null) : null,
@@ -191,6 +290,8 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       visitPlantTotal: position.total,
       outpatientCollectionBadge: formatOutpatientCollectionBadge(row.id, row.status, visitPlants),
       collectedAt,
+      paymentStatus,
+      shopifyOrderId: row.visits.shopify_order_id,
       thumbnailUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
     });
   }

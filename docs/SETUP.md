@@ -219,17 +219,42 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 
 **No app code.** Build flows in Mailchimp; the app delivers events via HIL-57. Event names must match **exactly** (case-sensitive).
 
-| App trigger | Mailchimp event name (`name` field) | Suggested journey |
-|-------------|-------------------------------------|-------------------|
-| Check-in (per plant) | `plant_checked_in` | Check-in confirmation |
-| Move to In surgery | `plant_in_surgery` | In surgery update |
-| Move to Outpatient | `plant_outpatient` | Ready for collection |
-| Collect plant | `plant_collected` | Collection aftercare |
-| Bugs found toggled on | `bugs_found` | Optional pests/treatment note |
-| Move to Quarantine | `plant_quarantined` | Optional |
-| Move to Dead | `plant_dead` | Optional |
+| App trigger | Mailchimp event name (`name` field) | Journey (HIL-96) |
+|-------------|-------------------------------------|------------------|
+| Check-in (per plant) | `plant_checked_in` | Existing HH App — keep; finalize email copy |
+| Move to Quarantine | `plant_quarantined` | **Build** new flow + email |
+| Move to In surgery | `plant_in_surgery` | **Build** new flow + email |
+| Move to Outpatient (visit fully ready) | `plant_outpatient` | **Build** HH App - Outpatient |
+| Move to Outpatient (multi-plant, not last) | `plant_outpatient_partial` | **Build** HH App - Outpatient (partial) |
+| Collect plant | `plant_collected` | **Build** new flow + email |
+| Move to Dead | `plant_dead` | Shell only — create trigger/flow but **do not activate** yet |
+| Bugs found toggled on | `bugs_found` | Out of scope for HIL-96 |
 
-**Audience:** always **Hilda** (`c34fa4ecc8`). **Tags** on contacts: `houseplant_hospital`, `repeat_hospital_customer`, `bugs_treatment`, `newsletter` (if consented).
+**Audience:** always **Hilda** (`c34fa4ecc8`). **Tags** on contacts: `houseplant_hospital`, `repeat_hospital_customer`, `bugs_treatment`, `newsletter` (if consented), `Zoho` (legacy Creator import — HIL-99).
+
+#### Zoho legacy import (HIL-99)
+
+One-shot scripts (not used by the live app). Source CSV: Zoho **Hospital Dashboard** export.
+
+```bash
+# Part 1 — Mailchimp contacts (transactional + Zoho tag; no plant_* events)
+npm run import:zoho-mailchimp -- --dry-run "/path/to/Hospital Dashboard.csv"
+npm run import:zoho-mailchimp -- "/path/to/Hospital Dashboard.csv"
+
+# Part 2 — Supabase historic plants (all collected, check-in+14d, Zoho logo photo)
+# Direct DB writes only — must not create mailchimp_events
+npm run import:zoho-plants -- --dry-run "/path/to/Hospital Dashboard.csv"
+npm run import:zoho-plants -- "/path/to/Hospital Dashboard.csv"
+```
+
+Part 2 marks visits with `notes = zoho-import`. Zoho `collected_at` is synthetic (check-in + 14 days). Re-run aborts if those visits already exist. Blank Zoho prices are filled from active Shopify `pricing_rules` (standard / pests by size + `bugs_found`). Blank Zoho pests → `bugs_found = false`. To repair existing nulls:
+
+```bash
+npm run backfill:zoho-prices -- --dry-run
+npm run backfill:zoho-prices
+npm run backfill:zoho-bugs -- --dry-run
+npm run backfill:zoho-bugs
+```
 
 **Consent rules (scope):**
 
@@ -246,15 +271,31 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 6. Design email (Hilda branding); use merge tag `*|NAME|*` for full name.
 7. **Activate** the journey.
 
-Repeat for each event you want email on. Start with **check-in confirmation** (`plant_checked_in`) — that is the HIL-58 exit criterion.
+Repeat for each **Build** event in the table (HIL-96). Keep **Dead** inactive. Do not create a `bugs_found` journey in this pass.
+
+Suggested journey names (HIL-96):
+
+| Event | Journey name |
+|-------|----------------|
+| `plant_checked_in` | HH App - Check-in (existing; rename if needed) |
+| `plant_quarantined` | HH App - Quarantine |
+| `plant_in_surgery` | HH App - Surgery |
+| `plant_outpatient` | HH App - Outpatient |
+| `plant_outpatient_partial` | HH App - Outpatient (partial) |
+| `plant_collected` | HH App - Collected |
+| `plant_dead` | HH App - Dead (inactive shell) |
 
 #### Optional event properties (for email content)
 
-The worker sends string properties you can reference in advanced templates:
+The worker sends string properties (max 255 chars each; longer notes are truncated):
 
 - `visit_id`, `plant_id`, `customer_id`
 - `previous_status`, `new_status` (status-change events)
 - `bugs_found` (`true` on `bugs_found`)
+- `awaiting_plant_count` (outpatient partial only)
+- `plant_name`, `treatment_notes`, `care_tips` (when present on the plant)
+
+**Essentials note:** event properties are not the same as merge tags (`*|NAME|*`). On many plans you cannot drop `plant_name` into an email as `*|plant_name|*`. Use them for journey filters / Activity, or create audience merge fields and map later if you need them in every email body.
 
 #### Schedule the outbox worker (production)
 
@@ -275,15 +316,18 @@ Manual curl still works for testing:
 4. Mailchimp → contact → **Activity** / **Events** — should show `plant_checked_in`.
 5. Journey should send within a few minutes of the event (after cron + Mailchimp processing).
 
-Record active journeys here when live:
+Record active journeys here when live (HIL-96):
 
 | Journey | Event trigger | Status | Notes |
 |---------|---------------|--------|-------|
-| Check-in confirmation | `plant_checked_in` | **Live** | Verified Jun 2026 — email received |
-| In surgery | `plant_in_surgery` | | |
-| Ready for collection | `plant_outpatient` | | |
-| Aftercare | `plant_collected` | | |
-| 6-month reminder (marketing) | TBD — tag/time based | | Requires `newsletter` tag |
+| Check-in confirmation | `plant_checked_in` | **Live** | Existing HH App flow |
+| Quarantine | `plant_quarantined` | | HIL-96 |
+| In surgery | `plant_in_surgery` | | HIL-96 |
+| Ready for collection | `plant_outpatient` | | HIL-96 — single plant or final plant |
+| Outpatient (awaiting siblings) | `plant_outpatient_partial` | | HIL-96 — multi-plant, not last yet |
+| Aftercare | `plant_collected` | | HIL-96 |
+| Dead | `plant_dead` | Inactive shell | HIL-96 — no email yet |
+| 6-month reminder (marketing) | TBD — tag/time based | | Requires `newsletter` tag; not HIL-96 |
 
 ## Deploy
 

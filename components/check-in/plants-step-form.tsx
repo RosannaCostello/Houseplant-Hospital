@@ -71,6 +71,7 @@ export function PlantsStepForm({
 
   const plants = editedPlants ?? (initialPlants.length ? initialPlants : [createEmptyPlant()]);
   const readyForCheckout = plantsReadyForCheckout(plants);
+  const missingBugsCount = plants.filter((plant) => plant.bugsFound === null).length;
   const canContinueToPhotos = canProceedToPhotosStep(checkout.status, posCheckoutRequired);
   const awaitingPosPayment =
     posCheckoutRequired && (checkout.status === "queued" || checkout.status === "loaded");
@@ -209,7 +210,7 @@ export function PlantsStepForm({
     if (!validPlants) return;
 
     if (!readyForCheckout) {
-      setFormError("Select whether bugs were found for each plant before checkout.");
+      setFormError("Select whether pests were found for each plant before checkout.");
       return;
     }
 
@@ -317,6 +318,12 @@ export function PlantsStepForm({
             </div>
           ) : null}
 
+          {posCheckoutRequired && !readyForCheckout ? (
+            <p className="rounded-hilda border border-hilda-warning-border bg-hilda-warning-bg p-3 text-sm text-hilda-warning-text">
+              Answer whether pests were found for {missingBugsCount === 1 ? "the remaining plant" : `all ${missingBugsCount} remaining plants`} before checkout. Pests change the Shopify price.
+            </p>
+          ) : null}
+
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button asChild variant="outline" className="w-full sm:w-auto" disabled={submitting}>
@@ -389,10 +396,15 @@ export function PlantsStepForm({
               <section
                 key={plant.clientId}
                 ref={(element) => setPlantSectionRef(plant.clientId, element)}
-                className="shrink-0 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3"
+                className={cn(
+                  "shrink-0 rounded-hilda border bg-hilda-surface p-3",
+                  posCheckoutRequired && plant.bugsFound === null
+                    ? "border-hilda-warning-border"
+                    : "border-hilda-border/15",
+                )}
               >
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold text-hilda-heading">Plant {index + 1}</h2>
+                  <h2 className="text-lg font-semibold text-hilda-heading">Plant {index + 1}</h2>
                   {plants.length > 1 ? (
                     <button
                       type="button"
@@ -433,10 +445,15 @@ export function PlantsStepForm({
                     value={plant.bugsFound ?? null}
                     onChange={(bugsFound) => updatePlant(plant.clientId, { bugsFound })}
                   />
+                  {posCheckoutRequired && plant.bugsFound === null ? (
+                    <p className="text-sm text-hilda-warning-text">
+                      Required before checkout because pests change the treatment price.
+                    </p>
+                  ) : null}
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className={checkInLabelClassName}>
-                      Name <span className="font-normal text-hilda-text-muted">(optional)</span>
+                      Plant name
                       <input
                         className={cn(checkInInputClassName, "py-2.5")}
                         type="text"

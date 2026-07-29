@@ -110,14 +110,14 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
-| 4.1 | | Decide production domain; set `APP_BASE_URL` | `phase-4`, `infra` | — |
-| 4.2 | | `print-bridge` Node service on Mac Mini (auth + health) | `phase-4`, `printing` | S8 |
-| 4.3 | | Branded label template (HTML/PDF): logo, fields, QR URL | `phase-4`, `printing`, `brand` | 4.1, S6 |
-| 4.4 | | macOS silent print integration (print queue) | `phase-4`, `printing` | 4.2, 4.3 |
-| 4.5 | | App: enqueue `print_jobs` + server action → bridge | `phase-4`, `printing` | 4.4 |
-| 4.6 | | Print + reprint from plant detail and QR page | `phase-4`, `printing` | 4.5 |
-| 4.7 | | Secure bridge access (tunnel / allowlist — document in SETUP) | `phase-4`, `printing`, `infra` | 4.5 |
-| 4.8 | | **Phase 4 verification:** iPad print E2E in store | `phase-4`, `printing` | 4.6, 4.7 |
+| 4.1 | HIL-79 | Decide production domain; set `APP_BASE_URL` | `phase-4`, `infra` | — |
+| 4.2 | HIL-80 | `print-bridge` Node service on Mac Mini (auth + health) | `phase-4`, `printing` | HIL-12 |
+| 4.3 | HIL-81 | Branded label template (HTML/PDF): logo, fields, QR URL | `phase-4`, `printing`, `brand` | HIL-79, HIL-10 |
+| 4.4 | HIL-82 | macOS silent print integration (print queue) | `phase-4`, `printing` | HIL-80, HIL-81 |
+| 4.5 | HIL-83 | App: enqueue `print_jobs` + server action → bridge | `phase-4`, `printing` | HIL-82 |
+| 4.6 | HIL-84 | Print + reprint from plant detail and QR page | `phase-4`, `printing` | HIL-83 |
+| 4.7 | HIL-85 | Secure bridge access (tunnel / allowlist — document in SETUP) | `phase-4`, `printing`, `infra` | HIL-83 |
+| 4.8 | HIL-86 | **Phase 4 verification:** iPad print E2E in store | `phase-4`, `printing` | HIL-84, HIL-85 |
 
 ---
 
@@ -157,6 +157,25 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 6.6 | HIL-66 | Cutover runbook: parallel Zoho → training → disable Zoho | `phase-6` | HIL-65 |
 | 6.7 | HIL-67 | Production monitoring checklist (auth, storage, queues) | `phase-6`, `infra` | HIL-65 |
 | 6.8 | HIL-68 | **Phase 6 verification:** go-live sign-off | `phase-6` | HIL-64, HIL-62, HIL-66, HIL-67 |
+| 6.9 | HIL-90 | One-time propagation workflow, lineage and dashboard lane | `phase-6`, `dashboard` | — |
+| 6.10 | HIL-91 | Propagation Shopify pricing and pay-at-collection POS | `phase-3` | HIL-90 |
+| 6.11 | HIL-92 | Admin performance and operations analytics dashboard | `phase-6`, `dashboard` | HIL-90, HIL-91 |
+| 6.12 | HIL-93 | Unpaid outpatient POS checkout + plant-action guardrails | `phase-6`, `dashboard`, `phase-3` | HIL-91 |
+| 6.13 | HIL-94 | Acuity booking → incomplete check-in draft + badge | `phase-6`, `check-in` | — |
+| 6.14 | HIL-95 | After Acuity Powerhouse upgrade — API smoke test for booking drafts | `phase-6`, `check-in` | HIL-94 |
+
+---
+
+## Phase 5 — Mailchimp (follow-ups)
+
+| # | Linear ID | Title | Labels | Blocked by |
+|---|-----------|-------|--------|------------|
+| 5.x | HIL-96 | Mailchimp stage journeys: quarantine, surgery, outpatient, collected (+ dead shell, no bugs_found) | `phase-5`, `mailchimp` | — |
+| 5.x | HIL-97 | Outpatient partial Mailchimp event (`plant_outpatient_partial`) — Done | `phase-5`, `mailchimp` | — |
+| 5.x | HIL-98 | Enrich Mailchimp event payload (plant name, treatment notes, care tips) | `phase-5`, `mailchimp` | — | Done |
+| 5.x | HIL-99 | Zoho legacy import (Mailchimp Zoho tag + historic collected plants) — Done | `phase-5`, `mailchimp` | — |
+| 5.x | HIL-100 | Final Zoho delta import before cutover (Mailchimp + historic plants) | `phase-5`, `mailchimp` | HIL-99 |
+| 6.x | HIL-101 | Analytics updates | `phase-6`, `dashboard` | HIL-92 |
 
 ---
 

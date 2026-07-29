@@ -8,6 +8,7 @@ function normalizeName(value: string): string {
 export async function resolveCheckInCustomerId(
   supabase: SupabaseClient,
   customer: CheckInCustomer,
+  options: { allowNameMismatch?: boolean } = {},
 ): Promise<{ id: string } | { error: string }> {
   const email = customer.email.toLowerCase();
 
@@ -23,8 +24,9 @@ export async function resolveCheckInCustomerId(
 
   if (existing) {
     if (
-      normalizeName(existing.first_name) !== normalizeName(customer.firstName) ||
-      normalizeName(existing.last_name) !== normalizeName(customer.lastName)
+      !options.allowNameMismatch &&
+      (normalizeName(existing.first_name) !== normalizeName(customer.firstName) ||
+        normalizeName(existing.last_name) !== normalizeName(customer.lastName))
     ) {
       return {
         error:

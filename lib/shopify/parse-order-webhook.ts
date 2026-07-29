@@ -64,10 +64,12 @@ export function extractPosPaymentTargets(order: ShopifyOrderWebhook): {
 } {
   const properties = propertiesFromLineItems(order);
   const draftId =
+    properties.find((property) => property.name === "_hh_draft_id")?.value ??
     properties.find((property) => property.name === "hh_draft_id")?.value ??
     draftIdFromNote(order.note) ??
     undefined;
   const visitId =
+    properties.find((property) => property.name === "_hh_visit_id")?.value ??
     properties.find((property) => property.name === "hh_visit_id")?.value ??
     visitIdFromNote(order.note) ??
     undefined;

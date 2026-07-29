@@ -1,6 +1,12 @@
 import type { PlantStatus } from "@/lib/plant-status";
 
-const BLOCKING_VISIT_STATUSES = new Set<PlantStatus>(["check_in", "in_surgery", "quarantine"]);
+/** Sibling statuses that mean the visit is not fully ready for customer collection notice. */
+export const OUTPATIENT_NOTIFY_BLOCKING_STATUSES = new Set<PlantStatus>([
+  "check_in",
+  "in_surgery",
+  "quarantine",
+  "propagation",
+]);
 
 type VisitPlantStatus = {
   id: string;
@@ -19,7 +25,7 @@ export function formatOutpatientCollectionBadge(
   }
 
   const blockingCount = visitPlants.filter(
-    (plant) => plant.id !== plantId && BLOCKING_VISIT_STATUSES.has(plant.status),
+    (plant) => plant.id !== plantId && OUTPATIENT_NOTIFY_BLOCKING_STATUSES.has(plant.status),
   ).length;
 
   if (blockingCount > 0) {
@@ -46,4 +52,14 @@ export function buildVisitPlantsByVisitId<T extends { id: string; visit_id: stri
   }
 
   return byVisit;
+}
+
+/** True when no sibling plant still blocks customer "ready to collect" notification. */
+export function isFinalOutpatientPlantForVisit(
+  plantId: string,
+  visitPlants: VisitPlantStatus[],
+): boolean {
+  return !visitPlants.some(
+    (plant) => plant.id !== plantId && OUTPATIENT_NOTIFY_BLOCKING_STATUSES.has(plant.status),
+  );
 }

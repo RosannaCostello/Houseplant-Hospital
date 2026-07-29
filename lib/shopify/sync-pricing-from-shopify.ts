@@ -20,6 +20,7 @@ export type SyncShopifyPricingResult =
 type SizePricePatch = {
   amount?: number;
   pests_amount?: number;
+  propagation_amount?: number;
 };
 
 export async function syncPricingFromShopify(): Promise<SyncShopifyPricingResult> {
@@ -57,8 +58,10 @@ export async function syncPricingFromShopify(): Promise<SyncShopifyPricingResult
 
       if (target.kind === "standard") {
         patches[target.size].amount = price;
-      } else {
+      } else if (target.kind === "pests") {
         patches[target.size].pests_amount = price;
+      } else {
+        patches[target.size].propagation_amount = price;
       }
     }
 
@@ -88,8 +91,10 @@ export async function syncPricingFromShopify(): Promise<SyncShopifyPricingResult
         shopify_synced_at: syncedAt,
         shopify_variant_id: mapping.standardVariantId,
         shopify_pests_variant_id: mapping.pestsVariantId,
+        shopify_propagation_variant_id: mapping.propagationVariantId,
         amount: patch.amount ?? DEFAULT_BASE_PRICES[size],
         pests_amount: patch.pests_amount ?? null,
+        propagation_amount: patch.propagation_amount ?? null,
       };
 
       if (ruleId) {
@@ -183,6 +188,30 @@ export async function getPestsPriceRules(): Promise<PestsPriceRules> {
     if (existing == null || amount > existing) {
       rules[row.size] = amount;
     }
+  }
+
+  return rules;
+}
+
+export type PropagationPriceRules = Record<PlantSize, number | null>;
+
+export async function getPropagationPriceRules(): Promise<PropagationPriceRules> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("pricing_rules")
+    .select("size, propagation_amount")
+    .eq("rule_type", "base_price")
+    .eq("active", true);
+
+  if (error) {
+    throw new Error(`Failed to load propagation price rules: ${error.message}`);
+  }
+
+  const rules = Object.fromEntries(PLANT_SIZES.map((size) => [size, null])) as PropagationPriceRules;
+
+  for (const row of data ?? []) {
+    if (!row.size || !isPlantSize(row.size) || row.propagation_amount == null) continue;
+    rules[row.size] = Number(row.propagation_amount);
   }
 
   return rules;

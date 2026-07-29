@@ -1,0 +1,19 @@
+{
+  "name": "houseplant-hospital-pos-extension",
+  "private": true,
+  "scripts": {
+    "shopify": "shopify",
+    "link": "shopify app config link",
+    "dev": "shopify app dev",
+    "deploy": "shopify app deploy",
+    "info": "shopify app info"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.3.0",
+    "@shopify/ui-extensions": "2025.10.x",
+    "preact": "^10.26.5"
+  },
+  "devDependencies": {
+    "@shopify/cli": "^3.84.0"
+  }
+}

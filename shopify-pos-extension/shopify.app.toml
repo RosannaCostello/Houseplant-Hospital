@@ -1,0 +1,23 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "17c8488e5ff0447d7233768d1b6b7db5"
+# Shopify-hosted placeholder — POS extension runs in POS, not this URL.
+# Do not point at the HH staff app or POS will show the Supabase login screen.
+application_url = "https://shopify.dev/apps/default-app-home"
+embedded = false
+name = "Houseplant Hospital pricing"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [ ]
+
+[pos]
+embedded = true
+
+[webhooks]
+api_version = "2026-04"
