@@ -147,17 +147,24 @@ Propagation plants skip the pests requirement for this gate.
 
 On multi-plant visits, move each plant when it is ready. Sibling plants still in earlier lanes mean **Outpatient partial** for email purposes — no extra staff step.
 
-### Treatment notes and Mailchimp emails
+### Treatment notes, care tips, and Mailchimp emails
 
-Mailchimp only allows **255 characters per event property**. The app therefore:
+Mailchimp only allows **255 characters per event property**, and HTML emails collapse line breaks inside a single property to spaces. The app therefore:
 
 1. Caps treatment notes at **750 characters** in the UI (with a live counter).  
 2. Splits the saved note into up to three properties when sending events:
    - `treatment_notes_1` (chars 1–250)  
    - `treatment_notes_2` (chars 251–500)  
    - `treatment_notes_3` (chars 501–750)  
+3. Splits care tips into three properties (option text only — no `Water:` / `Leaves:` / `Light:` prefix):
+   - `care_tips_water`  
+   - `care_tips_leaves`  
+   - `care_tips_light`  
 
-**Important for email builders:** any Mailchimp journey email that shows treatment notes must include **all three** variables (`treatment_notes_1`, `treatment_notes_2`, and `treatment_notes_3`) one after another. Unused chunks are blank; leaving one out will drop part of longer notes.
+**Important for email builders:**
+
+- Treatment notes: include **all three** (`treatment_notes_1`, `_2`, `_3`) one after another. Unused chunks are blank.  
+- Care tips: include **all three** (`care_tips_water`, `care_tips_leaves`, `care_tips_light`) **each on its own line** in the email. Do not use the old single `care_tips` tag.
 
 ### Pests (bugs found)
 

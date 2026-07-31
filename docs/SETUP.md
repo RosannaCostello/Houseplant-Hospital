@@ -293,10 +293,13 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 - `previous_status`, `new_status` (status-change events)
 - `bugs_found` (`true` on `bugs_found`)
 - `awaiting_plant_count` (outpatient partial only)
-- `plant_name`, `care_tips` (when present; truncated to 255 if longer)
+- `plant_name` (when present; truncated to 255 if longer)
+- `care_tips_water`, `care_tips_leaves`, `care_tips_light` — option text only (no `Water:` / `Leaves:` / `Light:` prefix). Put each on its own line in the template. Do not use the old single `care_tips` property.
 - `treatment_notes_1`, `treatment_notes_2`, `treatment_notes_3` — treatment notes are capped at **750** chars in the app and split into three 250-char chunks (trailing empty chunks omitted). **Do not** use the old single `treatment_notes` property.
 
 **Journey emails that include treatment notes must insert all three** (`treatment_notes_1` + `_2` + `_3`) so longer notes are not cut off. Empty chunks render blank.
+
+**Journey emails that include care tips must insert all three** (`care_tips_water` + `care_tips_leaves` + `care_tips_light`) on separate lines so each tip appears on its own row.
 
 **Essentials note:** event properties are not the same as merge tags (`*|NAME|*`). On many plans you cannot drop `plant_name` into an email as `*|plant_name|*`. Use them for journey filters / Activity, or create audience merge fields and map later if you need them in every email body.
 

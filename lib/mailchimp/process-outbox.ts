@@ -1,5 +1,6 @@
 import "server-only";
 
+import { careTipsToMailchimpProperties } from "@/lib/mailchimp/care-tips-properties";
 import { chunkTreatmentNotes } from "@/lib/mailchimp/chunk-treatment-notes";
 import { MailchimpApiError } from "@/lib/mailchimp/client";
 import {
@@ -9,6 +10,7 @@ import {
 } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
 import { formatMailchimpOccurredAt, sendMemberEvent } from "@/lib/mailchimp/send-member-event";
+import { truncateEventProperty } from "@/lib/mailchimp/truncate-event-property";
 import { upsertListMember } from "@/lib/mailchimp/upsert-list-member";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -39,17 +41,6 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Mailchimp Events API property values must be strings ≤ 255 chars. */
-const MAILCHIMP_EVENT_PROPERTY_MAX = 255;
-
-function truncateEventProperty(value: string): string {
-  const trimmed = value.trim();
-  if (trimmed.length <= MAILCHIMP_EVENT_PROPERTY_MAX) {
-    return trimmed;
-  }
-  return `${trimmed.slice(0, MAILCHIMP_EVENT_PROPERTY_MAX - 3)}...`;
-}
-
 function payloadToEventProperties(payload: MailchimpEventPayload): Record<string, string> {
   const properties: Record<string, string> = {};
 
@@ -66,7 +57,9 @@ function payloadToEventProperties(payload: MailchimpEventPayload): Record<string
   if (payload.treatmentNotes) {
     Object.assign(properties, chunkTreatmentNotes(payload.treatmentNotes));
   }
-  if (payload.careTips) properties.care_tips = truncateEventProperty(payload.careTips);
+  if (payload.careTips) {
+    Object.assign(properties, careTipsToMailchimpProperties(payload.careTips));
+  }
 
   return properties;
 }
