@@ -29,7 +29,7 @@ export function PlantAutosaveTextarea({
   placeholder,
   initialValue,
   onSave,
-  debounceMs = 800,
+  debounceMs = 1200,
   rows = 4,
   minHeightClassName = "min-h-[6rem]",
   maxLength,
@@ -39,20 +39,29 @@ export function PlantAutosaveTextarea({
   const [lastSaved, setLastSaved] = useState(initialValue);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+
   const onSaveRef = useRef(onSave);
+  const contentRef = useRef(content);
+  const lastSavedRef = useRef(lastSaved);
+  const saveInFlightRef = useRef(false);
 
   onSaveRef.current = onSave;
+  contentRef.current = content;
+  lastSavedRef.current = lastSaved;
 
+  // Sync from server only when local state is clean (not mid-edit).
   useEffect(() => {
-    if (content !== lastSaved) {
+    if (contentRef.current !== lastSavedRef.current) {
       return;
     }
-
+    if (initialValue === lastSavedRef.current) {
+      return;
+    }
     setContent(initialValue);
     setLastSaved(initialValue);
     setStatus("idle");
     setError(null);
-  }, [initialValue, content, lastSaved]);
+  }, [initialValue]);
 
   useEffect(() => {
     if (content === lastSaved) {
@@ -60,19 +69,39 @@ export function PlantAutosaveTextarea({
     }
 
     const timer = window.setTimeout(async () => {
-      setStatus("saving");
-      setError(null);
-
-      const result = await onSaveRef.current(content);
-
-      if (result.success) {
-        setLastSaved(content);
-        setStatus("saved");
+      if (saveInFlightRef.current) {
         return;
       }
 
-      setError(result.error);
-      setStatus("error");
+      const toSave = contentRef.current;
+      if (toSave === lastSavedRef.current) {
+        return;
+      }
+
+      saveInFlightRef.current = true;
+      setStatus("saving");
+      setError(null);
+
+      const result = await onSaveRef.current(toSave);
+
+      saveInFlightRef.current = false;
+
+      if (!result.success) {
+        setError(result.error);
+        setStatus("error");
+        return;
+      }
+
+      setLastSaved(toSave);
+
+      // User kept typing during the request — leave idle so the effect
+      // schedules another save for the newer content.
+      if (contentRef.current !== toSave) {
+        setStatus("idle");
+        return;
+      }
+
+      setStatus("saved");
     }, debounceMs);
 
     return () => window.clearTimeout(timer);
@@ -91,12 +120,12 @@ export function PlantAutosaveTextarea({
     (value: string) => {
       const next = maxLength != null ? value.slice(0, maxLength) : value;
       setContent(next);
-      if (status === "error") {
-        setStatus("idle");
+      setStatus((current) => (current === "error" ? "idle" : current));
+      if (error) {
         setError(null);
       }
     },
-    [status, maxLength],
+    [maxLength, error],
   );
 
   const textarea = (
@@ -119,7 +148,14 @@ export function PlantAutosaveTextarea({
 
   return (
     <div className="space-y-1">
-      {label ? <label className={checkInLabelClassName}>{label}{textarea}</label> : textarea}
+      {label ? (
+        <label className={checkInLabelClassName}>
+          {label}
+          {textarea}
+        </label>
+      ) : (
+        textarea
+      )}
 
       <div className="flex min-h-4 items-start justify-between gap-2 text-xs text-hilda-text-muted">
         <div aria-live="polite">

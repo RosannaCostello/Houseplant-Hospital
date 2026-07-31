@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { saveTreatmentNoteWithClient } from "@/lib/plants/save-treatment-note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,15 +22,9 @@ export async function saveTreatmentNoteAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const result = await saveTreatmentNoteWithClient(
+  return saveTreatmentNoteWithClient(
     supabase,
     parsed.data.plantId,
     parsed.data.content,
   );
-
-  if (result.success) {
-    revalidatePath(`/app/plants/${parsed.data.plantId}`);
-  }
-
-  return result;
 }

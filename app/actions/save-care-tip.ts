@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { saveCareTipWithClient } from "@/lib/plants/save-care-tip";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,11 +22,5 @@ export async function saveCareTipAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const result = await saveCareTipWithClient(supabase, parsed.data.plantId, parsed.data.content);
-
-  if (result.success) {
-    revalidatePath(`/app/plants/${parsed.data.plantId}`);
-  }
-
-  return result;
+  return saveCareTipWithClient(supabase, parsed.data.plantId, parsed.data.content);
 }
