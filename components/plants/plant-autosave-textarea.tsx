@@ -17,6 +17,10 @@ type PlantAutosaveTextareaProps = {
   debounceMs?: number;
   rows?: number;
   minHeightClassName?: string;
+  /** Hard cap; longer input is sliced on change. */
+  maxLength?: number;
+  /** Show `n/max` counter next to save status (requires maxLength). */
+  showCount?: boolean;
 };
 
 export function PlantAutosaveTextarea({
@@ -28,6 +32,8 @@ export function PlantAutosaveTextarea({
   debounceMs = 800,
   rows = 4,
   minHeightClassName = "min-h-[6rem]",
+  maxLength,
+  showCount = false,
 }: PlantAutosaveTextareaProps) {
   const [content, setContent] = useState(initialValue);
   const [lastSaved, setLastSaved] = useState(initialValue);
@@ -81,44 +87,58 @@ export function PlantAutosaveTextarea({
     return () => window.clearTimeout(timer);
   }, [status]);
 
-  const handleChange = useCallback((value: string) => {
-    setContent(value);
-    if (status === "error") {
-      setStatus("idle");
-      setError(null);
-    }
-  }, [status]);
+  const handleChange = useCallback(
+    (value: string) => {
+      const next = maxLength != null ? value.slice(0, maxLength) : value;
+      setContent(next);
+      if (status === "error") {
+        setStatus("idle");
+        setError(null);
+      }
+    },
+    [status, maxLength],
+  );
+
+  const textarea = (
+    <textarea
+      className={cn(
+        checkInInputClassName,
+        minHeightClassName,
+        "resize-y py-2.5",
+        !label && "w-full",
+      )}
+      name="content"
+      rows={rows}
+      placeholder={placeholder}
+      value={content}
+      maxLength={maxLength}
+      aria-label={label ? undefined : ariaLabel}
+      onChange={(event) => handleChange(event.target.value)}
+    />
+  );
 
   return (
     <div className="space-y-1">
-      {label ? (
-        <label className={checkInLabelClassName}>
-          {label}
-          <textarea
-            className={cn(checkInInputClassName, minHeightClassName, "resize-y py-2.5")}
-            name="content"
-            rows={rows}
-            placeholder={placeholder}
-            value={content}
-            onChange={(event) => handleChange(event.target.value)}
-          />
-        </label>
-      ) : (
-        <textarea
-          className={cn(checkInInputClassName, minHeightClassName, "w-full resize-y py-2.5")}
-          name="content"
-          rows={rows}
-          placeholder={placeholder}
-          value={content}
-          aria-label={ariaLabel}
-          onChange={(event) => handleChange(event.target.value)}
-        />
-      )}
+      {label ? <label className={checkInLabelClassName}>{label}{textarea}</label> : textarea}
 
-      <div className="min-h-4 text-xs text-hilda-text-muted" aria-live="polite">
-        {status === "saving" ? "Saving…" : null}
-        {status === "saved" ? "Saved" : null}
-        {status === "error" && error ? <span className="text-hilda-error-text">{error}</span> : null}
+      <div className="flex min-h-4 items-start justify-between gap-2 text-xs text-hilda-text-muted">
+        <div aria-live="polite">
+          {status === "saving" ? "Saving…" : null}
+          {status === "saved" ? "Saved" : null}
+          {status === "error" && error ? (
+            <span className="text-hilda-error-text">{error}</span>
+          ) : null}
+        </div>
+        {showCount && maxLength != null ? (
+          <span
+            className={cn(
+              "shrink-0 tabular-nums",
+              content.length >= maxLength ? "text-hilda-error-text" : undefined,
+            )}
+          >
+            {content.length}/{maxLength}
+          </span>
+        ) : null}
       </div>
     </div>
   );

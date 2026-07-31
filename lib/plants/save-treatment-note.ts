@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { plantTextFieldSchema } from "@/lib/plants/plant-text-field-schema";
+import { treatmentNotesFieldSchema } from "@/lib/plants/plant-text-field-schema";
 
 export type SaveTreatmentNoteResult = { success: true } | { success: false; error: string };
 
@@ -8,7 +8,7 @@ export async function saveTreatmentNoteWithClient(
   plantId: string,
   content: string,
 ): Promise<SaveTreatmentNoteResult> {
-  const parsed = plantTextFieldSchema.safeParse(content);
+  const parsed = treatmentNotesFieldSchema.safeParse(content);
 
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid note." };

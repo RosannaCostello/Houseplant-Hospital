@@ -70,7 +70,7 @@ Use these words when talking about the app.
 | **Dashboard** | Kanban board of active plants by lane. |
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
 | **Pests / Bugs found** | Whether pests were found. UI label: **Pests found during treatment?** (Yes / No / Clear answer). Affects price and Outpatient readiness. |
-| **Treatment notes** | Internal notes on the plant (required before Outpatient for standard plants). |
+| **Treatment notes** | Notes on the plant (required before Outpatient). Max **750 characters** so the full note can reach customer emails via Mailchimp (see below). |
 | **Care tips** | Aftercare advice for the customer, chosen as **Water / Leaves / Light** dropdowns on plant detail (required before Outpatient). Saved as one composed string. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
 | **Treatment revenue** | Sum of final prices on plants collected in a period. **Revenue, not profit.** |
@@ -140,12 +140,24 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 The app blocks Outpatient until the plant is **Outpatient ready**:
 
 - **Pests** answered (Yes or No)  
-- **Treatment notes** filled  
+- **Treatment notes** filled (max 750 characters — counter on plant detail)  
 - **Care tips** — choose all three: Water, Leaves, and Light  
 
 Propagation plants skip the pests requirement for this gate.
 
 On multi-plant visits, move each plant when it is ready. Sibling plants still in earlier lanes mean **Outpatient partial** for email purposes — no extra staff step.
+
+### Treatment notes and Mailchimp emails
+
+Mailchimp only allows **255 characters per event property**. The app therefore:
+
+1. Caps treatment notes at **750 characters** in the UI (with a live counter).  
+2. Splits the saved note into up to three properties when sending events:
+   - `treatment_notes_1` (chars 1–250)  
+   - `treatment_notes_2` (chars 251–500)  
+   - `treatment_notes_3` (chars 501–750)  
+
+**Important for email builders:** any Mailchimp journey email that shows treatment notes must include **all three** variables (`treatment_notes_1`, `treatment_notes_2`, and `treatment_notes_3`) one after another. Unused chunks are blank; leaving one out will drop part of longer notes.
 
 ### Pests (bugs found)
 

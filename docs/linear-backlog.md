@@ -173,6 +173,7 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 5.x | HIL-96 | Mailchimp stage journeys: quarantine, surgery, outpatient, collected (+ dead shell, no bugs_found) | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-97 | Outpatient partial Mailchimp event (`plant_outpatient_partial`) — Done | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-98 | Enrich Mailchimp event payload (plant name, treatment notes, care tips) | `phase-5`, `mailchimp` | — | Done |
+| 5.x | HIL-103 | Split treatment notes into treatment_notes_1/2/3 (750 char cap) | `phase-5`, `mailchimp` | HIL-98 |
 | 5.x | HIL-99 | Zoho legacy import (Mailchimp Zoho tag + historic collected plants) — Done | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-100 | Final Zoho delta import before cutover (Mailchimp + historic plants) | `phase-5`, `mailchimp` | HIL-99 |
 | 6.x | HIL-101 | Analytics updates | `phase-6`, `dashboard` | HIL-92 |

@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { saveTreatmentNoteAction } from "@/app/actions/save-treatment-note";
 import { PlantAutosaveTextarea } from "@/components/plants/plant-autosave-textarea";
 import { DEFAULT_TREATMENT_NOTES_PLACEHOLDER } from "@/lib/care-tips/constants";
+import { TREATMENT_NOTES_MAX_CHARS } from "@/lib/mailchimp/chunk-treatment-notes";
 import { cn } from "@/lib/utils";
 
 type TreatmentNotesSectionProps = {
@@ -32,6 +33,8 @@ export function TreatmentNotesSection({
       placeholder={placeholder}
       initialValue={treatmentNote ?? ""}
       onSave={handleSave}
+      maxLength={TREATMENT_NOTES_MAX_CHARS}
+      showCount
     />
   );
 
@@ -51,7 +54,8 @@ export function TreatmentNotesSection({
         </h2>
         {!compact ? (
           <p className={cn("mt-1 text-sm text-hilda-text")}>
-            Surgery and treatment details for this plant. Changes save automatically.
+            Surgery and treatment details for this plant. Changes save automatically. Max{" "}
+            {TREATMENT_NOTES_MAX_CHARS} characters (for customer emails via Mailchimp).
           </p>
         ) : null}
       </div>

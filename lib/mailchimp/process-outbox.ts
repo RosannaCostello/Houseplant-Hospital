@@ -1,5 +1,6 @@
 import "server-only";
 
+import { chunkTreatmentNotes } from "@/lib/mailchimp/chunk-treatment-notes";
 import { MailchimpApiError } from "@/lib/mailchimp/client";
 import {
   isMailchimpEventName,
@@ -63,7 +64,7 @@ function payloadToEventProperties(payload: MailchimpEventPayload): Record<string
   }
   if (payload.plantName) properties.plant_name = truncateEventProperty(payload.plantName);
   if (payload.treatmentNotes) {
-    properties.treatment_notes = truncateEventProperty(payload.treatmentNotes);
+    Object.assign(properties, chunkTreatmentNotes(payload.treatmentNotes));
   }
   if (payload.careTips) properties.care_tips = truncateEventProperty(payload.careTips);
 
