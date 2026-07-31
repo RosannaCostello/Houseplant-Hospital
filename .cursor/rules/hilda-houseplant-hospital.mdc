@@ -11,3 +11,4 @@ alwaysApply: true
 - Jack works as **jack@jackchalkley.com**. Linear MCP may be on another workspace until reconfigured; use Jack-provided `HIL-*` IDs when MCP cannot see `Houseplant-Hospital`.
 - Before starting feature work, confirm the **`HIL`** issue exists and align it to the correct phase milestone.
 - When finishing work, update that Linear issue; reference `HIL-*` in commits/PRs when possible.
+- **Staff/AI ops guide:** keep [docs/operator-handbook.md](../../docs/operator-handbook.md) current on any staff-facing change — see [operator-handbook.mdc](operator-handbook.mdc).

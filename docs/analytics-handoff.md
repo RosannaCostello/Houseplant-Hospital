@@ -1,10 +1,10 @@
 # Analytics dashboard handoff
 
+> **Ops / staff usage:** see [operator-handbook.md](./operator-handbook.md) (Analytics section). This file is an engineering resume note only.
+
 ## Status
 
-HIL-92 is implemented locally but **not deployed**. Date-range tests, scoped ESLint, TypeScript and the production build pass.
-
-Deployment is paused because Supabase access is unavailable and the live database does not yet have migrations 0015 or 0016. Do not deploy the current branch until both migrations are applied.
+HIL-92 analytics is implemented and deployed. Prefer the operator handbook for what metrics mean for staff/admins.
 
 ## Implemented
 

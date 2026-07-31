@@ -1,10 +1,10 @@
 # Propagation feature handoff
 
+> **Ops / staff usage:** see [operator-handbook.md](./operator-handbook.md) (Propagate workflow). This file is an engineering resume note only.
+
 ## Status
 
-HIL-90 and HIL-91 are implemented locally but **not deployed**. The production build passes. Live deployment is intentionally paused because migration `0015_plant_propagation.sql` has not been applied to Supabase.
-
-Do not deploy the current propagation code before applying the migration: dashboard and plant-detail queries now expect the new columns.
+HIL-90 / HIL-91 propagation is implemented and deployed. Prefer the operator handbook for when staff can propagate and what happens next.
 
 ## Implemented
 

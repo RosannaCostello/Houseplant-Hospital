@@ -7,7 +7,7 @@ Living summary of what’s shipped and what’s next. Update this at the end of 
 **Supabase:** `hh-dev` (migrations through **0012** — apply manually)  
 **Pending release:** local uncommitted UX work + fixes below (not yet deployed)
 
-Related docs: [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md) · [brand-tokens.md](./brand-tokens.md) · [code-review.md](./code-review.md) · [Scope](../Houseplant-Hospital-2.0-Scope.md)
+Related docs: [operator-handbook.md](./operator-handbook.md) (staff/AI ops) · [SETUP.md](./SETUP.md) · [linear-backlog.md](./linear-backlog.md) · [brand-tokens.md](./brand-tokens.md) · [code-review.md](./code-review.md) · [Scope](../Houseplant-Hospital-2.0-Scope.md)
 
 ---
 

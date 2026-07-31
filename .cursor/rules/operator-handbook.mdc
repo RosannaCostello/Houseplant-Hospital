@@ -1,0 +1,18 @@
+---
+description: Keep docs/operator-handbook.md current for Rosanna/staff/AI ops use
+alwaysApply: true
+---
+
+# Operator handbook (mandatory)
+
+Canonical staff / AI ops guide: [docs/operator-handbook.md](../../docs/operator-handbook.md).
+
+## Rule (strict)
+
+1. **Any change that affects how staff use the live app must update `docs/operator-handbook.md` in the same session** (and in the same commit when committing) — terminology, screen labels, workflows, roles, pricing/collection behaviour, Analytics meaning, lanes, pests, propagation, payments, check-in, incomplete drafts, admin-only surfaces.
+2. Prefer amending the glossary and daily-workflow sections over creating parallel “how to use” docs.
+3. Do **not** put SETUP / DEPLOY / migrations / env / Linear build process into the handbook; link out if needed.
+4. If a change does **not** affect operator behaviour (pure refactor, internal eng-only, deploy scripts only), state **handbook N/A** briefly and skip the file.
+5. When finishing feature work, treat “handbook updated (or N/A)” as part of done — alongside the `HIL-*` Linear issue when applicable.
+
+Rosanna (or any AI given the handbook) must be able to run the Hospital from that file alone for day-to-day ops.
