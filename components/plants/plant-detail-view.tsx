@@ -186,19 +186,21 @@ export function PlantDetailView({
           <Button asChild variant="outline" className="mt-3 w-full">
             <Link href={`/app/visits/${plant.visitId}`}>View visit</Link>
           </Button>
-          <PlantCardStatusMenu
-            plantId={plant.id}
-            currentStatus={plant.status}
-            size={plant.size}
-            bugsFound={plant.bugsFound}
-            plantCategory={plant.plantCategory}
-            hasPropagation={plant.hasPropagation}
-            customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
-            paymentStatus={plant.paymentStatus}
-            variant="button"
-            hideUpdatePlantLink
-            className="mt-2 block w-full [&_button]:w-full"
-          />
+          {!isCollected ? (
+            <PlantCardStatusMenu
+              plantId={plant.id}
+              currentStatus={plant.status}
+              size={plant.size}
+              bugsFound={plant.bugsFound}
+              plantCategory={plant.plantCategory}
+              hasPropagation={plant.hasPropagation}
+              customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
+              paymentStatus={plant.paymentStatus}
+              variant="button"
+              hideUpdatePlantLink
+              className="mt-2 block w-full [&_button]:w-full"
+            />
+          ) : null}
         </div>
       </div>
 
@@ -227,6 +229,7 @@ export function PlantDetailView({
         treatmentNote={plant.treatmentNote}
         placeholder={treatmentNotesPlaceholder}
         compact
+        readOnly={isCollected}
       />
 
       <CareTipsSection
@@ -234,6 +237,7 @@ export function PlantDetailView({
         careTip={plant.careTip}
         optionsByCategory={careTipOptions}
         compact
+        readOnly={isCollected}
       />
 
       <PricingSummarySection
@@ -249,18 +253,22 @@ export function PlantDetailView({
           plantId={plant.id}
           className="inline-flex min-h-10 items-center justify-center rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
         />
-        <PlantCardStatusMenu
-          plantId={plant.id}
-          currentStatus={plant.status}
-          size={plant.size}
-          bugsFound={plant.bugsFound}
-          plantCategory={plant.plantCategory}
-          hasPropagation={plant.hasPropagation}
-          customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
-          paymentStatus={plant.paymentStatus}
-          variant="button"
-          hideUpdatePlantLink
-        />
+        {!isCollected ? (
+          <PlantCardStatusMenu
+            plantId={plant.id}
+            currentStatus={plant.status}
+            size={plant.size}
+            bugsFound={plant.bugsFound}
+            plantCategory={plant.plantCategory}
+            hasPropagation={plant.hasPropagation}
+            customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
+            paymentStatus={plant.paymentStatus}
+            variant="button"
+            hideUpdatePlantLink
+          />
+        ) : (
+          <p className="text-sm text-hilda-text-muted">Collected — view only</p>
+        )}
       </div>
     </div>
   );

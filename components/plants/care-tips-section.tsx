@@ -21,6 +21,7 @@ type CareTipsSectionProps = {
   optionsByCategory: CareTipOptionsByCategory;
   embedded?: boolean;
   compact?: boolean;
+  readOnly?: boolean;
 };
 
 function emptySelections(): CareTipSelections {
@@ -52,6 +53,7 @@ export function CareTipsSection({
   optionsByCategory,
   embedded = false,
   compact = false,
+  readOnly = false,
 }: CareTipsSectionProps) {
   const parsed = useMemo(() => parseCareTip(careTip), [careTip]);
   const [selections, setSelections] = useState<CareTipSelections>(() =>
@@ -111,6 +113,7 @@ export function CareTipsSection({
   );
 
   function handleChange(category: CareTipCategory, value: string) {
+    if (readOnly) return;
     const next = { ...selections, [category]: value };
     setSelections(next);
     if (status === "error") {
@@ -133,10 +136,10 @@ export function CareTipsSection({
           <label key={category} className={checkInLabelClassName}>
             {CARE_TIP_CATEGORY_LABELS[category]}
             <select
-              className={cn(checkInInputClassName, "w-full")}
+              className={cn(checkInInputClassName, "w-full", readOnly && "cursor-default bg-hilda-bg")}
               aria-label={CARE_TIP_CATEGORY_LABELS[category]}
               value={selections[category]}
-              disabled={isPending}
+              disabled={readOnly || isPending}
               onChange={(event) => handleChange(category, event.target.value)}
             >
               <option value="">Select…</option>
@@ -154,19 +157,22 @@ export function CareTipsSection({
         <p className="rounded-hilda-sm border border-hilda-border/20 bg-hilda-bg px-3 py-2 text-sm text-hilda-text">
           <span className="font-medium text-hilda-heading">Previous free-text tips: </span>
           {legacyNote}
-          <span className="mt-1 block text-xs text-hilda-text-muted">
-            Choose Water, Leaves, and Light above to replace this text.
-          </span>
+          {!readOnly ? (
+            <span className="mt-1 block text-xs text-hilda-text-muted">
+              Choose Water, Leaves, and Light above to replace this text.
+            </span>
+          ) : null}
         </p>
       ) : null}
 
       <div className="min-h-4 text-xs text-hilda-text-muted" aria-live="polite">
-        {status === "saving" || isPending ? "Saving…" : null}
-        {status === "saved" ? "Saved" : null}
-        {status === "error" && error ? (
+        {readOnly ? "Locked after collection." : null}
+        {!readOnly && (status === "saving" || isPending) ? "Saving…" : null}
+        {!readOnly && status === "saved" ? "Saved" : null}
+        {!readOnly && status === "error" && error ? (
           <span className="text-hilda-error-text">{error}</span>
         ) : null}
-        {status === "idle" && !isCompleteCareTipSelections(selections) ? (
+        {!readOnly && status === "idle" && !isCompleteCareTipSelections(selections) ? (
           <span>Select all three to save care tips.</span>
         ) : null}
       </div>
@@ -187,7 +193,7 @@ export function CareTipsSection({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
           Care tips
         </h2>
-        {!compact ? (
+        {!compact && !readOnly ? (
           <p className={cn("mt-1 text-sm text-hilda-text")}>
             Advice for the customer when they collect their plant. Saves automatically when all
             three are chosen.

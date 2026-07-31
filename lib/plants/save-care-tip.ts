@@ -22,6 +22,24 @@ export async function saveCareTipWithClient(
     return { success: false, error: "You must be signed in to save care tips." };
   }
 
+  const { data: plant, error: plantError } = await supabase
+    .from("plants")
+    .select("status")
+    .eq("id", plantId)
+    .maybeSingle();
+
+  if (plantError) {
+    return { success: false, error: plantError.message };
+  }
+
+  if (!plant) {
+    return { success: false, error: "Plant not found." };
+  }
+
+  if (plant.status === "collected") {
+    return { success: false, error: "Collected plants cannot be edited." };
+  }
+
   const normalized = parsed.data;
 
   if (!normalized) {

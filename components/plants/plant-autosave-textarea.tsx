@@ -21,6 +21,9 @@ type PlantAutosaveTextareaProps = {
   maxLength?: number;
   /** Show `n/max` counter next to save status (requires maxLength). */
   showCount?: boolean;
+  /** View-only (e.g. collected plants). */
+  readOnly?: boolean;
+  lockedMessage?: string;
 };
 
 export function PlantAutosaveTextarea({
@@ -34,6 +37,8 @@ export function PlantAutosaveTextarea({
   minHeightClassName = "min-h-[6rem]",
   maxLength,
   showCount = false,
+  readOnly = false,
+  lockedMessage = "Locked after collection.",
 }: PlantAutosaveTextareaProps) {
   const [content, setContent] = useState(initialValue);
   const [lastSaved, setLastSaved] = useState(initialValue);
@@ -49,7 +54,6 @@ export function PlantAutosaveTextarea({
   contentRef.current = content;
   lastSavedRef.current = lastSaved;
 
-  // Sync from server only when local state is clean (not mid-edit).
   useEffect(() => {
     if (contentRef.current !== lastSavedRef.current) {
       return;
@@ -64,6 +68,9 @@ export function PlantAutosaveTextarea({
   }, [initialValue]);
 
   useEffect(() => {
+    if (readOnly) {
+      return;
+    }
     if (content === lastSaved) {
       return;
     }
@@ -94,8 +101,6 @@ export function PlantAutosaveTextarea({
 
       setLastSaved(toSave);
 
-      // User kept typing during the request — leave idle so the effect
-      // schedules another save for the newer content.
       if (contentRef.current !== toSave) {
         setStatus("idle");
         return;
@@ -105,7 +110,7 @@ export function PlantAutosaveTextarea({
     }, debounceMs);
 
     return () => window.clearTimeout(timer);
-  }, [content, lastSaved, debounceMs]);
+  }, [content, lastSaved, debounceMs, readOnly]);
 
   useEffect(() => {
     if (status !== "saved") {
@@ -118,6 +123,7 @@ export function PlantAutosaveTextarea({
 
   const handleChange = useCallback(
     (value: string) => {
+      if (readOnly) return;
       const next = maxLength != null ? value.slice(0, maxLength) : value;
       setContent(next);
       setStatus((current) => (current === "error" ? "idle" : current));
@@ -125,7 +131,7 @@ export function PlantAutosaveTextarea({
         setError(null);
       }
     },
-    [maxLength, error],
+    [maxLength, error, readOnly],
   );
 
   const textarea = (
@@ -135,12 +141,15 @@ export function PlantAutosaveTextarea({
         minHeightClassName,
         "resize-y py-2.5",
         !label && "w-full",
+        readOnly && "cursor-default bg-hilda-bg text-hilda-text",
       )}
       name="content"
       rows={rows}
-      placeholder={placeholder}
+      placeholder={readOnly ? undefined : placeholder}
       value={content}
       maxLength={maxLength}
+      readOnly={readOnly}
+      aria-readonly={readOnly || undefined}
       aria-label={label ? undefined : ariaLabel}
       onChange={(event) => handleChange(event.target.value)}
     />
@@ -159,13 +168,14 @@ export function PlantAutosaveTextarea({
 
       <div className="flex min-h-4 items-start justify-between gap-2 text-xs text-hilda-text-muted">
         <div aria-live="polite">
-          {status === "saving" ? "Saving…" : null}
-          {status === "saved" ? "Saved" : null}
-          {status === "error" && error ? (
+          {readOnly ? lockedMessage : null}
+          {!readOnly && status === "saving" ? "Saving…" : null}
+          {!readOnly && status === "saved" ? "Saved" : null}
+          {!readOnly && status === "error" && error ? (
             <span className="text-hilda-error-text">{error}</span>
           ) : null}
         </div>
-        {showCount && maxLength != null ? (
+        {!readOnly && showCount && maxLength != null ? (
           <span
             className={cn(
               "shrink-0 tabular-nums",

@@ -13,6 +13,7 @@ type TreatmentNotesSectionProps = {
   placeholder?: string;
   embedded?: boolean;
   compact?: boolean;
+  readOnly?: boolean;
 };
 
 export function TreatmentNotesSection({
@@ -21,6 +22,7 @@ export function TreatmentNotesSection({
   placeholder = DEFAULT_TREATMENT_NOTES_PLACEHOLDER,
   embedded = false,
   compact = false,
+  readOnly = false,
 }: TreatmentNotesSectionProps) {
   const handleSave = useCallback(
     (content: string) => saveTreatmentNoteAction(plantId, content),
@@ -34,7 +36,8 @@ export function TreatmentNotesSection({
       initialValue={treatmentNote ?? ""}
       onSave={handleSave}
       maxLength={TREATMENT_NOTES_MAX_CHARS}
-      showCount
+      showCount={!readOnly}
+      readOnly={readOnly}
     />
   );
 
@@ -52,7 +55,7 @@ export function TreatmentNotesSection({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
           Treatment notes
         </h2>
-        {!compact ? (
+        {!compact && !readOnly ? (
           <p className={cn("mt-1 text-sm text-hilda-text")}>
             Surgery and treatment details for this plant. Changes save automatically. Max{" "}
             {TREATMENT_NOTES_MAX_CHARS} characters (for customer emails via Mailchimp).

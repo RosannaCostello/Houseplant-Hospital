@@ -81,7 +81,7 @@ Use these words when talking about the app.
 | **Outpatient** | Plant is ready for collection. |
 | **Outpatient ready** | This plant has pests answered (if standard), treatment notes, and all three care tip dropdowns (Water, Leaves, Light) — so it can move to Outpatient. |
 | **Outpatient partial** | On a multi-plant visit, one plant is in Outpatient but siblings are not yet ready. Staff still move plants one by one; the app emails Mailchimp a “partial” event until the last sibling is ready (then a full ready-to-collect event). Staff do not manage this as a separate screen. |
-| **Collected** | Plant has gone home. Terminal status. |
+| **Collected** | Plant has gone home. Terminal status — **view only** (notes, tips, pests, and actions locked). |
 | **Dead** | Plant did not survive treatment. Terminal status. |
 | **Total customers** (Analytics) | Distinct customers with a visit check-in in the selected period. |
 | **New / Returning customers** | First-ever visit in this period vs had an earlier visit before this period. |
@@ -176,7 +176,7 @@ Mailchimp only allows **255 characters per event property**. The app therefore:
 ### Collect / payment
 
 - **Outpatient → Collected** may prompt for payment if the visit is still unpaid: take payment in **Shopify POS** under the customer name, or confirm **Customer paid another way**.  
-- **Collected** is final for that plant.  
+- **Collected** is final for that plant — staff can still open the record to view details, but cannot edit notes, care tips, pests, or status.  
 - Pricing on plant detail shows the treatment estimate / recorded final price.
 
 ### Find a customer or plant

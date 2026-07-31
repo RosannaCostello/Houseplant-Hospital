@@ -28,7 +28,7 @@ export async function setBugsFoundWithClient(
 
   const { data: plant, error: fetchError } = await supabase
     .from("plants")
-    .select("bugs_found, size")
+    .select("bugs_found, size, status")
     .eq("id", plantId)
     .maybeSingle();
 
@@ -38,6 +38,10 @@ export async function setBugsFoundWithClient(
 
   if (!plant) {
     return { success: false, error: "Plant not found." };
+  }
+
+  if (plant.status === "collected") {
+    return { success: false, error: "Collected plants cannot be edited." };
   }
 
   if (plant.bugs_found === bugsFound) {
