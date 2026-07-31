@@ -413,24 +413,55 @@ export function PlantCardStatusMenu({
                     </div>
                     <div className="space-y-2 p-4">
                       {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
-                      <button
-                        type="button"
-                        className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95 disabled:opacity-50"
-                        disabled={isPending}
-                        onClick={() =>
-                          applyStatus(confirmStep.targetStatus, Boolean(confirmStep.paidAnotherWay))
-                        }
-                      >
-                        {isPending ? "Updating…" : "Yes"}
-                      </button>
-                      <button
-                        type="button"
-                        className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-bg px-4 py-2.5 text-sm font-medium text-hilda-heading"
-                        disabled={isPending}
-                        onClick={() => setConfirmStep(null)}
-                      >
-                        No
-                      </button>
+                      {confirmStep.paidAnotherWay ? (
+                        <>
+                          <button
+                            type="button"
+                            className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-bg px-4 py-2.5 text-sm font-medium text-hilda-heading"
+                            disabled={isPending}
+                            onClick={() => setConfirmStep(null)}
+                          >
+                            No
+                          </button>
+                          <button
+                            type="button"
+                            className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95 disabled:opacity-50"
+                            disabled={isPending}
+                            onClick={() =>
+                              applyStatus(
+                                confirmStep.targetStatus,
+                                Boolean(confirmStep.paidAnotherWay),
+                              )
+                            }
+                          >
+                            {isPending ? "Updating…" : "Yes"}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95 disabled:opacity-50"
+                            disabled={isPending}
+                            onClick={() =>
+                              applyStatus(
+                                confirmStep.targetStatus,
+                                Boolean(confirmStep.paidAnotherWay),
+                              )
+                            }
+                          >
+                            {isPending ? "Updating…" : "Yes"}
+                          </button>
+                          <button
+                            type="button"
+                            className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-bg px-4 py-2.5 text-sm font-medium text-hilda-heading"
+                            disabled={isPending}
+                            onClick={() => setConfirmStep(null)}
+                          >
+                            No
+                          </button>
+                        </>
+                      )}
                     </div>
                   </>
                 )}
