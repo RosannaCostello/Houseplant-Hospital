@@ -16,10 +16,13 @@ import type { PlantDetail } from "@/lib/plants/get-plant-detail";
 import { plantStatusLabel } from "@/lib/plant-status";
 import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
+import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
 
 type PlantDetailViewProps = {
   plant: PlantDetail;
   pricing: PlantPriceBreakdown | null;
+  careTipOptions: CareTipOptionsByCategory;
+  treatmentNotesPlaceholder: string;
 };
 
 function plantSubtitle(plant: PlantDetail): string | null {
@@ -35,6 +38,8 @@ function plantSubtitle(plant: PlantDetail): string | null {
 export function PlantDetailView({
   plant,
   pricing,
+  careTipOptions,
+  treatmentNotesPlaceholder,
 }: PlantDetailViewProps) {
   const latestPhoto = plant.photos[0] ?? null;
   const isCollected = plant.status === "collected";
@@ -217,9 +222,19 @@ export function PlantDetailView({
         </section>
       ) : null}
 
-      <TreatmentNotesSection plantId={plant.id} treatmentNote={plant.treatmentNote} compact />
+      <TreatmentNotesSection
+        plantId={plant.id}
+        treatmentNote={plant.treatmentNote}
+        placeholder={treatmentNotesPlaceholder}
+        compact
+      />
 
-      <CareTipsSection plantId={plant.id} careTip={plant.careTip} compact />
+      <CareTipsSection
+        plantId={plant.id}
+        careTip={plant.careTip}
+        optionsByCategory={careTipOptions}
+        compact
+      />
 
       <PricingSummarySection
         pricing={pricing}

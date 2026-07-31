@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isStructuredCareTipComplete } from "@/lib/care-tips/compose-parse";
 import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
 
 export type OutpatientReadinessMissing =
@@ -26,7 +27,7 @@ export function formatOutpatientReadinessMessage(
     labels.push("add treatment notes");
   }
   if (missing.includes("care_tips")) {
-    labels.push("add care tips");
+    labels.push("choose Water, Leaves, and Light care tips");
   }
 
   if (labels.length === 0) {
@@ -87,7 +88,7 @@ export async function checkOutpatientReadinessWithClient(
     missing.push("treatment_notes");
   }
 
-  if (!isNonBlank(careTip?.content)) {
+  if (!isStructuredCareTipComplete(careTip?.content)) {
     missing.push("care_tips");
   }
 

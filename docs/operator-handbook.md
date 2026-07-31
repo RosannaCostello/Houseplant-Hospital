@@ -71,7 +71,7 @@ Use these words when talking about the app.
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
 | **Pests / Bugs found** | Whether pests were found. UI label: **Pests found during treatment?** (Yes / No / Clear answer). Affects price and Outpatient readiness. |
 | **Treatment notes** | Internal notes on the plant (required before Outpatient for standard plants). |
-| **Care tips** | Aftercare tips for the customer (required before Outpatient for standard plants). |
+| **Care tips** | Aftercare advice for the customer, chosen as **Water / Leaves / Light** dropdowns on plant detail (required before Outpatient). Saved as one composed string. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
 | **Treatment revenue** | Sum of final prices on plants collected in a period. **Revenue, not profit.** |
 | **Propagation** | Creating a child plant from a healthy (pests-free) plant in Surgery. Also a **lane** and a plant **category**. |
@@ -79,7 +79,7 @@ Use these words when talking about the app.
 | **Pay at collection** | Customer pays when collecting, not at check-in. |
 | **POS / Shopify POS** | Shop till extension used to take Hospital payment. |
 | **Outpatient** | Plant is ready for collection. |
-| **Outpatient ready** | This plant has pests answered (if standard), treatment notes, and care tips — so it can move to Outpatient. |
+| **Outpatient ready** | This plant has pests answered (if standard), treatment notes, and all three care tip dropdowns (Water, Leaves, Light) — so it can move to Outpatient. |
 | **Outpatient partial** | On a multi-plant visit, one plant is in Outpatient but siblings are not yet ready. Staff still move plants one by one; the app emails Mailchimp a “partial” event until the last sibling is ready (then a full ready-to-collect event). Staff do not manage this as a separate screen. |
 | **Collected** | Plant has gone home. Terminal status. |
 | **Dead** | Plant did not survive treatment. Terminal status. |
@@ -141,7 +141,7 @@ The app blocks Outpatient until the plant is **Outpatient ready**:
 
 - **Pests** answered (Yes or No)  
 - **Treatment notes** filled  
-- **Care tips** filled  
+- **Care tips** — choose all three: Water, Leaves, and Light  
 
 Propagation plants skip the pests requirement for this gate.
 
@@ -204,7 +204,19 @@ Also on Analytics: customers / pests / propagations summaries, live **Current op
 ### Settings (`/settings`)
 
 - View / manage size-band pricing.  
-- **Sync from Shopify** refreshes standard, pests, and propagation prices from Shopify products.
+- **Sync from Shopify** refreshes standard, pests, and propagation prices from Shopify products.  
+- **Care tips options** — add, edit, or delete Water / Leaves / Light choices used on plant detail.  
+- **Treatment notes placeholder** — edit the hint text shown in the treatment notes box.
+
+On plant detail, care tips save automatically once all three dropdowns are chosen, as:
+
+```
+Water: …
+Leaves: …
+Light: …
+```
+
+Older free-text care tips that do not match this format show as a read-only note until staff re-select all three and save.
 
 ---
 

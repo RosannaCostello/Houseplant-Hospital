@@ -176,6 +176,7 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 5.x | HIL-99 | Zoho legacy import (Mailchimp Zoho tag + historic collected plants) — Done | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-100 | Final Zoho delta import before cutover (Mailchimp + historic plants) | `phase-5`, `mailchimp` | HIL-99 |
 | 6.x | HIL-101 | Analytics updates | `phase-6`, `dashboard` | HIL-92 |
+| 6.x | HIL-102 | Care tips: Water / Leaves / Light dropdowns + editable treatment placeholder | `phase-6` | — |
 
 ---
 

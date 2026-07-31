@@ -98,6 +98,17 @@ const checks = [
     label: "check_in_drafts.acuity_appointment_id",
     run: () => supabase.from("check_in_drafts").select("acuity_appointment_id").limit(1),
   },
+  {
+    id: "0019",
+    label: "care_tip_options",
+    run: () => supabase.from("care_tip_options").select("id, category, label").limit(1),
+  },
+  {
+    id: "0019",
+    label: "app_copy_settings.treatment_notes_placeholder",
+    run: () =>
+      supabase.from("app_copy_settings").select("treatment_notes_placeholder").eq("id", 1).maybeSingle(),
+  },
 ];
 
 let missing = 0;

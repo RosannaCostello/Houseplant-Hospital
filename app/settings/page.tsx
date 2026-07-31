@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
+import { CareTipsSettingsForm } from "@/components/settings/care-tips-settings-form";
 import { PricingSettingsForm } from "@/components/settings/pricing-settings-form";
+import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
+import { getCareTipOptions } from "@/lib/care-tips/get-care-tip-options";
 import { getPricingSettings } from "@/lib/pricing/get-pricing-settings";
 import {
   shouldRunDailyShopifySync,
@@ -32,7 +35,11 @@ export default async function SettingsPage() {
     }
   }
 
-  const settings = await getPricingSettings();
+  const [settings, careTipOptions, appCopy] = await Promise.all([
+    getPricingSettings(),
+    getCareTipOptions({ includeInactive: true }),
+    getAppCopySettings(),
+  ]);
 
   return (
     <div className="pb-bottom-nav mx-auto max-w-5xl space-y-8">
@@ -44,6 +51,13 @@ export default async function SettingsPage() {
 
       <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <PricingSettingsForm settings={settings} />
+      </section>
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+        <CareTipsSettingsForm
+          optionsByCategory={careTipOptions}
+          treatmentNotesPlaceholder={appCopy.treatmentNotesPlaceholder}
+        />
       </section>
     </div>
   );

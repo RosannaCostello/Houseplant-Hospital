@@ -3,11 +3,13 @@
 import { useCallback } from "react";
 import { saveTreatmentNoteAction } from "@/app/actions/save-treatment-note";
 import { PlantAutosaveTextarea } from "@/components/plants/plant-autosave-textarea";
+import { DEFAULT_TREATMENT_NOTES_PLACEHOLDER } from "@/lib/care-tips/constants";
 import { cn } from "@/lib/utils";
 
 type TreatmentNotesSectionProps = {
   plantId: string;
   treatmentNote: string | null;
+  placeholder?: string;
   embedded?: boolean;
   compact?: boolean;
 };
@@ -15,6 +17,7 @@ type TreatmentNotesSectionProps = {
 export function TreatmentNotesSection({
   plantId,
   treatmentNote,
+  placeholder = DEFAULT_TREATMENT_NOTES_PLACEHOLDER,
   embedded = false,
   compact = false,
 }: TreatmentNotesSectionProps) {
@@ -26,7 +29,7 @@ export function TreatmentNotesSection({
   const body = (
     <PlantAutosaveTextarea
       ariaLabel="Treatment notes"
-      placeholder="What treatment was done?"
+      placeholder={placeholder}
       initialValue={treatmentNote ?? ""}
       onSave={handleSave}
     />
@@ -43,7 +46,9 @@ export function TreatmentNotesSection({
   return (
     <section className={sectionClass}>
       <div>
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">Treatment notes</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
+          Treatment notes
+        </h2>
         {!compact ? (
           <p className={cn("mt-1 text-sm text-hilda-text")}>
             Surgery and treatment details for this plant. Changes save automatically.
