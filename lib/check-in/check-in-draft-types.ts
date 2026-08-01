@@ -28,6 +28,7 @@ export type CheckInDraftDetail = {
 export type IncompleteCheckInDraft = {
   id: string;
   customerName: string;
+  customerEmail: string;
   draftStep: CheckInDraftStep;
   plantCount: number;
   updatedAt: string;

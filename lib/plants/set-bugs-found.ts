@@ -111,6 +111,7 @@ export async function setBugsFoundWithClient(
     .from("plants")
     .update({
       bugs_found: true,
+      bugs_found_ever: true,
       pricing_modifier: pricingModifier,
     })
     .eq("id", plantId);

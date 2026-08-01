@@ -38,6 +38,7 @@ type DashboardPlantRow = {
     customers: {
       first_name: string;
       last_name: string;
+      email: string;
     };
   };
   plant_photos: PlantPhotoRow[] | null;
@@ -69,14 +70,14 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
           payment_status?: string | null;
           shopify_order_id?: string | null;
           notes?: string | null;
-          customers: { first_name: string; last_name: string } | { first_name: string; last_name: string }[];
+          customers: { first_name: string; last_name: string; email: string } | { first_name: string; last_name: string; email: string }[];
         }
       | Array<{
           checkin_date: string;
           payment_status?: string | null;
           shopify_order_id?: string | null;
           notes?: string | null;
-          customers: { first_name: string; last_name: string } | { first_name: string; last_name: string }[];
+          customers: { first_name: string; last_name: string; email: string } | { first_name: string; last_name: string; email: string }[];
         }>;
     plant_photos?: PlantPhotoRow[] | null;
   };
@@ -110,7 +111,11 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
       payment_status: visit.payment_status ?? null,
       shopify_order_id: visit.shopify_order_id ?? null,
       notes: visit.notes ?? null,
-      customers: { first_name: customer.first_name, last_name: customer.last_name },
+      customers: {
+        first_name: customer.first_name,
+        last_name: customer.last_name,
+        email: "email" in customer && typeof customer.email === "string" ? customer.email : "",
+      },
     },
     plant_photos: row.plant_photos ?? null,
   };
@@ -159,7 +164,8 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
         notes,
         customers!inner (
           first_name,
-          last_name
+          last_name,
+          email
         )
       ),
       plant_photos (
@@ -198,7 +204,8 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
           notes,
           customers!inner (
             first_name,
-            last_name
+            last_name,
+            email
           )
         ),
         plant_photos (
@@ -277,6 +284,7 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       id: row.id,
       status: row.status,
       customerName: `${row.visits.customers.first_name} ${row.visits.customers.last_name}`,
+      customerEmail: row.visits.customers.email,
       name: row.name,
       species: row.species,
       size: row.size,

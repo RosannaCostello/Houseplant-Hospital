@@ -23,7 +23,7 @@ export async function checkOutpatientReadinessAction(
   if (!parsed.success) {
     return {
       ready: false,
-      missing: ["pests", "treatment_notes", "care_tips"],
+      missing: ["pests", "treatment_notes", "care_tips", "pest_treatments"],
       message: "Invalid plant.",
     };
   }

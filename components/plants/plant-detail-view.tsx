@@ -1,14 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
-import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
 import { BugsFoundToggle } from "@/components/plants/bugs-found-toggle";
 import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
+import { PestTreatmentsSection } from "@/components/plants/pest-treatments-section";
+import { PlantPhotoGallery } from "@/components/plants/plant-photo-gallery";
 import { PricingSummarySection } from "@/components/plants/pricing-summary-section";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
-import { PropagationBadge } from "@/components/plants/propagation-badge";
 import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
 import { Button } from "@/components/ui/button";
 import { formatPlantAge } from "@/lib/format-plant-age";
@@ -41,11 +40,12 @@ export function PlantDetailView({
   careTipOptions,
   treatmentNotesPlaceholder,
 }: PlantDetailViewProps) {
-  const latestPhoto = plant.photos[0] ?? null;
   const isCollected = plant.status === "collected";
   const subtitle = plantSubtitle(plant);
   const isPropagation = plant.plantCategory === "propagation";
   const showPropagate = plant.status === "in_surgery" && !isPropagation;
+  const showPestTreatments =
+    plant.status === "quarantine" || plant.bugsFoundEver || plant.pestTreatments.length > 0;
   const propagateDisabledReason = plant.hasPropagation
     ? "This plant has already been propagated."
     : plant.bugsFound !== false
@@ -57,47 +57,13 @@ export function PlantDetailView({
       {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
-        <section className="flex flex-col overflow-hidden rounded-hilda border border-hilda-border/15 bg-hilda-surface">
-          <div className="relative aspect-[4/3] w-full flex-1 bg-hilda-bg sm:aspect-auto sm:min-h-[12.5rem]">
-            {latestPhoto ? (
-              <Image
-                src={latestPhoto.url}
-                alt=""
-                fill
-                sizes="(max-width: 768px) 100vw, 20rem"
-                className="object-cover"
-                unoptimized
-                priority
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-hilda-text-muted">No photo</div>
-            )}
-            {plant.bugsFound ? (
-              <BugsFoundBadge className="absolute right-2 top-2 bg-hilda-bugs" />
-            ) : null}
-            {isPropagation ? <PropagationBadge className="absolute left-2 top-2" /> : null}
-          </div>
-
-          {plant.photos.length > 1 ? (
-            <div className="flex gap-1.5 overflow-x-auto border-t border-hilda-border/10 p-2">
-              {plant.photos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className="relative h-12 w-14 shrink-0 overflow-hidden rounded-hilda-sm border border-hilda-border/15"
-                >
-                  <Image
-                    src={photo.thumbnailUrl ?? photo.url}
-                    alt=""
-                    fill
-                    sizes="3.5rem"
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </section>
+        <PlantPhotoGallery
+          plantId={plant.id}
+          photos={plant.photos}
+          bugsFound={plant.bugsFound}
+          isPropagation={isPropagation}
+          canRetake={!isCollected}
+        />
 
         <div className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
@@ -212,6 +178,14 @@ export function PlantDetailView({
             disabledReason={propagateDisabledReason}
           />
         </section>
+      ) : null}
+
+      {showPestTreatments ? (
+        <PestTreatmentsSection
+          plantId={plant.id}
+          treatments={plant.pestTreatments}
+          disabled={isCollected}
+        />
       ) : null}
 
       {!isPropagation ? (

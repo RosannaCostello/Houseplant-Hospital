@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/pos-checkout";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
+import { SpeciesField } from "@/components/check-in/species-field";
 import { BugsFoundToggleField } from "@/components/plants/bugs-found-toggle-field";
 import { Button } from "@/components/ui/button";
 import type { DraftCheckoutState } from "@/lib/check-in/pos-checkout";
@@ -63,6 +64,7 @@ export function PlantsStepForm({
 }: PlantsStepFormProps) {
   const router = useRouter();
   const plantSectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const closingToDashboardRef = useRef(false);
   const [editedPlants, setEditedPlants] = useState<CheckInPlantInput[] | null>(null);
   const [checkout, setCheckout] = useState(initialCheckout);
   const [formError, setFormError] = useState<string | null>(null);
@@ -75,6 +77,9 @@ export function PlantsStepForm({
   const canContinueToPhotos = canProceedToPhotosStep(checkout.status, posCheckoutRequired);
   const awaitingPosPayment =
     posCheckoutRequired && (checkout.status === "queued" || checkout.status === "loaded");
+  const shouldReturnToDashboard =
+    posCheckoutRequired &&
+    (checkout.status === "paid" || checkout.status === "pay_at_collection");
 
   useEffect(() => {
     if (!awaitingPosPayment) return;
@@ -94,6 +99,30 @@ export function PlantsStepForm({
 
     return () => window.clearInterval(interval);
   }, [awaitingPosPayment, draftId]);
+
+  useEffect(() => {
+    if (!shouldReturnToDashboard || closingToDashboardRef.current) return;
+
+    closingToDashboardRef.current = true;
+    setSubmitting(true);
+    setFormError(null);
+
+    void (async () => {
+      const parsed = checkInPlantsStepSchema.safeParse({ plants });
+      if (parsed.success) {
+        const result = await updateCheckInDraftPlants(draftId, parsed.data.plants);
+        if (!result.success) {
+          closingToDashboardRef.current = false;
+          setSubmitting(false);
+          setFormError(result.error);
+          return;
+        }
+      }
+
+      router.push("/app");
+      router.refresh();
+    })();
+  }, [shouldReturnToDashboard, draftId, plants, router]);
 
   function scrollToPlant(clientId: string) {
     requestAnimationFrame(() => {
@@ -341,7 +370,11 @@ export function PlantsStepForm({
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              {posCheckoutRequired && !canContinueToPhotos ? (
+              {shouldReturnToDashboard ? (
+                <p className="self-center text-sm text-hilda-text-muted">
+                  {submitting ? "Saving and returning to dashboard…" : "Returning to dashboard…"}
+                </p>
+              ) : posCheckoutRequired && !canContinueToPhotos ? (
                 <>
                   <Button
                     type="button"
@@ -463,16 +496,11 @@ export function PlantsStepForm({
                       />
                     </label>
 
-                    <label className={checkInLabelClassName}>
-                      Species <span className="font-normal text-hilda-text-muted">(optional)</span>
-                      <input
-                        className={cn(checkInInputClassName, "py-2.5")}
-                        type="text"
-                        value={plant.species}
-                        onChange={(event) => updatePlant(plant.clientId, { species: event.target.value })}
-                        placeholder="e.g. Monstera deliciosa"
-                      />
-                    </label>
+                    <SpeciesField
+                      value={plant.species}
+                      error={errors.species}
+                      onChange={(species) => updatePlant(plant.clientId, { species })}
+                    />
                   </div>
 
                   <label className={checkInLabelClassName}>

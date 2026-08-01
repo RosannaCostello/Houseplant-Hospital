@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { visitPlantPositionFromOrderedIds } from "@/lib/visits/visit-plant-position";
 import { isPosPaymentStatus, type PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
+import type { PestTreatmentNumber, PlantPestTreatment } from "@/lib/plants/pest-treatments";
 
 export type PlantDetailPhoto = {
   id: string;
@@ -20,6 +21,8 @@ export type PlantDetail = {
   size: string;
   status: PlantStatus;
   bugsFound: boolean | null;
+  bugsFoundEver: boolean;
+  pestTreatments: PlantPestTreatment[];
   plantCategory: PlantCategory;
   sourcePlantId: string | null;
   hasPropagation: boolean;
@@ -63,7 +66,7 @@ function parsePaymentStatus(value: string | null | undefined): PosPaymentStatus 
   return value && isPosPaymentStatus(value) ? value : null;
 }
 
-const PLANT_DETAIL_RELATIONS = `
+const PLANT_DETAIL_RELATIONS_BASE = `
       visits!inner (
         id,
         checkin_date,
@@ -93,6 +96,14 @@ const PLANT_DETAIL_RELATIONS = `
       )
 `;
 
+const PLANT_DETAIL_RELATIONS = `
+      ${PLANT_DETAIL_RELATIONS_BASE},
+      plant_pest_treatments (
+        treatment_number,
+        treated_at
+      )
+`;
+
 const PLANT_DETAIL_SELECT = `
       id,
       name,
@@ -100,6 +111,7 @@ const PLANT_DETAIL_SELECT = `
       size,
       status,
       bugs_found,
+      bugs_found_ever,
       plant_category,
       source_plant_id,
       final_price,
@@ -118,11 +130,38 @@ const PLANT_DETAIL_SELECT_LEGACY = `
       plant_category,
       source_plant_id,
       created_at,
-      ${PLANT_DETAIL_RELATIONS}
+      ${PLANT_DETAIL_RELATIONS_BASE}
 `;
 
 function isMissingCollectionColumnsError(message: string): boolean {
   return message.includes("final_price") || message.includes("collected_at");
+}
+
+function isMissingPestTreatmentSchemaError(message: string): boolean {
+  return (
+    message.includes("bugs_found_ever") ||
+    message.includes("plant_pest_treatments")
+  );
+}
+
+function parsePestTreatments(
+  rows: Array<{ treatment_number?: number; treated_at?: string }> | null | undefined,
+): PlantPestTreatment[] {
+  if (!rows?.length) return [];
+
+  return rows
+    .filter(
+      (row): row is { treatment_number: PestTreatmentNumber; treated_at: string } =>
+        (row.treatment_number === 1 ||
+          row.treatment_number === 2 ||
+          row.treatment_number === 3) &&
+        typeof row.treated_at === "string",
+    )
+    .map((row) => ({
+      treatmentNumber: row.treatment_number,
+      treatedAt: row.treated_at,
+    }))
+    .sort((a, b) => a.treatmentNumber - b.treatmentNumber);
 }
 
 export async function getPlantDetail(plantId: string): Promise<PlantDetail | null> {
@@ -134,7 +173,11 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     .eq("id", plantId)
     .maybeSingle();
 
-  if (error && isMissingCollectionColumnsError(error.message)) {
+  if (
+    error &&
+    (isMissingCollectionColumnsError(error.message) ||
+      isMissingPestTreatmentSchemaError(error.message))
+  ) {
     ({ data, error } = await supabase
       .from("plants")
       .select(PLANT_DETAIL_SELECT_LEGACY)
@@ -157,10 +200,15 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     size?: string;
     status?: string;
     bugs_found?: boolean;
+    bugs_found_ever?: boolean;
     plant_category?: string;
     source_plant_id?: string | null;
     final_price?: number | null;
     collected_at?: string | null;
+    plant_pest_treatments?: Array<{
+      treatment_number?: number;
+      treated_at?: string;
+    }> | null;
     visits?:
       | {
           id: string;
@@ -298,6 +346,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     size: row.size,
     status: row.status,
     bugsFound: row.bugs_found ?? null,
+    bugsFoundEver: row.bugs_found_ever === true || row.bugs_found === true,
+    pestTreatments: parsePestTreatments(row.plant_pest_treatments),
     plantCategory: isPlantCategory(row.plant_category) ? row.plant_category : "standard",
     sourcePlantId: row.source_plant_id ?? null,
     hasPropagation: Boolean(propagationChild),

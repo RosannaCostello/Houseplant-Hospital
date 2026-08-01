@@ -67,9 +67,10 @@ Use these words when talking about the app.
 | **Plant** | One plant on a visit. The board is organised by **plants**, not visits. |
 | **Check-in** (flow) | Creating a new visit: customer → plants → photos. |
 | **Incomplete check-in** | A draft visit not finished yet (still on plants or photos step). Shown in the Incomplete lane. |
-| **Dashboard** | Kanban board of active plants by lane. |
+| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. |
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
-| **Pests / Bugs found** | Whether pests were found. UI label: **Pests found during treatment?** (Yes / No / Clear answer). Affects price and Outpatient readiness. |
+| **Pests / Bugs found** | Whether pests were found. UI label: **Pests found during treatment?** (Yes / No / Clear answer). Affects price, starting lane, and Outpatient readiness. |
+| **Pest treatments** | Three checkboxes on plant detail (Treatment 1 / 2 / 3) with date/time stamps. Required before Outpatient if pests were **ever** found on that plant. |
 | **Treatment notes** | Notes on the plant (required before Outpatient). Max **750 characters** so the full note can reach customer emails via Mailchimp (see below). |
 | **Care tips** | Aftercare advice for the customer, chosen as **Water / Leaves / Light** dropdowns on plant detail (required before Outpatient). Saved as one composed string. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
@@ -79,9 +80,9 @@ Use these words when talking about the app.
 | **Pay at collection** | Customer pays when collecting, not at check-in. |
 | **POS / Shopify POS** | Shop till extension used to take Hospital payment. |
 | **Outpatient** | Plant is ready for collection. |
-| **Outpatient ready** | This plant has pests answered (if standard), treatment notes, and all three care tip dropdowns (Water, Leaves, Light) — so it can move to Outpatient. |
+| **Outpatient ready** | This plant has pests answered (if standard), treatment notes, all three care tip dropdowns (Water, Leaves, Light), and — if pests were ever found — all three pest treatments — so it can move to Outpatient. |
 | **Outpatient partial** | On a multi-plant visit, one plant is in Outpatient but siblings are not yet ready. Staff still move plants one by one; the app emails Mailchimp a “partial” event until the last sibling is ready (then a full ready-to-collect event). Staff do not manage this as a separate screen. |
-| **Collected** | Plant has gone home. Terminal status — **view only** (notes, tips, pests, and actions locked). |
+| **Collected** | Plant has gone home. Terminal status — **view only** (notes, tips, pests, treatments, photo retake, and actions locked). |
 | **Dead** | Plant did not survive treatment. Terminal status. |
 | **Total customers** (Analytics) | Distinct customers with a visit check-in in the selected period. |
 | **New / Returning customers** | First-ever visit in this period vs had an earlier visit before this period. |
@@ -122,12 +123,23 @@ Board order (left → right):
 
 1. Bottom nav → **Check-in**.  
 2. Enter **customer** details → continue (creates an incomplete draft).  
-3. **Plants** step: add each plant (name optional, **size**, **pests Yes/No**).  
-4. If Shopify pricing is on: choose **Go to checkout** (queue for POS) or **Pay at collection** before photos.  
-5. **Photos** step: one photo per plant → **Complete check-in**.  
-6. Plants appear on the **Dashboard**.
+3. **Plants** step: add each plant (name optional, **species** optional with typeahead from species used before, **size**, **pests Yes/No**).  
+4. If Shopify pricing is on: choose **Go to checkout** (queue for POS) or **Pay at collection**. After **POS paid** or **Pay at collection**, the app returns you to the **Dashboard**. Finish photos later from the **Incomplete check-ins** lane if needed.  
+5. **Photos** step (when you continue or resume): one photo per plant → **Complete check-in**.  
+6. Plants appear on the **Dashboard**. Plants marked **pests Yes** land in **Quarantine** (not Check-in).
 
 You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Complete check-in**) or discard the draft (**Discard** — irreversible).
+
+### Species at check-in
+
+- Optional free text.  
+- After typing about **2 characters**, suggestions appear from species already recorded on past plants.  
+- Tap a suggestion to fill the field, or keep typing a new species — new values are always allowed.
+
+### Find a plant on the Dashboard
+
+1. Use the **Search by name or email** box above the lanes.  
+2. As you type, plant cards and incomplete drafts that do not match are hidden.
 
 ### Move a plant on the board
 
@@ -142,10 +154,25 @@ The app blocks Outpatient until the plant is **Outpatient ready**:
 - **Pests** answered (Yes or No)  
 - **Treatment notes** filled (max 750 characters — counter on plant detail)  
 - **Care tips** — choose all three: Water, Leaves, and Light  
+- If pests were **ever** found on this plant: all three **pest treatments** checked (each stamps date and time; uncheck to correct)
 
-Propagation plants skip the pests requirement for this gate.
+Propagation plants skip the pests requirement for this gate. Plants that never had pests do not need pest treatments.
 
 On multi-plant visits, move each plant when it is ready. Sibling plants still in earlier lanes mean **Outpatient partial** for email purposes — no extra staff step.
+
+### Quarantine pest treatments
+
+On plant detail (when the plant is in **Quarantine** or has ever had pests):
+
+1. Tick **Treatment 1**, **2**, and **3** as each treatment is done — the app records the date and time beside each box.  
+2. Unchecking clears that stamp (for corrections).  
+3. On **Collected** plants the boxes are view-only.
+
+### Plant photos on plant detail
+
+1. Tap the main photo (or a thumbnail) to open a **fullscreen** view — close with the button, backdrop, or Escape.  
+2. Use **Retake photo** to replace the latest photo (camera or library).  
+3. **Collected** plants: fullscreen view is allowed; retake is disabled.
 
 ### Treatment notes, care tips, and Mailchimp emails
 
@@ -168,8 +195,8 @@ Mailchimp only allows **255 characters per event property**, and HTML emails col
 
 ### Pests (bugs found)
 
-- Set at check-in (Yes / No).  
-- Can be changed on plant detail until **Collected** (Clear answer exists in UI).  
+- Set at check-in (Yes / No). **Yes** places the plant in **Quarantine** when check-in completes.  
+- Can be changed on plant detail until **Collected** (Clear answer exists in UI). Clearing Yes does **not** remove the “ever had pests” flag used for treatments / Outpatient.  
 - **Propagation plants** do not show the pests control (always no pests).  
 - Yes → pests treatment pricing when Shopify/rules apply.
 

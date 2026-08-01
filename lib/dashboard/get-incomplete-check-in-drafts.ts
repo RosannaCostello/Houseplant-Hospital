@@ -9,8 +9,8 @@ type DraftListRow = {
   updated_at: string;
   acuity_appointment_id?: string | null;
   customers:
-    | { first_name: string; last_name: string }
-    | Array<{ first_name: string; last_name: string }>;
+    | { first_name: string; last_name: string; email: string }
+    | Array<{ first_name: string; last_name: string; email: string }>;
 };
 
 function unwrapRelation<T>(value: T | T[] | null | undefined): T | null {
@@ -29,7 +29,7 @@ export async function getIncompleteCheckInDrafts(): Promise<IncompleteCheckInDra
   const withAcuity = await supabase
     .from("check_in_drafts")
     .select(
-      "id, plants, draft_step, updated_at, acuity_appointment_id, customers ( first_name, last_name )",
+      "id, plants, draft_step, updated_at, acuity_appointment_id, customers ( first_name, last_name, email )",
     )
     .order("updated_at", { ascending: false });
 
@@ -39,7 +39,7 @@ export async function getIncompleteCheckInDrafts(): Promise<IncompleteCheckInDra
   if (error?.message.includes("acuity_appointment_id")) {
     const legacy = await supabase
       .from("check_in_drafts")
-      .select("id, plants, draft_step, updated_at, customers ( first_name, last_name )")
+      .select("id, plants, draft_step, updated_at, customers ( first_name, last_name, email )")
       .order("updated_at", { ascending: false });
     rows = (legacy.data ?? null) as typeof rows;
     error = legacy.error;
@@ -80,6 +80,7 @@ export async function getIncompleteCheckInDrafts(): Promise<IncompleteCheckInDra
       return {
         id: row.id,
         customerName: `${customer.first_name} ${customer.last_name}`.trim(),
+        customerEmail: customer.email,
         draftStep: row.draft_step,
         plantCount: plantCount(row.plants),
         updatedAt: row.updated_at,

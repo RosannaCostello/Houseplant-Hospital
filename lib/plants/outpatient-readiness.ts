@@ -1,11 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isStructuredCareTipComplete } from "@/lib/care-tips/compose-parse";
 import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
+import { countPlantPestTreatmentsWithClient } from "@/lib/plants/pest-treatments";
 
 export type OutpatientReadinessMissing =
   | "pests"
   | "treatment_notes"
-  | "care_tips";
+  | "care_tips"
+  | "pest_treatments";
 
 export type OutpatientReadinessResult =
   | { ready: true }
@@ -18,6 +20,10 @@ function isNonBlank(value: string | null | undefined): boolean {
 export function formatOutpatientReadinessMessage(
   missing: OutpatientReadinessMissing[],
 ): string {
+  if (missing.length === 1 && missing[0] === "pest_treatments") {
+    return "Complete all three pest treatments before Outpatient.";
+  }
+
   const labels: string[] = [];
 
   if (missing.includes("pests")) {
@@ -28,6 +34,9 @@ export function formatOutpatientReadinessMessage(
   }
   if (missing.includes("care_tips")) {
     labels.push("choose Water, Leaves, and Light care tips");
+  }
+  if (missing.includes("pest_treatments")) {
+    labels.push("complete all three pest treatments");
   }
 
   if (labels.length === 0) {
@@ -49,19 +58,22 @@ export async function checkOutpatientReadinessWithClient(
 ): Promise<OutpatientReadinessResult> {
   const { data: plant, error: plantError } = await supabase
     .from("plants")
-    .select("bugs_found, plant_category")
+    .select("bugs_found, bugs_found_ever, plant_category")
     .eq("id", plantId)
     .maybeSingle();
 
   if (plantError || !plant) {
-    return { ready: false, missing: ["pests", "treatment_notes", "care_tips"] };
+    return {
+      ready: false,
+      missing: ["pests", "treatment_notes", "care_tips", "pest_treatments"],
+    };
   }
 
   const plantCategory: PlantCategory = isPlantCategory(plant.plant_category)
     ? plant.plant_category
     : "standard";
 
-  const [{ data: treatmentNote }, { data: careTip }] = await Promise.all([
+  const [{ data: treatmentNote }, { data: careTip }, treatmentCount] = await Promise.all([
     supabase
       .from("treatment_notes")
       .select("content")
@@ -76,6 +88,7 @@ export async function checkOutpatientReadinessWithClient(
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    countPlantPestTreatmentsWithClient(supabase, plantId).catch(() => 0),
   ]);
 
   const missing: OutpatientReadinessMissing[] = [];
@@ -90,6 +103,10 @@ export async function checkOutpatientReadinessWithClient(
 
   if (!isStructuredCareTipComplete(careTip?.content)) {
     missing.push("care_tips");
+  }
+
+  if (plant.bugs_found_ever === true && treatmentCount < 3) {
+    missing.push("pest_treatments");
   }
 
   if (missing.length > 0) {

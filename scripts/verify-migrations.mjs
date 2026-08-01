@@ -109,6 +109,17 @@ const checks = [
     run: () =>
       supabase.from("app_copy_settings").select("treatment_notes_placeholder").eq("id", 1).maybeSingle(),
   },
+  {
+    id: "0020",
+    label: "plants.bugs_found_ever",
+    run: () => supabase.from("plants").select("bugs_found_ever").limit(1),
+  },
+  {
+    id: "0020",
+    label: "plant_pest_treatments",
+    run: () =>
+      supabase.from("plant_pest_treatments").select("id, treatment_number, treated_at").limit(1),
+  },
 ];
 
 let missing = 0;

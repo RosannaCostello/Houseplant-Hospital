@@ -1,7 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreateCheckInInput } from "@/lib/check-in/create-check-in-input";
 import { resolveCheckInCustomerId } from "@/lib/check-in/resolve-check-in-customer";
+import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
 import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
+import type { PlantStatus } from "@/lib/plant-status";
 
 export type CreateCheckInRecordsResult =
   | {
@@ -64,9 +66,16 @@ export async function createCheckInRecordsWithClient(
 
     visitId = visitRow.id;
 
-    const createdPlants: Array<{ clientId: string; plantId: string }> = [];
+    const createdPlants: Array<{
+      clientId: string;
+      plantId: string;
+      status: PlantStatus;
+    }> = [];
 
     for (const plant of plants) {
+      const initialStatus: PlantStatus = plant.bugsFound === true ? "quarantine" : "check_in";
+      const bugsFoundEver = plant.bugsFound === true;
+
       const { data: plantRow, error: plantError } = await supabase
         .from("plants")
         .insert({
@@ -74,8 +83,9 @@ export async function createCheckInRecordsWithClient(
           name: plant.name.trim() || null,
           species: plant.species.trim() || null,
           size: plant.size,
-          status: "check_in",
+          status: initialStatus,
           bugs_found: plant.bugsFound ?? null,
+          bugs_found_ever: bugsFoundEver,
         })
         .select("id")
         .single();
@@ -87,7 +97,7 @@ export async function createCheckInRecordsWithClient(
       const { error: historyError } = await supabase.from("status_history").insert({
         plant_id: plantRow.id,
         previous_status: null,
-        new_status: "check_in",
+        new_status: initialStatus,
         changed_by: user.id,
       });
 
@@ -95,7 +105,11 @@ export async function createCheckInRecordsWithClient(
         throw new Error(historyError.message);
       }
 
-      createdPlants.push({ clientId: plant.clientId, plantId: plantRow.id });
+      createdPlants.push({
+        clientId: plant.clientId,
+        plantId: plantRow.id,
+        status: initialStatus,
+      });
     }
 
     await syncCheckInToMailchimp({
@@ -106,7 +120,17 @@ export async function createCheckInRecordsWithClient(
       plants: createdPlants.map((plant) => ({ plantId: plant.plantId })),
     });
 
-    return { success: true, visitId: visitRow.id, plants: createdPlants };
+    for (const plant of createdPlants) {
+      if (plant.status === "quarantine") {
+        await emitPlantStatusChangeEvent(supabase, plant.plantId, "check_in", "quarantine");
+      }
+    }
+
+    return {
+      success: true,
+      visitId: visitRow.id,
+      plants: createdPlants.map(({ clientId, plantId }) => ({ clientId, plantId })),
+    };
   } catch (error) {
     if (visitId) {
       try {

@@ -63,6 +63,56 @@ export async function uploadPlantPhoto(
   return { storagePath, thumbnailPath };
 }
 
+/** Upload a replacement primary photo (new storage paths; becomes latest by created_at). */
+export async function replacePlantPrimaryPhoto(
+  supabase: SupabaseClient,
+  input: UploadPlantPhotoInput,
+): Promise<UploadedPlantPhoto> {
+  const extension = mimeTypeToExtension(input.mimeType);
+  const stamp = Date.now();
+  const storagePath = `${input.plantId}/photo-${stamp}.${extension}`;
+  const thumbnailPath = `${input.plantId}/thumb-${stamp}.${extension}`;
+
+  const fullBytes = dataUrlToUint8Array(input.dataUrl);
+  const thumbBytes = dataUrlToUint8Array(input.thumbnailDataUrl);
+
+  const { error: fullError } = await supabase.storage
+    .from(PLANT_PHOTOS_BUCKET)
+    .upload(storagePath, fullBytes, {
+      contentType: input.mimeType,
+      upsert: false,
+    });
+
+  if (fullError) {
+    throw new Error(`Failed to upload photo: ${fullError.message}`);
+  }
+
+  const { error: thumbError } = await supabase.storage
+    .from(PLANT_PHOTOS_BUCKET)
+    .upload(thumbnailPath, thumbBytes, {
+      contentType: input.mimeType,
+      upsert: false,
+    });
+
+  if (thumbError) {
+    await supabase.storage.from(PLANT_PHOTOS_BUCKET).remove([storagePath]);
+    throw new Error(`Failed to upload thumbnail: ${thumbError.message}`);
+  }
+
+  const { error: insertError } = await supabase.from("plant_photos").insert({
+    plant_id: input.plantId,
+    storage_path: storagePath,
+    thumbnail_path: thumbnailPath,
+  });
+
+  if (insertError) {
+    await supabase.storage.from(PLANT_PHOTOS_BUCKET).remove([storagePath, thumbnailPath]);
+    throw new Error(`Failed to save photo record: ${insertError.message}`);
+  }
+
+  return { storagePath, thumbnailPath };
+}
+
 export async function removePlantPhotoFiles(
   supabase: SupabaseClient,
   paths: string[],

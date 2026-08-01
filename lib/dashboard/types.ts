@@ -7,6 +7,7 @@ export type DashboardPlant = {
   id: string;
   status: PlantStatus;
   customerName: string;
+  customerEmail: string;
   name: string | null;
   species: string | null;
   size: string;

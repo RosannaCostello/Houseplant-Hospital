@@ -178,6 +178,8 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 5.x | HIL-100 | Final Zoho delta import before cutover (Mailchimp + historic plants) | `phase-5`, `mailchimp` | HIL-99 |
 | 6.x | HIL-101 | Analytics updates | `phase-6`, `dashboard` | HIL-92 |
 | 6.x | HIL-102 | Care tips: Water / Leaves / Light dropdowns + editable treatment placeholder | `phase-6` | — |
+| 6.x | HIL-104 | Quarantine treatments, pests→quarantine, dashboard search, check-in close, photo retake | `phase-6`, `dashboard`, `check-in` | — |
+| 6.x | HIL-105 | Species typeahead from past plants at check-in | `phase-6`, `check-in` | — |
 
 ---
 
