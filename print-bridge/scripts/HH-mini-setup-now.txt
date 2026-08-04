@@ -96,6 +96,19 @@ A label should print.
 
 
 ----------------------------------------
+STEP 8 — Always-on (so you can close Terminal)
+----------------------------------------
+
+Stop the manual npm run start (Ctrl+C), then:
+
+bash ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+curl -s http://127.0.0.1:8787/health
+
+Bridge now starts at login and restarts if it crashes.
+Enable automatic login for the shop user if the Mini should print after reboot without unlocking.
+
+
+----------------------------------------
 If something fails
 ----------------------------------------
 
@@ -105,3 +118,4 @@ Useful checks:
 ls ~/Hilda
 ls ~/Hilda/Houseplant-Hospital/print-bridge
 lpstat -p -d
+tail -50 ~/Hilda/Houseplant-Hospital/print-bridge/logs/print-bridge.stderr.log

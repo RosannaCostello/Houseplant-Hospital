@@ -21,6 +21,20 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (server only)
 
+### Phase 4 — Label printing (HIL-83)
+
+| Variable | Purpose |
+|----------|---------|
+| `APP_BASE_URL` | Public app origin (optional `caseUrl` in print payload) |
+| `PRINT_BRIDGE_URL` | Base URL of the Mac Mini print-bridge (must be reachable from Cloudflare — **not** `http://127.0.0.1:8787` on the live Worker) |
+| `PRINT_BRIDGE_SECRET` | Same Bearer secret as on the Mini `.env` |
+
+**Flow:** Plant detail → **Print label** → row in `print_jobs` → POST `{PRINT_BRIDGE_URL}/print`. If the Mini is offline, the job stays `pending` and `/api/cron/print-jobs` (every 5 minutes with Mailchimp) retries.
+
+**Reachability (HIL-85):** expose the Mini bridge with Cloudflare Tunnel (or similar) and set `PRINT_BRIDGE_URL` to that HTTPS URL in the Worker env. Until then, taps still queue jobs safely.
+
+Apply migration `0026_print_jobs_delivery.sql` (adds `sent_at`, `last_error`, `attempts` on `print_jobs`).
+
 ## Install + run
 
 ```bash
@@ -232,22 +246,24 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 
 **Audience:** always **Hilda** (`c34fa4ecc8`). **Tags** on contacts: `houseplant_hospital`, `repeat_hospital_customer`, `bugs_treatment`, `newsletter` (if consented), `Zoho` (legacy Creator import — HIL-99).
 
-#### Zoho legacy import (HIL-99)
+#### Zoho legacy import (HIL-99 baseline + HIL-100 delta)
 
-One-shot scripts (not used by the live app). Source CSV: Zoho **Hospital Dashboard** export.
+One-shot scripts (not used by the live app). Source CSV: Zoho **Hospital Dashboard** export (not Plant Directory).
 
 ```bash
 # Part 1 — Mailchimp contacts (transactional + Zoho tag; no plant_* events)
+# When zoho-import plants already exist, only delta emails are upserted (use --all to force full CSV)
 npm run import:zoho-mailchimp -- --dry-run "/path/to/Hospital Dashboard.csv"
 npm run import:zoho-mailchimp -- "/path/to/Hospital Dashboard.csv"
 
 # Part 2 — Supabase historic plants (all collected, check-in+14d, Zoho logo photo)
 # Direct DB writes only — must not create mailchimp_events
+# Delta-aware: skips rows already present (natural key + fingerprint); new visits use notes=zoho-import-final
 npm run import:zoho-plants -- --dry-run "/path/to/Hospital Dashboard.csv"
 npm run import:zoho-plants -- "/path/to/Hospital Dashboard.csv"
 ```
 
-Part 2 marks visits with `notes = zoho-import`. Zoho `collected_at` is synthetic (check-in + 14 days). Re-run aborts if those visits already exist. Blank Zoho prices are filled from active Shopify `pricing_rules` (standard / pests by size + `bugs_found`). Blank Zoho pests → `bugs_found = false`. To repair existing nulls:
+Baseline (HIL-99) visits use `notes = zoho-import`; delta-only visits (HIL-100) use `zoho-import-final`. Zoho `collected_at` is synthetic (check-in + 14 days). Blank Zoho prices are filled from active Shopify `pricing_rules` (standard / pests by size + `bugs_found`). Blank Zoho pests → `bugs_found = false`. To repair existing nulls:
 
 ```bash
 npm run backfill:zoho-prices -- --dry-run
@@ -314,6 +330,7 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 | Schedule | Cron | Route |
 |----------|------|-------|
 | Mailchimp outbox | `*/5 * * * *` | `/api/cron/mailchimp-outbox` |
+| Print jobs drain | `*/5 * * * *` | `/api/cron/print-jobs` |
 | Shopify pricing | `0 6 * * *` (06:00 UTC daily) | `/api/cron/shopify-pricing` |
 
 Requires `CRON_SECRET` and `APP_BASE_URL` on the worker. After deploy, check **Cloudflare → houseplanthospital → Settings → Triggers → Cron Triggers**.

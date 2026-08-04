@@ -11,6 +11,7 @@ import { PlantPhotoGallery } from "@/components/plants/plant-photo-gallery";
 import { PricingSummarySection } from "@/components/plants/pricing-summary-section";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
 import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
+import { PrintPlantLabelButton } from "@/components/plants/print-plant-label-button";
 import { Button } from "@/components/ui/button";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import type { PlantDetail } from "@/lib/plants/get-plant-detail";
@@ -247,6 +248,11 @@ export function PlantDetailView({
         finalPrice={plant.finalPrice}
         compact
       />
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+        <h2 className="mb-2 text-sm font-medium text-hilda-heading">Label</h2>
+        <PrintPlantLabelButton plantId={plant.id} />
+      </section>
 
       <div className="flex items-center justify-between gap-3">
         <PlantCaseLink

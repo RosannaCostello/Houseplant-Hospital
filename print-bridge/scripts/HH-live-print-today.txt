@@ -1,0 +1,91 @@
+Houseplant Hospital — LIVE print today (Mac Mini)
+=================================================
+
+Goal: iPad check-in → Print label → Brother prints.
+Do these ON the Mini before Jack leaves.
+
+
+----------------------------------------
+STEP 1 — Print-bridge still healthy?
+----------------------------------------
+
+curl -s http://127.0.0.1:8787/health
+
+Expect: {"ok":true,...}
+If Connection refused:
+
+bash ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+curl -s http://127.0.0.1:8787/health
+
+
+----------------------------------------
+STEP 2 — Copy latest label + logo (from MacBook)
+----------------------------------------
+
+From MacBook AirDrop/USB these onto the Mini:
+
+  print-bridge/src/label.ts
+  → ~/Hilda/Houseplant-Hospital/print-bridge/src/label.ts
+
+  print-bridge/assets/   (whole folder)
+  → ~/Hilda/Houseplant-Hospital/print-bridge/assets/
+
+Then restart:
+
+bash ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+
+Confirm logo file:
+
+ls ~/Hilda/Houseplant-Hospital/print-bridge/assets/hilda-logo-gold-800.png
+
+
+----------------------------------------
+STEP 3 — Install cloudflared (one-time)
+----------------------------------------
+
+brew install cloudflared
+
+(If brew missing: install Homebrew first, or download cloudflared from Cloudflare.)
+
+
+----------------------------------------
+STEP 4 — Start quick tunnel (LEAVE THIS RUNNING)
+----------------------------------------
+
+Open a NEW Terminal window on the Mini and paste:
+
+cloudflared tunnel --url http://127.0.0.1:8787
+
+Wait until you see a line like:
+
+  https://something-random.trycloudflare.com
+
+PHOTO that screen or copy the https URL.
+Send it to Jack / Cursor — needed for live deploy.
+
+IMPORTANT:
+- Leave this Terminal window open while testing.
+- If you close it, the public URL dies and printing from the iPad stops.
+- After reboot you must run this again (permanent tunnel is later — HIL-85).
+
+
+----------------------------------------
+STEP 5 — Show print secret (for Jack to set on Cloudflare)
+----------------------------------------
+
+cd ~/Hilda/Houseplant-Hospital/print-bridge
+grep PRINT_BRIDGE_SECRET .env
+
+(Do not post the secret in chat publicly if you can avoid it —
+ Jack can type it into Cloudflare / .env.local on the MacBook.)
+
+
+----------------------------------------
+STEP 6 — After Jack says live is deployed
+----------------------------------------
+
+On iPad: open a plant → Print label.
+Brother should print.
+
+If it says queued / unreachable: photo the message,
+and check the cloudflared Terminal is still running.

@@ -4,7 +4,8 @@ import { z } from "zod";
 export const printJobPayloadSchema = z.object({
   jobId: z.string().uuid().optional(),
   plantId: z.string().uuid(),
-  caseUrl: z.string().url(),
+  /** Kept for API compatibility; no longer printed (QR canceled). */
+  caseUrl: z.string().url().optional(),
   caseLabel: z.string().min(1).max(64).optional(),
   customerSurname: z.string().min(1).max(80),
   plantName: z.string().min(1).max(120),

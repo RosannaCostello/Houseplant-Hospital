@@ -2,7 +2,10 @@
 // @ts-expect-error `.open-next/worker.js` is generated at build time
 import { default as handler } from "./.open-next/worker.js";
 
-type CronRoute = "/api/cron/mailchimp-outbox" | "/api/cron/shopify-pricing";
+type CronRoute =
+  | "/api/cron/mailchimp-outbox"
+  | "/api/cron/shopify-pricing"
+  | "/api/cron/print-jobs";
 
 interface CloudflareEnv {
   CRON_SECRET?: string;
@@ -23,7 +26,7 @@ function cronBaseUrl(env: CloudflareEnv): string {
 
 function routesForCron(cron: string): CronRoute[] {
   if (cron === MAILCHIMP_OUTBOX_CRON) {
-    return ["/api/cron/mailchimp-outbox"];
+    return ["/api/cron/mailchimp-outbox", "/api/cron/print-jobs"];
   }
 
   if (cron === SHOPIFY_PRICING_CRON) {

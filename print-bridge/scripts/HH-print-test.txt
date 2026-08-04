@@ -1,0 +1,55 @@
+Houseplant Hospital — Print test (Mac Mini)
+==========================================
+
+Always-on is WORKING (health returned ok:true). Good.
+
+The last print failed only because caseUrl was missing.
+The Mini still requires that field. Use the curl below.
+
+
+----------------------------------------
+On the Mini — real print test
+----------------------------------------
+
+1) Show secret (copy the value after = )
+
+cd ~/Hilda/Houseplant-Hospital/print-bridge
+grep PRINT_BRIDGE_SECRET .env
+
+2) Paste this whole block. Replace YOUR_SECRET with that value:
+
+curl -s -X POST http://127.0.0.1:8787/print \
+  -H "authorization: Bearer YOUR_SECRET" \
+  -H "content-type: application/json" \
+  -d '{
+    "plantId": "11111111-1111-4111-8111-111111111111",
+    "caseUrl": "https://houseplanthospital.hildaedinburgh.workers.dev/hh/case/11111111-1111-4111-8111-111111111111",
+    "customerSurname": "Smith",
+    "plantName": "Monstera",
+    "size": "Medium",
+    "pestsFound": false,
+    "checkedInAt": "2026-07-24T10:00:00.000Z"
+  }'
+
+Expect something like {"ok":true,...} and a label should print.
+(QR is not on the label even if caseUrl is in the JSON.)
+
+
+----------------------------------------
+If it fails again
+----------------------------------------
+
+Photo the Terminal reply.
+Also:
+
+tail -40 ~/Hilda/Houseplant-Hospital/print-bridge/logs/print-bridge.stderr.log
+lpstat -p -d
+
+
+----------------------------------------
+Security note
+----------------------------------------
+
+Your print secret was visible on screen in a photo.
+After printing works, you can rotate it later (edit .env, then re-run install-launchd.sh).
+Not urgent right now.
