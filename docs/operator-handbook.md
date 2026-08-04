@@ -2,7 +2,7 @@
 
 **Audience:** Rosanna, shop staff, and any AI given this file  
 **Live app:** https://houseplanthospital.hildaedinburgh.workers.dev  
-**Last updated:** 29 July 2026
+**Last updated:** 4 August 2026
 
 This is the **ops source of truth** for using the live app — terminology, workflows, and do/don’ts. It is not a developer setup guide.
 
@@ -67,10 +67,10 @@ Use these words when talking about the app.
 | **Plant** | One plant on a visit. The board is organised by **plants**, not visits. |
 | **Check-in** (flow) | Creating a new visit: customer → plants → photos. |
 | **Incomplete check-in** | A draft visit not finished yet (still on plants or photos step). Shown in the Incomplete lane. |
-| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. Drag a plant card onto another lane to move it (same rules and confirmations as **Actions**). Tap **Actions** on a card to update the plant or move lanes. |
-| **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. |
+| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. On iPad, **tap the photo or customer name** to **Update plant**; use the **⋯** menu for lane moves (drag between lanes also works, but tap is the reliable path). |
+| **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. Treatment notes autosave on pause and when you tap **Close** — wait for “Saving…” if you just typed. |
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
-| **Pests / Bugs found** | Whether pests were found. UI label: **Pests found during treatment?** (Yes / No / Clear answer). Affects price, starting lane, and Outpatient readiness. |
+| **Pests / Bugs found** | Whether pests were found. At **check-in**: **Any pests visible on this plant?** On **Update plant**: **Pests found during treatment?** (Yes / No / Clear answer). Affects price, starting lane, and Outpatient readiness. |
 | **Pest treatments** | Three slots on plant detail (Treatment 1 / 2 / 3). Each picks a treatment type from Settings, then **Record** locks it with date/time. Required before Outpatient if pests were **ever** found. |
 | **Treatment notes** | Notes on the plant (required before Outpatient). Max **750 characters** so the full note can reach customer emails via Mailchimp (see below). |
 | **Care tips** | Aftercare advice for the customer, chosen as **Water / Leaves / Light** dropdowns on plant detail (required before Outpatient). Saved as one composed string. |
@@ -122,14 +122,22 @@ Board order (left → right):
 
 ### Check in a customer (new visit)
 
+**iPad tip:** Hand the iPad to the customer for this flow. Primary buttons are large; **Continue** sits above **Discard**. Staff chrome (Dashboard / Account) is de-emphasised so customers are less likely to leave mid-flow. Test with the software keyboard open — fields and Continue should stay usable.
+
 1. Bottom nav → **Check-in**.  
-2. Enter **customer** details → continue (creates an incomplete draft).  
-3. **Plants** step: add each plant (name optional, **species** optional with typeahead from species used before, **size**, **pests Yes/No**).  
+2. Enter **customer** details → continue (creates an incomplete draft). **Marketing emails** starts **unchecked** (customer opts in).  
+3. **Plants** step: add each plant (name optional, **species** optional with typeahead from species used before, **size**, **Any pests visible on this plant?**).  
 4. If Shopify pricing is on: choose **Go to checkout** (queue for POS) or **Pay at collection**. After **POS paid** or **Pay at collection**, the app returns you to the **Dashboard**. Finish photos later from the **Incomplete check-ins** lane if needed.  
 5. **Photos** step (when you continue or resume): one photo per plant → **Complete check-in**.  
 6. Plants appear on the **Dashboard**. Plants marked **pests Yes** land in **Quarantine** (not Check-in).
 
 You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Complete check-in**) or discard the draft (**Discard** — irreversible).
+
+### Update plant (esp. Surgery / dirty hands)
+
+1. On the Dashboard, tap the plant **photo** or **customer name** (or **Update plant** from **⋯**).  
+2. Edit pests, notes, care tips, treatments as needed. Notes save automatically; **Close** waits for a pending save.  
+3. Use **⋯** (or drag) to move lanes — not the photo tap.
 
 ### Species at check-in
 
@@ -145,9 +153,10 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 
 ### Move a plant on the board
 
-1. On the Dashboard, open the plant’s status / actions control.  
+1. On the Dashboard, open the plant’s **⋯** menu (or drag the card onto another lane).  
 2. Choose an **allowed** next lane.  
-3. Confirm any prompts (e.g. Outpatient readiness, collection payment).
+3. Confirm any prompts (e.g. Outpatient readiness, collection payment).  
+4. Moving to **In Surgery** opens **Update plant** so you can start notes immediately.
 
 ### Before Outpatient (standard plants)
 

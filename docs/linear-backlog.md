@@ -175,7 +175,7 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 5.x | HIL-98 | Enrich Mailchimp event payload (plant name, treatment notes, care tips) | `phase-5`, `mailchimp` | — | Done |
 | 5.x | HIL-103 | Split treatment notes into treatment_notes_1/2/3 (750 char cap) | `phase-5`, `mailchimp` | HIL-98 |
 | 5.x | HIL-99 | Zoho legacy import (Mailchimp Zoho tag + historic collected plants) — Done | `phase-5`, `mailchimp` | — |
-| 5.x | HIL-100 | Final Zoho delta import before cutover (Mailchimp + historic plants) | `phase-5`, `mailchimp` | HIL-99 |
+| 5.x | HIL-100 | Final Zoho delta import before cutover (Mailchimp + historic plants) — Done | `phase-5`, `mailchimp` | HIL-99 |
 | 5.x | HIL-108 | Historic Shopify HH sales → Analytics — **Canceled** (not needed; Zoho history sufficient) | `phase-5` | — |
 | 6.x | HIL-101 | Analytics updates (incl. Avg time in Surgery) | `phase-6`, `dashboard` | HIL-92 |
 | 6.x | HIL-102 | Care tips: Water / Leaves / Light dropdowns + editable treatment placeholder | `phase-6` | — |
@@ -184,6 +184,7 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 6.x | HIL-106 | Pre-prod hardening epic A–G (correctness → security) | `phase-6` | — |
 | 6.x | HIL-107 | Pest treatment options (Settings catalog + locked dropdowns) | `phase-6`, `dashboard` | HIL-104 |
 | 6.x | HIL-109 | Dashboard UX: nav contrast, account menu, plant modal, drag-drop | `phase-6`, `dashboard` | — |
+| 6.x | HIL-110 | iPad UX: check-in handoff + surgery Update plant (keyboard, targets, overlays) | `phase-6`, `check-in`, `dashboard` | HIL-109 |
 
 ---
 

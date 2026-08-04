@@ -13,6 +13,9 @@ type BugsFoundToggleFieldProps = {
   disabled?: boolean;
   pending?: boolean;
   lockedMessage?: string;
+  /** Heading copy — intake vs treatment (HIL-110). */
+  question?: string;
+  ariaLabel?: string;
 };
 
 export function BugsFoundToggleField({
@@ -21,13 +24,16 @@ export function BugsFoundToggleField({
   disabled = false,
   pending = false,
   lockedMessage = "Locked after collection.",
+  question = "Pests found during treatment?",
+  ariaLabel,
 }: BugsFoundToggleFieldProps) {
   const showClear = !disabled && value !== null;
+  const groupLabel = ariaLabel ?? question;
 
   return (
     <div className="space-y-3">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
-        Pests found during treatment?
+        {question}
       </h2>
 
       {!disabled ? (
@@ -35,7 +41,7 @@ export function BugsFoundToggleField({
           <div
             className="flex flex-wrap items-stretch gap-2"
             role="radiogroup"
-            aria-label="Pests found during treatment"
+            aria-label={groupLabel}
           >
             {OPTIONS.map((option) => {
               const selected = value === option.value;
@@ -74,7 +80,7 @@ export function BugsFoundToggleField({
           {showClear ? (
             <button
               type="button"
-              className="text-sm font-medium text-hilda-text underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
+              className="min-h-11 text-sm font-medium text-hilda-text underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
               disabled={pending}
               onClick={() => onChange(null)}
             >

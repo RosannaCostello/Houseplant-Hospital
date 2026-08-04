@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAppPageTitle } from "@/components/app/app-page-title";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 type AppHeaderProps = {
@@ -26,8 +27,11 @@ export function AppHeader({ userEmail, isAdmin = false }: AppHeaderProps) {
   const pageLabel = pageTitle ?? headerPageLabel(pathname);
   const menuId = useId();
   const [accountOpen, setAccountOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const logoutFormRef = useRef<HTMLFormElement>(null);
+  const checkInHandoff = pathname.startsWith("/app/check-in");
 
   useEffect(() => {
     if (!accountOpen) return;
@@ -57,7 +61,10 @@ export function AppHeader({ userEmail, isAdmin = false }: AppHeaderProps) {
       <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
         <Link
           href="/app"
-          className="flex min-w-0 items-baseline gap-2 font-serif text-base font-normal tracking-tight text-hilda-gold"
+          className={cn(
+            "flex min-w-0 items-baseline gap-2 font-serif text-base font-normal tracking-tight text-hilda-gold",
+            checkInHandoff && "opacity-60",
+          )}
         >
           <span className="truncate">Houseplant Hospital</span>
           {pageLabel ? (
@@ -72,7 +79,7 @@ export function AppHeader({ userEmail, isAdmin = false }: AppHeaderProps) {
           ) : null}
         </Link>
 
-        <div className="relative" ref={menuRef}>
+        <div className={cn("relative", checkInHandoff && "opacity-55")} ref={menuRef}>
           <button
             ref={triggerRef}
             type="button"
@@ -101,25 +108,43 @@ export function AppHeader({ userEmail, isAdmin = false }: AppHeaderProps) {
                 <Link
                   role="menuitem"
                   href="/settings"
-                  className="block px-4 py-2.5 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
+                  className="block min-h-11 px-4 py-2.5 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
                   onClick={() => setAccountOpen(false)}
                 >
                   Settings
                 </Link>
               ) : null}
-              <form action="/auth/signout" method="post">
-                <button
-                  role="menuitem"
-                  type="submit"
-                  className="flex w-full px-4 py-2.5 text-left text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
-                >
-                  Log out
-                </button>
-              </form>
+              <button
+                role="menuitem"
+                type="button"
+                className="flex min-h-11 w-full px-4 py-2.5 text-left text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
+                onClick={() => {
+                  setAccountOpen(false);
+                  setConfirmLogout(true);
+                }}
+              >
+                Log out
+              </button>
             </div>
           ) : null}
         </div>
       </div>
+
+      <form ref={logoutFormRef} action="/auth/signout" method="post" className="hidden" />
+
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Log out?"
+        message="Sign out of Houseplant Hospital on this device?"
+        confirmLabel="Log out"
+        cancelLabel="Stay signed in"
+        destructive
+        onConfirm={() => {
+          setConfirmLogout(false);
+          logoutFormRef.current?.requestSubmit();
+        }}
+        onCancel={() => setConfirmLogout(false)}
+      />
     </header>
   );
 }

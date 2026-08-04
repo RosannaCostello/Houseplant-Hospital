@@ -28,7 +28,7 @@ const defaultValues: CheckInCustomerInput = {
   lastName: "",
   email: "",
   phone: "",
-  marketingConsent: true,
+  marketingConsent: false,
 };
 
 function toFormValues(customer: CheckInCustomer): CheckInCustomerInput {
@@ -165,30 +165,30 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
       }
       status={formError ? <p className="text-sm text-hilda-error-text">{formError}</p> : null}
       footer={
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-          {draftId ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
-              disabled={submitting}
-              onClick={() => void onDiscard()}
-            >
-              Discard draft
-            </Button>
-          ) : (
-            <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href="/app">Cancel</Link>
-            </Button>
-          )}
+        <div className="flex flex-col gap-2">
           <Button
             type="submit"
             form="check-in-customer-form"
-            className="w-full sm:w-auto"
+            className="w-full"
+            size="lg"
             disabled={submitting}
           >
             {submitting ? "Saving…" : "Continue to plants"}
           </Button>
+          {draftId ? (
+            <button
+              type="button"
+              className="mx-auto min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
+              disabled={submitting}
+              onClick={() => void onDiscard()}
+            >
+              Discard draft
+            </button>
+          ) : (
+            <Button asChild variant="ghost" className="w-full text-hilda-text-muted">
+              <Link href="/app">Cancel</Link>
+            </Button>
+          )}
         </div>
       }
     >
@@ -209,7 +209,7 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
           <label className={hildaLabelClassName}>
             First name
             <input
-              className={cn(hildaInputClassName, "py-2.5")}
+              className={cn(hildaInputClassName, "min-h-11 py-2.5")}
               type="text"
               name="firstName"
               autoComplete="given-name"
@@ -225,7 +225,7 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
           <label className={hildaLabelClassName}>
             Last name
             <input
-              className={cn(hildaInputClassName, "py-2.5")}
+              className={cn(hildaInputClassName, "min-h-11 py-2.5")}
               type="text"
               name="lastName"
               autoComplete="family-name"
@@ -242,7 +242,7 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
         <label className={hildaLabelClassName}>
           Phone <span className="font-normal text-hilda-text-muted">(optional)</span>
           <input
-            className={cn(hildaInputClassName, "py-2.5")}
+            className={cn(hildaInputClassName, "min-h-11 py-2.5")}
             type="tel"
             name="phone"
             inputMode="tel"
@@ -256,8 +256,8 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
           ) : null}
         </label>
 
-        <label className="flex items-start gap-2.5 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg p-3">
-          <span className="relative mt-0.5 h-4 w-4 shrink-0">
+        <label className="flex min-h-11 items-start gap-3 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg p-3">
+          <span className="relative mt-0.5 h-5 w-5 shrink-0">
             <input
               className="peer sr-only"
               type="checkbox"
@@ -267,11 +267,11 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
             />
             <span
               aria-hidden
-              className="block h-4 w-4 rounded-hilda-sm border border-hilda-border/30 bg-hilda-surface transition-colors peer-checked:border-hilda-gold peer-checked:bg-hilda-gold peer-focus-visible:ring-2 peer-focus-visible:ring-hilda-gold/40"
+              className="block h-5 w-5 rounded-hilda-sm border border-hilda-border/30 bg-hilda-surface transition-colors peer-checked:border-hilda-gold peer-checked:bg-hilda-gold peer-focus-visible:ring-2 peer-focus-visible:ring-hilda-gold/40"
             />
             <svg
               aria-hidden
-              className="pointer-events-none absolute inset-0 m-auto hidden h-3 w-3 text-hilda-heading peer-checked:block"
+              className="pointer-events-none absolute inset-0 m-auto hidden h-3.5 w-3.5 text-hilda-heading peer-checked:block"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
@@ -280,11 +280,11 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
               <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <span className="text-xs leading-snug text-hilda-text sm:text-sm">
+          <span className="text-sm leading-snug text-hilda-text">
             <span className="font-medium text-hilda-heading">Marketing emails.</span> Customer agrees to
             offers, Hilda newsletter, and plant care tips. Hospital treatment updates are always sent
             regardless of this box.{" "}
-            <span className="text-hilda-text">Deselect to opt out.</span>
+            <span className="text-hilda-text-muted">Leave unchecked to opt out.</span>
           </span>
         </label>
       </form>

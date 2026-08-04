@@ -71,12 +71,12 @@ export function PlantPhotoCapture({
           )}
         >
           {photo ? (
-            <div className="aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full sm:max-h-[min(34dvh,12.5rem)]">
+            <div className="aspect-[4/3] max-h-[min(36dvh,14rem)] w-full landscape:max-h-[min(48dvh,16rem)] sm:max-h-[min(40dvh,15rem)]">
               {/* eslint-disable-next-line @next/next/no-img-element -- preview of captured or stored photo */}
               <img src={photoPreviewSrc(photo)} alt="" className="h-full w-full object-cover" />
             </div>
           ) : (
-            <div className="flex aspect-[4/3] max-h-[min(28dvh,10.5rem)] w-full flex-col items-center justify-center gap-1 px-3 text-center text-xs text-hilda-text-muted sm:max-h-[min(34dvh,12.5rem)]">
+            <div className="flex aspect-[4/3] max-h-[min(36dvh,14rem)] w-full flex-col items-center justify-center gap-1 px-3 text-center text-xs text-hilda-text-muted landscape:max-h-[min(48dvh,16rem)] sm:max-h-[min(40dvh,15rem)]">
               <span className="font-medium text-hilda-text">Photo required</span>
               <span>Camera guide or library</span>
             </div>
@@ -89,7 +89,7 @@ export function PlantPhotoCapture({
             {photo ? (
               <button
                 type="button"
-                className="shrink-0 text-xs font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
+                className="min-h-11 shrink-0 px-1 text-sm font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
                 onClick={() => onPhotoChange(null)}
                 disabled={processing || uploading}
               >
@@ -110,7 +110,7 @@ export function PlantPhotoCapture({
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              className="min-h-10 flex-1 sm:flex-none"
+              className="min-h-11 flex-1 sm:flex-none"
               disabled={processing || uploading}
               onClick={() => setCameraOpen(true)}
             >
@@ -119,7 +119,7 @@ export function PlantPhotoCapture({
             <Button
               type="button"
               variant="outline"
-              className="min-h-10 flex-1 sm:flex-none"
+              className="min-h-11 flex-1 sm:flex-none"
               disabled={processing || uploading}
               onClick={() => libraryInputRef.current?.click()}
             >

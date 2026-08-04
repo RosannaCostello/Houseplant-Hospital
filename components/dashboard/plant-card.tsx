@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
 import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
+import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { PropagationBadge } from "@/components/plants/propagation-badge";
 import { formatDaysSinceCheckIn, formatPlantAge } from "@/lib/format-plant-age";
 import { formatCollectedBadgeLabel } from "@/lib/format-collected-date";
@@ -85,6 +87,8 @@ const CARD_IMAGE_ASPECT_CLASS = "aspect-[4/3]";
 const footerStatusClass = "text-[11px] text-hilda-text";
 
 export function PlantCard({ plant, className, draggableCard = true }: PlantCardProps) {
+  const router = useRouter();
+  const plantDetailModal = useOptionalPlantDetailModal();
   const showQuarantineBadge = plant.status === "quarantine" && plant.quarantineSince;
   const showCheckInBadge = plant.status === "check_in";
   const showPropagationAge = plant.status === "propagation";
@@ -97,6 +101,14 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
     showOutpatientBadge ||
     showCollectedBadge;
   const canDrag = draggableCard && plant.status !== "collected" && plant.status !== "dead";
+
+  function openUpdatePlant() {
+    if (plantDetailModal) {
+      plantDetailModal.openPlantDetail(plant.id);
+      return;
+    }
+    router.push(`/app/plants/${plant.id}`);
+  }
 
   return (
     <div
@@ -126,14 +138,17 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
       }}
     >
       <article className="flex w-full flex-col overflow-hidden rounded-hilda bg-hilda-surface">
-        <div
+        <button
+          type="button"
           className={cn(
-            "relative block w-full shrink-0 overflow-hidden bg-hilda-bg",
+            "relative block w-full shrink-0 overflow-hidden bg-hilda-bg text-left",
             CARD_IMAGE_ASPECT_CLASS,
           )}
+          aria-label={`Update plant for ${plant.customerName}`}
+          onClick={openUpdatePlant}
         >
           <PlantThumbnail thumbnailUrl={plant.thumbnailUrl} />
-          <div className="absolute left-2 top-1.5 flex items-center gap-1.5">
+          <div className="pointer-events-none absolute left-2 top-1.5 flex items-center gap-1.5">
             <span
               className={cn(
                 imageOverlayBadgeClass,
@@ -156,11 +171,15 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
               className="shadow-sm"
             />
           </div>
-        </div>
+        </button>
 
         <div className="shrink-0">
           <div className="flex gap-2 p-2.5">
-            <div className="min-w-0 flex-1 space-y-1">
+            <button
+              type="button"
+              className="min-w-0 flex-1 space-y-1 text-left"
+              onClick={openUpdatePlant}
+            >
               <p className="truncate text-sm font-medium leading-8 text-hilda-heading">
                 {plant.customerName}
               </p>
@@ -187,7 +206,7 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
                   ) : null}
                 </div>
               ) : null}
-            </div>
+            </button>
 
             <div className="flex shrink-0 flex-col items-end justify-between gap-1">
               <span className="pt-2 text-right text-[11px] font-semibold tabular-nums leading-none text-hilda-text-muted">

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { propagatePlantAction } from "@/app/actions/propagate-plant";
 import { Button } from "@/components/ui/button";
 import { PLANT_SIZES, isPlantSize, type PlantSize } from "@/lib/plant-size";
+import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
+import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
 import { cn } from "@/lib/utils";
 
 type PropagatePlantButtonProps = {
@@ -42,11 +44,11 @@ export function PropagatePlantButton({
     }
 
     document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
+      unlock();
     };
   }, [isPending, open]);
 
@@ -86,7 +88,7 @@ export function PropagatePlantButton({
 
       {open
         ? createPortal(
-            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <div className={cn("fixed inset-0 flex items-center justify-center p-4", STAFF_OVERLAY_Z)}>
               <button
                 type="button"
                 className="absolute inset-0 bg-hilda-heading/50"
@@ -127,7 +129,7 @@ export function PropagatePlantButton({
                             className="peer sr-only"
                             onChange={() => setSize(option)}
                           />
-                          <span className="flex min-h-10 items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-surface px-1 text-xs font-semibold text-hilda-heading peer-checked:border-hilda-bugs peer-checked:bg-hilda-bugs peer-checked:text-hilda-inverse">
+                          <span className="flex min-h-11 items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-surface px-1 text-xs font-semibold text-hilda-heading peer-checked:border-hilda-bugs peer-checked:bg-hilda-bugs peer-checked:text-hilda-inverse">
                             {sizeLabel(option)}
                           </span>
                         </label>

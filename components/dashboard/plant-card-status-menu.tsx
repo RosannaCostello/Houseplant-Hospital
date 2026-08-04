@@ -12,6 +12,8 @@ import {
   type PlantStatus,
 } from "@/lib/plant-status";
 import { confirmationForStatusMove } from "@/lib/plants/status-move-confirmation";
+import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
+import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
 import { cn } from "@/lib/utils";
 import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
@@ -100,11 +102,11 @@ export function PlantCardStatusMenu({
     }
 
     document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
+      unlock();
       triggerElement?.focus();
     };
   }, [confirmStep, open]);
@@ -226,7 +228,7 @@ export function PlantCardStatusMenu({
         <button
           ref={triggerRef}
           type="button"
-          className="-mr-0.5 inline-flex h-8 items-center justify-end rounded-hilda-sm px-0.5 text-hilda-heading transition-colors hover:bg-hilda-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hilda-gold disabled:opacity-50"
+          className="-mr-1 inline-flex min-h-11 min-w-11 items-center justify-center rounded-hilda-sm text-hilda-heading transition-colors hover:bg-hilda-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hilda-gold disabled:opacity-50"
           disabled={isPending}
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -243,7 +245,7 @@ export function PlantCardStatusMenu({
 
       {open
         ? createPortal(
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className={cn("fixed inset-0 flex items-center justify-center p-4", STAFF_OVERLAY_Z)}>
               <button
                 type="button"
                 className="absolute inset-0 bg-hilda-heading/40"

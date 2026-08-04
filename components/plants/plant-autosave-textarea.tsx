@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
+import { registerAutosaveFlusher } from "@/lib/ui/autosave-flush-registry";
+import { scrollFocusedFieldAboveKeyboard } from "@/lib/ui/keyboard-avoidance";
 import { cn } from "@/lib/utils";
 
 type SaveResult = { success: true } | { success: false; error: string };
@@ -72,7 +74,19 @@ export function PlantAutosaveTextarea({
     if (readOnly) return;
     if (saveInFlightRef.current) {
       pendingResaveRef.current = true;
-      return;
+      // Wait until in-flight save finishes and resave runs.
+      await new Promise<void>((resolve) => {
+        const started = Date.now();
+        const tick = () => {
+          if (!saveInFlightRef.current || Date.now() - started > 8000) {
+            resolve();
+            return;
+          }
+          window.setTimeout(tick, 50);
+        };
+        tick();
+      });
+      if (contentRef.current === lastSavedRef.current) return;
     }
 
     const toSave = contentRef.current;
@@ -101,12 +115,17 @@ export function PlantAutosaveTextarea({
     if (pendingResaveRef.current || contentRef.current !== toSave) {
       pendingResaveRef.current = false;
       setStatus("idle");
-      void flushSave();
+      await flushSave();
       return;
     }
 
     setStatus("saved");
   }, [readOnly]);
+
+  useEffect(() => {
+    if (readOnly) return;
+    return registerAutosaveFlusher(flushSave);
+  }, [flushSave, readOnly]);
 
   useEffect(() => {
     if (readOnly) {
@@ -150,7 +169,7 @@ export function PlantAutosaveTextarea({
       className={cn(
         hildaInputClassName,
         minHeightClassName,
-        "resize-y py-2.5",
+        "resize-y py-2.5 text-base",
         !label && "w-full",
         readOnly && "cursor-default bg-hilda-bg text-hilda-text",
       )}
@@ -163,6 +182,10 @@ export function PlantAutosaveTextarea({
       aria-readonly={readOnly || undefined}
       aria-label={label ? undefined : ariaLabel}
       onChange={(event) => handleChange(event.target.value)}
+      onFocus={(event) => scrollFocusedFieldAboveKeyboard(event.currentTarget)}
+      onBlur={() => {
+        void flushSave();
+      }}
     />
   );
 

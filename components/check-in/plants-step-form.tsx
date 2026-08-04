@@ -354,23 +354,8 @@ export function PlantsStepForm({
             </p>
           ) : null}
 
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button asChild variant="outline" className="w-full sm:w-auto" disabled={submitting}>
-                <Link href={`/app/check-in?draft=${draftId}`}>Back to customer</Link>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:w-auto"
-                disabled={submitting}
-                onClick={() => void onDiscard()}
-              >
-                Discard draft
-              </Button>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               {shouldReturnToDashboard ? (
                 <p className="self-center text-sm text-hilda-text-muted">
                   {submitting ? "Saving and returning to dashboard…" : "Returning to dashboard…"}
@@ -379,32 +364,47 @@ export function PlantsStepForm({
                 <>
                   <Button
                     type="button"
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                    disabled={submitting || !readyForCheckout}
-                    onClick={() => void onPayAtCollection()}
-                  >
-                    Pay at collection
-                  </Button>
-                  <Button
-                    type="button"
-                    className="w-full sm:w-auto"
+                    className="w-full"
+                    size="lg"
                     disabled={submitting || !readyForCheckout || awaitingPosPayment}
                     onClick={() => void onGoToCheckout()}
                   >
                     {submitting ? "Working…" : awaitingPosPayment ? "Waiting for POS…" : "Go to checkout"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={submitting || !readyForCheckout}
+                    onClick={() => void onPayAtCollection()}
+                  >
+                    Pay at collection
                   </Button>
                 </>
               ) : (
                 <Button
                   type="submit"
                   form="check-in-plants-form"
-                  className="w-full sm:w-auto"
+                  className="w-full"
+                  size="lg"
                   disabled={submitting}
                 >
                   {submitting ? "Saving…" : "Continue to photos"}
                 </Button>
               )}
+            </div>
+            <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-center sm:gap-4">
+              <Button asChild variant="ghost" className="w-full text-hilda-text-muted sm:w-auto">
+                <Link href={`/app/check-in?draft=${draftId}`}>Back to customer</Link>
+              </Button>
+              <button
+                type="button"
+                className="min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
+                disabled={submitting}
+                onClick={() => void onDiscard()}
+              >
+                Discard draft
+              </button>
             </div>
           </div>
         </div>
@@ -442,7 +442,7 @@ export function PlantsStepForm({
                   {plants.length > 1 ? (
                     <button
                       type="button"
-                      className="text-xs font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
+                      className="min-h-11 px-1 text-sm font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
                       onClick={() => removePlant(plant.clientId)}
                     >
                       Remove
@@ -459,7 +459,7 @@ export function PlantsStepForm({
                           key={size}
                           type="button"
                           className={cn(
-                            "min-h-10 min-w-12 rounded-hilda-sm border px-3 py-1.5 text-sm font-semibold transition-colors",
+                            "min-h-11 min-w-14 rounded-hilda-sm border px-3 py-2 text-sm font-semibold transition-colors",
                             plant.size === size
                               ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
                               : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
@@ -478,6 +478,8 @@ export function PlantsStepForm({
                   <BugsFoundToggleField
                     value={plant.bugsFound ?? null}
                     onChange={(bugsFound) => updatePlant(plant.clientId, { bugsFound })}
+                    question="Any pests visible on this plant?"
+                    ariaLabel="Any pests visible on this plant"
                   />
                   {posCheckoutRequired && plant.bugsFound === null ? (
                     <p className="text-sm text-hilda-warning-text">
@@ -489,7 +491,7 @@ export function PlantsStepForm({
                     <label className={hildaLabelClassName}>
                       Plant name
                       <input
-                        className={cn(hildaInputClassName, "py-2.5")}
+                        className={cn(hildaInputClassName, "min-h-11 py-2.5")}
                         type="text"
                         value={plant.name}
                         onChange={(event) => updatePlant(plant.clientId, { name: event.target.value })}

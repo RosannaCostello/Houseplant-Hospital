@@ -131,8 +131,13 @@ export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraV
       if (!blob) throw new Error("Could not capture frame");
 
       const file = new File([blob], `plant-${Date.now()}.jpg`, { type: "image/jpeg" });
-      await onCapture(file);
+      // Close the viewfinder before JPEG compress / upload so staff aren't stuck on camera (HIL-110).
       onClose();
+      void Promise.resolve(onCapture(file)).catch((captureError: unknown) => {
+        const message =
+          captureError instanceof Error ? captureError.message : "Could not capture photo";
+        setError(message);
+      });
     } catch (captureError) {
       const message =
         captureError instanceof Error ? captureError.message : "Could not capture photo";
@@ -169,10 +174,10 @@ export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraV
 
         {ready ? (
           <>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-[min(4%,1.5rem)] pt-[18%]">
-              <PlantPotGuide className="h-auto w-[min(54%,16.5rem)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-[min(4%,1.5rem)] pt-[18%] landscape:pb-[min(2%,0.75rem)] landscape:pt-[8%]">
+              <PlantPotGuide className="h-auto w-[min(54%,16.5rem)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)] landscape:w-[min(28%,11rem)]" />
             </div>
-            <p className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] px-4 text-center text-xs font-medium text-white/90 drop-shadow">
+            <p className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] px-4 text-center text-xs font-medium text-white/90 drop-shadow landscape:bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] landscape:text-[11px]">
               Align the pot with the outline
             </p>
           </>

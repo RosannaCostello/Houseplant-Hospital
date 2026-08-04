@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { retakePlantPhotoAction } from "@/app/actions/retake-plant-photo";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
@@ -10,6 +11,8 @@ import { PropagationBadge } from "@/components/plants/propagation-badge";
 import { Button } from "@/components/ui/button";
 import type { CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import type { PlantDetailPhoto } from "@/lib/plants/get-plant-detail";
+import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
+import { cn } from "@/lib/utils";
 
 type PlantPhotoGalleryProps = {
   plantId: string;
@@ -165,109 +168,112 @@ export function PlantPhotoGallery({
         ) : null}
       </section>
 
-      {lightboxOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex flex-col bg-black/90 p-3"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Plant photo"
-          onClick={closeLightbox}
-        >
-          <div className="flex items-center justify-between gap-2 text-white">
-            <p className="text-sm">Plant photo</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-white/40 bg-transparent text-white hover:bg-white/10"
-              onClick={(event) => {
-                event.stopPropagation();
-                closeLightbox();
-              }}
-            >
-              Close
-            </Button>
-          </div>
-
-          {lightboxPhoto ? (
+      {lightboxOpen && typeof document !== "undefined"
+        ? createPortal(
             <div
-              className="relative mt-3 min-h-0 flex-1"
-              onClick={(event) => event.stopPropagation()}
+              className={cn("fixed inset-0 flex flex-col bg-black/90 p-3", STAFF_OVERLAY_Z)}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Plant photo"
+              onClick={closeLightbox}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element -- fullscreen lightbox */}
-              <img
-                src={lightboxPhoto.url}
-                alt=""
-                className="mx-auto h-full max-h-[min(80dvh,40rem)] w-full object-contain"
-              />
-            </div>
-          ) : (
-            <div className="mt-3 flex min-h-0 flex-1 items-center justify-center text-sm text-white/70">
-              No photo yet
-            </div>
-          )}
-
-          {canRetake ? (
-            <div
-              className="mt-3 space-y-2 rounded-hilda border border-white/20 bg-black/40 p-3 text-white"
-              onClick={(event) => event.stopPropagation()}
-            >
-              {!retakeOpen ? (
+              <div className="flex items-center justify-between gap-2 text-white">
+                <p className="text-sm">Plant photo</p>
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-white/40 bg-transparent text-white hover:bg-white/10"
-                  onClick={() => setRetakeOpen(true)}
+                  className="min-h-11 border-white/40 bg-transparent text-white hover:bg-white/10"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    closeLightbox();
+                  }}
                 >
-                  {lightboxPhoto ? "Retake photo" : "Add photo"}
+                  Close
                 </Button>
-              ) : (
-                <>
-                  <PlantPhotoCapture
-                    label="New plant photo"
-                    photo={pendingPhoto ?? undefined}
-                    onPhotoChange={(photo) => {
-                      setPendingPhoto(
-                        photo
-                          ? {
-                              ...photo,
-                              plantClientId: plantId,
-                            }
-                          : null,
-                      );
-                      setError(null);
-                    }}
-                    uploading={isPending}
+              </div>
+
+              {lightboxPhoto ? (
+                <div
+                  className="relative mt-3 min-h-0 flex-1"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- fullscreen lightbox */}
+                  <img
+                    src={lightboxPhoto.url}
+                    alt=""
+                    className="mx-auto h-full max-h-[min(80dvh,40rem)] w-full object-contain"
                   />
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                </div>
+              ) : (
+                <div className="mt-3 flex min-h-0 flex-1 items-center justify-center text-sm text-white/70">
+                  No photo yet
+                </div>
+              )}
+
+              {canRetake ? (
+                <div
+                  className="mt-3 space-y-2 rounded-hilda border border-white/20 bg-black/40 p-3 text-white"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {!retakeOpen ? (
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full border-white/40 bg-transparent text-white hover:bg-white/10 sm:w-auto"
-                      disabled={isPending}
-                      onClick={() => {
-                        setRetakeOpen(false);
-                        setPendingPhoto(null);
-                        setError(null);
-                      }}
+                      className="w-full border-white/40 bg-transparent text-white hover:bg-white/10"
+                      onClick={() => setRetakeOpen(true)}
                     >
-                      Cancel
+                      {lightboxPhoto ? "Retake photo" : "Add photo"}
                     </Button>
-                    <Button
-                      type="button"
-                      className="w-full sm:w-auto"
-                      disabled={isPending || !pendingPhoto}
-                      onClick={() => saveRetake()}
-                    >
-                      {isPending ? "Saving…" : "Save new photo"}
-                    </Button>
-                  </div>
-                  {error ? <p className="text-sm text-red-300">{error}</p> : null}
-                </>
-              )}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+                  ) : (
+                    <>
+                      <PlantPhotoCapture
+                        label="New plant photo"
+                        photo={pendingPhoto ?? undefined}
+                        onPhotoChange={(photo) => {
+                          setPendingPhoto(
+                            photo
+                              ? {
+                                  ...photo,
+                                  plantClientId: plantId,
+                                }
+                              : null,
+                          );
+                          setError(null);
+                        }}
+                        uploading={isPending}
+                      />
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full border-white/40 bg-transparent text-white hover:bg-white/10 sm:w-auto"
+                          disabled={isPending}
+                          onClick={() => {
+                            setRetakeOpen(false);
+                            setPendingPhoto(null);
+                            setError(null);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          className="w-full sm:w-auto"
+                          disabled={isPending || !pendingPhoto}
+                          onClick={() => saveRetake()}
+                        >
+                          {isPending ? "Saving…" : "Save new photo"}
+                        </Button>
+                      </div>
+                      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+                    </>
+                  )}
+                </div>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

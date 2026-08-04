@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { searchPlantSpeciesAction } from "@/app/actions/search-plant-species";
+import { AnchoredPortal } from "@/components/ui/anchored-portal";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { SPECIES_AUTOCOMPLETE_MIN_LENGTH } from "@/lib/plants/species-constants";
+import { scrollFocusedFieldAboveKeyboard } from "@/lib/ui/keyboard-avoidance";
 import { cn } from "@/lib/utils";
 
 type SpeciesFieldProps = {
@@ -15,6 +17,7 @@ type SpeciesFieldProps = {
 export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
   const listboxId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -42,7 +45,6 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
 
         if (cancelled) return;
 
-        // Hide only when the suggestion is identical to what's already typed.
         const filtered = results.filter((species) => species !== query);
 
         setSuggestions(filtered);
@@ -69,13 +71,16 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
     if (!suggestionsOpen) return;
 
     function onPointerDown(event: PointerEvent) {
-      if (containerRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      const portal = document.getElementById(listboxId);
+      if (portal?.contains(target)) return;
       setSuggestionsOpen(false);
     }
 
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [suggestionsOpen]);
+  }, [listboxId, suggestionsOpen]);
 
   function handleChange(nextValue: string) {
     if (
@@ -106,7 +111,8 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
       <label className={hildaLabelClassName}>
         Species <span className="font-normal text-hilda-text-muted">(optional)</span>
         <input
-          className={cn(hildaInputClassName, "py-2.5")}
+          ref={inputRef}
+          className={cn(hildaInputClassName, "min-h-11 py-2.5")}
           type="text"
           autoComplete="off"
           value={value}
@@ -116,7 +122,8 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
           aria-autocomplete="list"
           placeholder="e.g. Monstera deliciosa"
           onChange={(event) => handleChange(event.target.value)}
-          onFocus={() => {
+          onFocus={(event) => {
+            scrollFocusedFieldAboveKeyboard(event.currentTarget);
             if (
               suggestions.length > 0 &&
               value.trim().toLowerCase() !== selectedSuggestion?.toLowerCase()
@@ -136,17 +143,17 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
         ) : null}
       </label>
 
-      {suggestionsOpen ? (
+      <AnchoredPortal open={suggestionsOpen && suggestions.length > 0} anchorRef={inputRef}>
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface py-1 shadow-lg"
+          className="max-h-full overflow-y-auto rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface py-1 shadow-lg"
         >
           {suggestions.map((species) => (
             <li key={species.toLowerCase()} role="option">
               <button
                 type="button"
-                className="flex w-full items-start px-3 py-2.5 text-left text-sm text-hilda-heading transition-colors hover:bg-hilda-bg"
+                className="flex min-h-11 w-full items-start px-3 py-2.5 text-left text-sm text-hilda-heading transition-colors hover:bg-hilda-bg"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(species)}
               >
@@ -155,7 +162,7 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
             </li>
           ))}
         </ul>
-      ) : null}
+      </AnchoredPortal>
     </div>
   );
 }

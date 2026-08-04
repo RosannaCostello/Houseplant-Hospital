@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { searchCheckInCustomersByEmail } from "@/app/actions/search-check-in-customers";
+import { AnchoredPortal } from "@/components/ui/anchored-portal";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import type { CustomerSearchResult } from "@/lib/customers/search-customers";
+import { scrollFocusedFieldAboveKeyboard } from "@/lib/ui/keyboard-avoidance";
 import { cn } from "@/lib/utils";
 
 const EMAIL_AUTOCOMPLETE_MIN_LENGTH = 4;
@@ -23,6 +25,7 @@ export function CustomerEmailField({
 }: CustomerEmailFieldProps) {
   const listboxId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [suggestions, setSuggestions] = useState<CustomerSearchResult[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -71,13 +74,16 @@ export function CustomerEmailField({
     if (!suggestionsOpen) return;
 
     function onPointerDown(event: PointerEvent) {
-      if (containerRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      const portal = document.getElementById(listboxId);
+      if (portal?.contains(target)) return;
       setSuggestionsOpen(false);
     }
 
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [suggestionsOpen]);
+  }, [listboxId, suggestionsOpen]);
 
   function handleChange(nextValue: string) {
     if (autofillEmail && nextValue !== autofillEmail) {
@@ -103,7 +109,8 @@ export function CustomerEmailField({
       <label className={hildaLabelClassName}>
         Email
         <input
-          className={hildaInputClassName}
+          ref={inputRef}
+          className={cn(hildaInputClassName, "min-h-11 py-2.5")}
           type="email"
           name="email"
           inputMode="email"
@@ -115,7 +122,8 @@ export function CustomerEmailField({
           aria-controls={suggestionsOpen ? listboxId : undefined}
           aria-autocomplete="list"
           onChange={(event) => handleChange(event.target.value)}
-          onFocus={() => {
+          onFocus={(event) => {
+            scrollFocusedFieldAboveKeyboard(event.currentTarget);
             if (suggestions.length > 0 && value.trim() !== autofillEmail) {
               setSuggestionsOpen(true);
             }
@@ -132,19 +140,17 @@ export function CustomerEmailField({
         ) : null}
       </label>
 
-      {suggestionsOpen ? (
+      <AnchoredPortal open={suggestionsOpen && suggestions.length > 0} anchorRef={inputRef}>
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface py-1 shadow-lg"
+          className="max-h-full overflow-y-auto rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface py-1 shadow-lg"
         >
           {suggestions.map((customer) => (
             <li key={customer.id} role="option">
               <button
                 type="button"
-                className={cn(
-                  "flex w-full flex-col items-start px-3 py-2.5 text-left transition-colors hover:bg-hilda-bg",
-                )}
+                className="flex min-h-11 w-full flex-col items-start px-3 py-2.5 text-left transition-colors hover:bg-hilda-bg"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => handleSelect(customer)}
               >
@@ -157,7 +163,7 @@ export function CustomerEmailField({
             </li>
           ))}
         </ul>
-      ) : null}
+      </AnchoredPortal>
     </div>
   );
 }

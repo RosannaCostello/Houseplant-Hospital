@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
+import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
 import { cn } from "@/lib/utils";
 
 export type ConfirmDialogProps = {
@@ -31,14 +33,14 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
-  const confirmRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    confirmRef.current?.focus();
+    // Prefer Cancel on open so destructive Confirm is not a mis-tap target (HIL-110).
+    cancelRef.current?.focus();
+    const unlock = lockBodyScroll();
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape" && !pending) onCancel();
@@ -47,14 +49,14 @@ export function ConfirmDialog({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
+      unlock();
     };
   }, [open, pending, onCancel]);
 
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className={cn("fixed inset-0 flex items-center justify-center p-4", STAFF_OVERLAY_Z)}>
       <button
         type="button"
         className="absolute inset-0 bg-hilda-heading/40"
@@ -82,29 +84,53 @@ export function ConfirmDialog({
         </div>
 
         <div className="flex flex-col gap-2 p-4">
-          <Button
-            ref={confirmRef}
-            type="button"
-            variant={destructive ? "outline" : "default"}
-            className={cn(
-              "min-h-11 w-full",
-              destructive &&
-                "border-hilda-error-border bg-hilda-error-bg text-hilda-error-text hover:brightness-95",
-            )}
-            disabled={pending}
-            onClick={onConfirm}
-          >
-            {pending ? "Working…" : confirmLabel}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11 w-full"
-            disabled={pending}
-            onClick={onCancel}
-          >
-            {cancelLabel}
-          </Button>
+          {destructive ? (
+            <>
+              <Button
+                ref={cancelRef}
+                type="button"
+                variant="outline"
+                className="min-h-11 w-full"
+                disabled={pending}
+                onClick={onCancel}
+              >
+                {cancelLabel}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "min-h-11 w-full border-hilda-error-border bg-hilda-error-bg text-hilda-error-text hover:brightness-95",
+                )}
+                disabled={pending}
+                onClick={onConfirm}
+              >
+                {pending ? "Working…" : confirmLabel}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="default"
+                className="min-h-11 w-full"
+                disabled={pending}
+                onClick={onConfirm}
+              >
+                {pending ? "Working…" : confirmLabel}
+              </Button>
+              <Button
+                ref={cancelRef}
+                type="button"
+                variant="outline"
+                className="min-h-11 w-full"
+                disabled={pending}
+                onClick={onCancel}
+              >
+                {cancelLabel}
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>,

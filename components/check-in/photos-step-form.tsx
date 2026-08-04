@@ -108,8 +108,7 @@ export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: Pho
       next.set(plantClientId, view);
       return next;
     });
-
-    router.refresh();
+    // Local state is enough — avoid router.refresh() flicker after every upload (HIL-110).
   }
 
   async function onComplete(event: React.FormEvent) {
@@ -189,24 +188,29 @@ export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: Pho
         </>
       }
       footer={
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button asChild variant="outline" className="w-full sm:w-auto" disabled={submitting}>
+        <div className="flex flex-col gap-2">
+          <Button
+            type="submit"
+            form="check-in-photos-form"
+            className="w-full"
+            size="lg"
+            disabled={submitting}
+          >
+            {buttonLabel}
+          </Button>
+          <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-center sm:gap-4">
+            <Button asChild variant="ghost" className="w-full text-hilda-text-muted sm:w-auto">
               <Link href={`/app/check-in/plants?draft=${draftId}`}>Back to plants</Link>
             </Button>
-            <Button
+            <button
               type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
+              className="min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
               disabled={submitting}
               onClick={() => void onDiscard()}
             >
               Discard draft
-            </Button>
+            </button>
           </div>
-          <Button type="submit" form="check-in-photos-form" className="w-full sm:w-auto" disabled={submitting}>
-            {buttonLabel}
-          </Button>
         </div>
       }
     >

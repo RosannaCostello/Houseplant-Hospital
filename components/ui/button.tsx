@@ -14,8 +14,8 @@ const buttonVariants = cva(
         ghost: "text-hilda-heading hover:bg-hilda-bg",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        lg: "min-h-11 px-6 py-2.5 text-base",
+        default: "min-h-11 px-4 py-2",
+        lg: "min-h-12 px-6 py-2.5 text-base",
       },
     },
     defaultVariants: {

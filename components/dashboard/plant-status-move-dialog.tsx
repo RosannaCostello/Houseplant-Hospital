@@ -8,6 +8,9 @@ import { updatePlantStatusAction } from "@/app/actions/update-plant-status";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { confirmationForStatusMove } from "@/lib/plants/status-move-confirmation";
 import { canTransitionPlantStatus, type PlantStatus } from "@/lib/plant-status";
+import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
+import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
+import { cn } from "@/lib/utils";
 import { isVisitUnpaid, type PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 
 export type PendingPlantStatusMove = {
@@ -123,10 +126,10 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
     }
 
     document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
+    const unlock = lockBodyScroll();
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
+      unlock();
     };
   }, [onDismiss, pending]);
 
@@ -150,7 +153,7 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
   if (!pending || !confirmStep) {
     if (pending && error) {
       return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className={cn("fixed inset-0 flex items-center justify-center p-4", STAFF_OVERLAY_Z)}>
           <button type="button" className="absolute inset-0 bg-hilda-heading/40" aria-label="Close" onClick={onDismiss} />
           <div className="relative z-10 w-full max-w-sm rounded-hilda border border-hilda-border/15 bg-hilda-surface p-4 shadow-xl">
             <p className="text-sm text-hilda-error-text">{error}</p>
@@ -170,7 +173,7 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className={cn("fixed inset-0 flex items-center justify-center p-4", STAFF_OVERLAY_Z)}>
       <button
         type="button"
         className="absolute inset-0 bg-hilda-heading/40"
