@@ -10,24 +10,39 @@ Linear: [HIL-80](https://linear.app/hilda-houseplant-hospital/issue/HIL-80) (ser
 - Label size: **60×86mm** (`LP_OPTIONS=media=Custom.60x86mm`).
 - CUPS remains optional later for **2-colour** (black/red) tape only.
 
-## Setup on the Mac Mini
+## Setup on the Mac Mini (not your laptop)
 
-1. Mac Mini on shop WiFi; Brother QL-820NWBc printing via **AirPrint** (test from Preview/System Settings).
+Print-bridge runs **only on the shop Mac Mini**. Cursor/dev machine does not talk to the Brother.
+
+1. Mac Mini on shop WiFi; Brother QL-820NWBc printing via **AirPrint** queue **`HH_Airprint`**.
 2. Install **Node.js LTS** and **Google Chrome** (headless HTML → PDF).
-3. Clone this repo (or copy `print-bridge/`). Prefer branch with HIL-82 silent print.
-4. From this folder:
+3. On the Mini, clone/pull this repo and open `print-bridge/`:
 
 ```bash
+git fetch && git checkout jack/hil-82-phase-4-macos-silent-print-integration
+cd print-bridge
 cp .env.example .env
-# Set PRINT_BRIDGE_SECRET (16+ chars)
-# Set PRINTER_NAME to the AirPrint queue from: lpstat -p -d
-# Set PRINT_MODE=print when ready for real labels
-# LP_OPTIONS defaults to media=Custom.60x86mm
-npm install
-npm run start
 ```
 
-5. Smoke test:
+4. Edit `.env` on the Mini:
+
+```
+PRINT_BRIDGE_SECRET=<16+ random chars>
+PRINTER_NAME=HH_Airprint
+LP_OPTIONS=media=Custom.60x86mm
+PRINT_MODE=dry-run
+```
+
+5. Start and smoke-test **on the Mini**:
+
+```bash
+npm install
+npm run start
+# other Terminal tab on the Mini:
+curl -s http://127.0.0.1:8787/health
+```
+
+Then POST `/print` (see below). When HTML looks right, set `PRINT_MODE=print`, restart, POST again.
 
 ```bash
 curl -s http://127.0.0.1:8787/health
@@ -57,6 +72,7 @@ With `PRINT_MODE=dry-run`, open the HTML under `.tmp/`. With `PRINT_MODE=print`,
 
 ## Notes
 
-- Queue name: `lpstat -p -d` — pick the **AirPrint** entry.
+- Queue name at Hilda: **`HH_Airprint`** (`lpstat -p -d` to confirm).
+- Prefer **AirPrint** queue over Brother CUPS — AirPrint prints reliably; CUPS hit Wrong Roll Type on site.
 - If `Custom.60x86mm` is rejected, run `lpoptions -p "$QUEUE" -l | grep -i media` and set `LP_OPTIONS` to the matching token.
 - Production reachability from Cloudflare is [HIL-85](https://linear.app/hilda-houseplant-hospital/issue/HIL-85) (tunnel / allowlist).
