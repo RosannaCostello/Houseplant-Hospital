@@ -51,8 +51,8 @@ curl -s -X POST http://127.0.0.1:8787/print \
   -H "authorization: Bearer YOUR_SECRET" \
   -H "content-type: application/json" \
   -d '{
-    "plantId": "11111111-1111-1111-1111-111111111111",
-    "caseUrl": "https://houseplanthospital.hildaedinburgh.workers.dev/hh/case/11111111-1111-1111-1111-111111111111",
+    "plantId": "11111111-1111-4111-8111-111111111111",
+    "caseUrl": "https://houseplanthospital.hildaedinburgh.workers.dev/hh/case/11111111-1111-4111-8111-111111111111",
     "customerSurname": "Smith",
     "plantName": "Monstera",
     "size": "Medium",

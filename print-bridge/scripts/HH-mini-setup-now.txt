@@ -1,0 +1,107 @@
+Houseplant Hospital — Mac Mini setup (do this now)
+==================================================
+
+On the Mac Mini, open Terminal and run these one step at a time.
+
+----------------------------------------
+STEP 1 — Download the setup script
+----------------------------------------
+
+curl -fsSL https://raw.githubusercontent.com/RosannaCostello/Houseplant-Hospital/jack/hil-82-phase-4-macos-silent-print-integration/print-bridge/scripts/setup-mac-mini.sh -o ~/hh-setup.sh
+
+ls -la ~/hh-setup.sh
+
+(You should see a file listed, not "No such file".)
+
+
+----------------------------------------
+STEP 2 — Run setup (wait for "Done.")
+----------------------------------------
+
+bash ~/hh-setup.sh
+
+Enter your Mac password if asked.
+Do not type anything else until it prints Done.
+
+
+----------------------------------------
+STEP 3 — Start the print bridge
+----------------------------------------
+
+cd ~/Hilda/Houseplant-Hospital/print-bridge
+
+ls
+
+npm run start
+
+Leave this Terminal window open.
+You want a line like: listening on http://127.0.0.1:8787
+
+
+----------------------------------------
+STEP 4 — Health check (new Terminal window)
+----------------------------------------
+
+curl -s http://127.0.0.1:8787/health
+
+
+----------------------------------------
+STEP 5 — Show your secret
+----------------------------------------
+
+cd ~/Hilda/Houseplant-Hospital/print-bridge
+
+grep PRINT_BRIDGE_SECRET .env
+
+
+----------------------------------------
+STEP 6 — Dry-run print test
+----------------------------------------
+
+Replace YOUR_SECRET below with the value from step 5, then paste:
+
+curl -s -X POST http://127.0.0.1:8787/print \
+  -H "authorization: Bearer YOUR_SECRET" \
+  -H "content-type: application/json" \
+  -d '{
+    "plantId": "11111111-1111-4111-8111-111111111111",
+    "caseUrl": "https://houseplanthospital.hildaedinburgh.workers.dev/hh/case/11111111-1111-4111-8111-111111111111",
+    "customerSurname": "Smith",
+    "plantName": "Monstera",
+    "size": "Medium",
+    "pestsFound": false,
+    "checkedInAt": "2026-07-24T10:00:00.000Z"
+  }'
+
+Open the htmlPath from the reply in Chrome (File → Open File).
+
+
+----------------------------------------
+STEP 7 — Real print
+----------------------------------------
+
+open -e ~/Hilda/Houseplant-Hospital/print-bridge/.env
+
+Change PRINT_MODE=dry-run to PRINT_MODE=print
+Also check PRINTER_NAME matches lpstat (HH_Airprint or Brother_QL_820NWB).
+Save the file.
+
+In the first Terminal: press Ctrl+C, then:
+
+cd ~/Hilda/Houseplant-Hospital/print-bridge
+npm run start
+
+Run the same POST curl from step 6 again.
+A label should print.
+
+
+----------------------------------------
+If something fails
+----------------------------------------
+
+Paste / photo the Terminal error.
+Useful checks:
+
+ls ~/Hilda
+ls ~/Hilda/Houseplant-Hospital/print-bridge
+lpstat -p -d
