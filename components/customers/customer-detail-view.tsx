@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { OpenPlantDetailLink } from "@/components/plants/open-plant-detail-link";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import { plantStatusLabel } from "@/lib/plant-status";
 import type {
@@ -19,9 +20,9 @@ function plantTitle(plant: CustomerDetailPlant): string {
 
 function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
   return (
-    <Link
-      href={`/app/plants/${plant.id}`}
-      className="flex items-center justify-between gap-3 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg px-3 py-2 transition-colors hover:border-hilda-border/20 hover:bg-hilda-surface"
+    <OpenPlantDetailLink
+      plantId={plant.id}
+      className="flex w-full items-center justify-between gap-3 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg px-3 py-2 transition-colors hover:border-hilda-border/20 hover:bg-hilda-surface"
     >
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-hilda-heading">{plantTitle(plant)}</p>
@@ -37,7 +38,7 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
           {plant.size}
         </span>
       </div>
-    </Link>
+    </OpenPlantDetailLink>
   );
 }
 

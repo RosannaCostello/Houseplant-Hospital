@@ -120,6 +120,75 @@ const checks = [
     run: () =>
       supabase.from("plant_pest_treatments").select("id, treatment_number, treated_at").limit(1),
   },
+  {
+    id: "0021",
+    label: "visits.payment_settled_via",
+    run: () => supabase.from("visits").select("payment_settled_via").limit(1),
+  },
+  {
+    id: "0021",
+    label: "unique shopify_order_id (column readable)",
+    run: () => supabase.from("visits").select("shopify_order_id").limit(1),
+  },
+  {
+    id: "0022",
+    label: "update_plant_status_atomic RPC",
+    run: async () => {
+      const { error } = await supabase.rpc("update_plant_status_atomic", {
+        p_plant_id: "00000000-0000-0000-0000-000000000000",
+        p_new_status: "check_in",
+      });
+      // Missing function → fail. Auth/not-found → function exists.
+      if (error?.message?.toLowerCase().includes("could not find the function")) {
+        return { error };
+      }
+      return { error: null };
+    },
+  },
+  {
+    id: "0022",
+    label: "get_public_plant_case RPC",
+    run: async () => {
+      const { error } = await supabase.rpc("get_public_plant_case", {
+        p_plant_id: "00000000-0000-0000-0000-000000000000",
+      });
+      if (error?.message?.toLowerCase().includes("could not find the function")) {
+        return { error };
+      }
+      return { error: null };
+    },
+  },
+  {
+    id: "0023",
+    label: "pest_treatment_options",
+    run: () =>
+      supabase.from("pest_treatment_options").select("id, label, sort_order, active").limit(1),
+  },
+  {
+    id: "0023",
+    label: "plant_pest_treatments.option_label",
+    run: () =>
+      supabase.from("plant_pest_treatments").select("option_id, option_label").limit(1),
+  },
+  {
+    id: "0024",
+    label: "analytics averageMinutesInSurgery",
+    run: async () => {
+      const { data, error } = await supabase.rpc("analytics_period_summary", {
+        p_start: new Date("2000-01-01T00:00:00Z").toISOString(),
+        p_end: new Date("2000-01-02T00:00:00Z").toISOString(),
+      });
+      if (error) return { error };
+      if (!data || typeof data !== "object" || !("averageMinutesInSurgery" in data)) {
+        return {
+          error: {
+            message: "analytics_period_summary missing averageMinutesInSurgery",
+          },
+        };
+      }
+      return { error: null };
+    },
+  },
 ];
 
 let missing = 0;

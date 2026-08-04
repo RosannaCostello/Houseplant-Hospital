@@ -15,35 +15,57 @@ export type PublicPlantCase = {
   photoUrl: string | null;
 };
 
-type PlantPhotoRow = {
-  storage_path: string;
-  thumbnail_path: string | null;
-  created_at: string;
-};
-
-function unwrapRelation<T>(value: T | T[] | null | undefined): T | null {
-  if (value == null) return null;
-  return Array.isArray(value) ? (value[0] ?? null) : value;
-}
-
 function isPlantStatus(value: string): value is PlantStatus {
   return (PLANT_STATUSES as readonly string[]).includes(value);
 }
 
-function latestPhotoPath(photos: PlantPhotoRow[] | null | undefined): string | null {
-  if (!photos?.length) return null;
-
-  const latest = [...photos].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  )[0];
-
-  return latest.storage_path;
-}
-
 export async function getPublicPlantCase(plantId: string): Promise<PublicPlantCase | null> {
+  // Service role only to call the narrowed SECURITY DEFINER RPC + sign storage.
+  // The RPC returns public-safe columns only (no customer PII).
   const supabase = createSupabaseAdminClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await supabase.rpc("get_public_plant_case", {
+    p_plant_id: plantId,
+  });
+
+  if (!error) {
+    const row = Array.isArray(data) ? data[0] : data;
+
+    if (!row || typeof row !== "object") {
+      return null;
+    }
+
+    const record = row as {
+      id?: string;
+      name?: string | null;
+      species?: string | null;
+      status?: string;
+      checkin_date?: string;
+      photo_storage_path?: string | null;
+    };
+
+    if (!record.id || !record.status || !record.checkin_date || !isPlantStatus(record.status)) {
+      return null;
+    }
+
+    const photoPath = record.photo_storage_path ?? null;
+    const signedUrls = photoPath ? await signPhotoPaths([photoPath], supabase) : new Map();
+    const customerStatus = customerPlantStatus(record.status);
+
+    return {
+      id: record.id,
+      name: record.name ?? null,
+      species: record.species ?? null,
+      status: record.status,
+      statusLabel: customerStatus.label,
+      statusMessage: customerStatus.message,
+      checkedInAt: record.checkin_date,
+      photoUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
+    };
+  }
+
+  // Fallback before migration 0022 — still filter fields in TS.
+  const { data: legacy, error: legacyError } = await supabase
     .from("plants")
     .select(
       `
@@ -56,7 +78,6 @@ export async function getPublicPlantCase(plantId: string): Promise<PublicPlantCa
       ),
       plant_photos (
         storage_path,
-        thumbnail_path,
         created_at
       )
     `,
@@ -64,44 +85,40 @@ export async function getPublicPlantCase(plantId: string): Promise<PublicPlantCa
     .eq("id", plantId)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(`Failed to load plant case: ${error.message}`);
+  if (legacyError) {
+    throw new Error(`Failed to load plant case: ${legacyError.message}`);
   }
 
-  if (!data || typeof data !== "object") {
+  if (!legacy || typeof legacy !== "object") {
     return null;
   }
 
-  const row = data as {
-    id?: string;
-    name?: string | null;
-    species?: string | null;
-    status?: string;
-    visits?:
-      | { checkin_date: string }
-      | Array<{ checkin_date: string }>;
-    plant_photos?: PlantPhotoRow[] | null;
-  };
+  const visits = (legacy as { visits?: { checkin_date: string } | Array<{ checkin_date: string }> })
+    .visits;
+  const visit = Array.isArray(visits) ? visits[0] : visits;
+  const status = (legacy as { status?: string }).status;
+  const id = (legacy as { id?: string }).id;
+  const photos = (legacy as { plant_photos?: Array<{ storage_path: string; created_at: string }> })
+    .plant_photos;
 
-  const visit = unwrapRelation(row.visits);
-
-  if (!row.id || !row.status || !visit) {
+  if (!id || !status || !visit || !isPlantStatus(status)) {
     return null;
   }
 
-  if (!isPlantStatus(row.status)) {
-    return null;
-  }
-
-  const photoPath = latestPhotoPath(row.plant_photos);
+  const photoPath =
+    photos && photos.length > 0
+      ? [...photos].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0]?.storage_path ?? null
+      : null;
   const signedUrls = photoPath ? await signPhotoPaths([photoPath], supabase) : new Map();
-  const customerStatus = customerPlantStatus(row.status);
+  const customerStatus = customerPlantStatus(status);
 
   return {
-    id: row.id,
-    name: row.name ?? null,
-    species: row.species ?? null,
-    status: row.status,
+    id,
+    name: (legacy as { name?: string | null }).name ?? null,
+    species: (legacy as { species?: string | null }).species ?? null,
+    status,
     statusLabel: customerStatus.label,
     statusMessage: customerStatus.message,
     checkedInAt: visit.checkin_date,

@@ -89,8 +89,12 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     return null;
   }
 
-  // Historic Zoho imports belong in Analytics, not the live ops board.
-  if (visit.notes === "zoho-import" || visit.notes === "zoho-import-final") {
+  // Historic imports belong in Analytics, not the live ops board.
+  if (
+    visit.notes === "zoho-import" ||
+    visit.notes === "zoho-import-final" ||
+    visit.notes === "shopify-import"
+  ) {
     return null;
   }
 
@@ -175,7 +179,11 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       )
     `,
     )
-    .order("created_at", { ascending: false });
+    // Do not filter zoho visits in PostgREST: `.not(...eq...)` drops NULL notes
+    // (SQL <> semantics). Exclude historic import notes in parseDashboardPlantRow instead.
+    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: false, foreignTable: "plant_photos" })
+    .limit(3, { foreignTable: "plant_photos" });
   let data: unknown[] | null = initialResult.data;
   let error = initialResult.error;
 

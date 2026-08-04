@@ -32,6 +32,8 @@ Loaded via `next/font/google` in `app/layout.tsx` as **DM Serif Display** (the G
 
 **Border opacity steps:** `/10`, `/15`, `/20`, `/25`, `/30`, `/40` on `hilda-border`.
 
+**Bottom nav active tab (HIL-109):** fill is `hilda-heading` (`#002c36`) at **78%** opacity (`rgba(0, 44, 54, 0.78)`); label/icon remain `hilda-gold`. No new colours.
+
 ## Semantic colours
 
 | Token | Value | Usage |

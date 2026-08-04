@@ -6,6 +6,7 @@ import { visitPlantPositionFromOrderedIds } from "@/lib/visits/visit-plant-posit
 import { isPosPaymentStatus, type PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
 import type { PestTreatmentNumber, PlantPestTreatment } from "@/lib/plants/pest-treatments";
+import { getMinutesInSurgeryWithClient } from "@/lib/plants/get-minutes-in-surgery";
 
 export type PlantDetailPhoto = {
   id: string;
@@ -28,6 +29,8 @@ export type PlantDetail = {
   hasPropagation: boolean;
   finalPrice: number | null;
   collectedAt: string | null;
+  /** Minutes spent in in_surgery for the latest completed stint; null if never left surgery. */
+  minutesInSurgery: number | null;
   checkedInAt: string;
   visitId: string;
   paymentStatus: PosPaymentStatus | null;
@@ -100,6 +103,16 @@ const PLANT_DETAIL_RELATIONS = `
       ${PLANT_DETAIL_RELATIONS_BASE},
       plant_pest_treatments (
         treatment_number,
+        treated_at,
+        option_id,
+        option_label
+      )
+`;
+
+const PLANT_DETAIL_RELATIONS_PRE_OPTIONS = `
+      ${PLANT_DETAIL_RELATIONS_BASE},
+      plant_pest_treatments (
+        treatment_number,
         treated_at
       )
 `;
@@ -120,6 +133,22 @@ const PLANT_DETAIL_SELECT = `
       ${PLANT_DETAIL_RELATIONS}
 `;
 
+const PLANT_DETAIL_SELECT_PRE_OPTIONS = `
+      id,
+      name,
+      species,
+      size,
+      status,
+      bugs_found,
+      bugs_found_ever,
+      plant_category,
+      source_plant_id,
+      final_price,
+      collected_at,
+      created_at,
+      ${PLANT_DETAIL_RELATIONS_PRE_OPTIONS}
+`;
+
 const PLANT_DETAIL_SELECT_LEGACY = `
       id,
       name,
@@ -137,6 +166,10 @@ function isMissingCollectionColumnsError(message: string): boolean {
   return message.includes("final_price") || message.includes("collected_at");
 }
 
+function isMissingPestTreatmentOptionColumnsError(message: string): boolean {
+  return message.includes("option_id") || message.includes("option_label");
+}
+
 function isMissingPestTreatmentSchemaError(message: string): boolean {
   return (
     message.includes("bugs_found_ever") ||
@@ -145,13 +178,26 @@ function isMissingPestTreatmentSchemaError(message: string): boolean {
 }
 
 function parsePestTreatments(
-  rows: Array<{ treatment_number?: number; treated_at?: string }> | null | undefined,
+  rows:
+    | Array<{
+        treatment_number?: number;
+        treated_at?: string;
+        option_id?: string | null;
+        option_label?: string | null;
+      }>
+    | null
+    | undefined,
 ): PlantPestTreatment[] {
   if (!rows?.length) return [];
 
   return rows
     .filter(
-      (row): row is { treatment_number: PestTreatmentNumber; treated_at: string } =>
+      (row): row is {
+        treatment_number: PestTreatmentNumber;
+        treated_at: string;
+        option_id?: string | null;
+        option_label?: string | null;
+      } =>
         (row.treatment_number === 1 ||
           row.treatment_number === 2 ||
           row.treatment_number === 3) &&
@@ -160,6 +206,11 @@ function parsePestTreatments(
     .map((row) => ({
       treatmentNumber: row.treatment_number,
       treatedAt: row.treated_at,
+      optionId: typeof row.option_id === "string" ? row.option_id : null,
+      optionLabel:
+        typeof row.option_label === "string" && row.option_label.trim()
+          ? row.option_label.trim()
+          : "Treatment recorded",
     }))
     .sort((a, b) => a.treatmentNumber - b.treatmentNumber);
 }
@@ -172,6 +223,14 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     .select(PLANT_DETAIL_SELECT)
     .eq("id", plantId)
     .maybeSingle();
+
+  if (error && isMissingPestTreatmentOptionColumnsError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT_PRE_OPTIONS)
+      .eq("id", plantId)
+      .maybeSingle());
+  }
 
   if (
     error &&
@@ -208,6 +267,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     plant_pest_treatments?: Array<{
       treatment_number?: number;
       treated_at?: string;
+      option_id?: string | null;
+      option_label?: string | null;
     }> | null;
     visits?:
       | {
@@ -339,6 +400,11 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     throw new Error(`Failed to load plant propagation: ${propagationChildError.message}`);
   }
 
+  const minutesInSurgery =
+    row.status === "outpatient" || row.status === "collected"
+      ? await getMinutesInSurgeryWithClient(supabase, row.id)
+      : null;
+
   return {
     id: row.id,
     name: row.name ?? null,
@@ -353,6 +419,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     hasPropagation: Boolean(propagationChild),
     finalPrice: row.final_price != null ? Number(row.final_price) : null,
     collectedAt: row.collected_at ?? null,
+    minutesInSurgery,
     checkedInAt: visit.checkin_date,
     visitId: visit.id,
     paymentStatus,

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { toStaffErrorMessage } from "@/lib/errors/staff-error";
 import { updatePlantStatusWithClient } from "@/lib/plants/update-plant-status";
 import { PLANT_STATUSES } from "@/lib/plant-status";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -31,19 +32,28 @@ export async function updatePlantStatusAction(
     return { success: false, error: "Invalid plant or status." };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const result = await updatePlantStatusWithClient(
-    supabase,
-    parsed.data.plantId,
-    parsed.data.newStatus,
-    { paidAnotherWay: parsed.data.paidAnotherWay },
-  );
+  try {
+    const supabase = await createSupabaseServerClient();
+    const result = await updatePlantStatusWithClient(
+      supabase,
+      parsed.data.plantId,
+      parsed.data.newStatus,
+      { paidAnotherWay: parsed.data.paidAnotherWay },
+    );
 
-  if (result.success) {
-    revalidatePath("/app");
-    revalidatePath(`/app/plants/${parsed.data.plantId}`);
-    revalidatePath(`/hh/case/${parsed.data.plantId}`);
+    if (result.success) {
+      revalidatePath("/app");
+      revalidatePath(`/app/plants/${parsed.data.plantId}`);
+      revalidatePath(`/hh/case/${parsed.data.plantId}`);
+      return result;
+    }
+
+    return {
+      ...result,
+      error: toStaffErrorMessage(result.error, result.error),
+    };
+  } catch (error) {
+    console.error("[updatePlantStatusAction]", error);
+    return { success: false, error: toStaffErrorMessage(error) };
   }
-
-  return result;
 }

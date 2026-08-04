@@ -12,7 +12,7 @@ import {
   type CareTipSelections,
 } from "@/lib/care-tips/compose-parse";
 import type { CareTipOption, CareTipOptionsByCategory } from "@/lib/care-tips/types";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { cn } from "@/lib/utils";
 
 type CareTipsSectionProps = {
@@ -133,10 +133,10 @@ export function CareTipsSection({
         );
 
         return (
-          <label key={category} className={checkInLabelClassName}>
+          <label key={category} className={hildaLabelClassName}>
             {CARE_TIP_CATEGORY_LABELS[category]}
             <select
-              className={cn(checkInInputClassName, "w-full", readOnly && "cursor-default bg-hilda-bg")}
+              className={cn(hildaInputClassName, "w-full", readOnly && "cursor-default bg-hilda-bg")}
               aria-label={CARE_TIP_CATEGORY_LABELS[category]}
               value={selections[category]}
               disabled={readOnly || isPending}

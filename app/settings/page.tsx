@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { CareTipsSettingsForm } from "@/components/settings/care-tips-settings-form";
+import { PestTreatmentOptionsSettingsForm } from "@/components/settings/pest-treatment-options-settings-form";
 import { PricingSettingsForm } from "@/components/settings/pricing-settings-form";
 import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
 import { getCareTipOptions } from "@/lib/care-tips/get-care-tip-options";
+import { getPestTreatmentOptions } from "@/lib/pest-treatments/get-pest-treatment-options";
 import { getPricingSettings } from "@/lib/pricing/get-pricing-settings";
 import {
   shouldRunDailyShopifySync,
@@ -35,9 +37,10 @@ export default async function SettingsPage() {
     }
   }
 
-  const [settings, careTipOptions, appCopy] = await Promise.all([
+  const [settings, careTipOptions, pestTreatmentOptions, appCopy] = await Promise.all([
     getPricingSettings(),
     getCareTipOptions({ includeInactive: true }),
+    getPestTreatmentOptions({ includeInactive: true }).catch(() => []),
     getAppCopySettings(),
   ]);
 
@@ -51,6 +54,10 @@ export default async function SettingsPage() {
 
       <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <PricingSettingsForm settings={settings} />
+      </section>
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+        <PestTreatmentOptionsSettingsForm options={pestTreatmentOptions} />
       </section>
 
       <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">

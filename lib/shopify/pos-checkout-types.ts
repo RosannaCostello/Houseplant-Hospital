@@ -46,6 +46,8 @@ export function canProceedToPhotosStep(
 }
 
 export function isVisitUnpaid(status: PosPaymentStatus | null | undefined): boolean {
-  if (!status) return false;
+  if (!status || status === "not_started" || status === "cancelled") {
+    return true;
+  }
   return status === "pay_at_collection" || status === "queued" || status === "loaded";
 }

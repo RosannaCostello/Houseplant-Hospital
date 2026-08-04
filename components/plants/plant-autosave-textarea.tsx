@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { cn } from "@/lib/utils";
 
 type SaveResult = { success: true } | { success: false; error: string };
@@ -49,6 +49,7 @@ export function PlantAutosaveTextarea({
   const contentRef = useRef(content);
   const lastSavedRef = useRef(lastSaved);
   const saveInFlightRef = useRef(false);
+  const pendingResaveRef = useRef(false);
 
   onSaveRef.current = onSave;
   contentRef.current = content;
@@ -67,6 +68,46 @@ export function PlantAutosaveTextarea({
     setError(null);
   }, [initialValue]);
 
+  const flushSave = useCallback(async () => {
+    if (readOnly) return;
+    if (saveInFlightRef.current) {
+      pendingResaveRef.current = true;
+      return;
+    }
+
+    const toSave = contentRef.current;
+    if (toSave === lastSavedRef.current) {
+      return;
+    }
+
+    saveInFlightRef.current = true;
+    pendingResaveRef.current = false;
+    setStatus("saving");
+    setError(null);
+
+    const result = await onSaveRef.current(toSave);
+
+    saveInFlightRef.current = false;
+
+    if (!result.success) {
+      setError(result.error);
+      setStatus("error");
+      return;
+    }
+
+    setLastSaved(toSave);
+    lastSavedRef.current = toSave;
+
+    if (pendingResaveRef.current || contentRef.current !== toSave) {
+      pendingResaveRef.current = false;
+      setStatus("idle");
+      void flushSave();
+      return;
+    }
+
+    setStatus("saved");
+  }, [readOnly]);
+
   useEffect(() => {
     if (readOnly) {
       return;
@@ -75,42 +116,12 @@ export function PlantAutosaveTextarea({
       return;
     }
 
-    const timer = window.setTimeout(async () => {
-      if (saveInFlightRef.current) {
-        return;
-      }
-
-      const toSave = contentRef.current;
-      if (toSave === lastSavedRef.current) {
-        return;
-      }
-
-      saveInFlightRef.current = true;
-      setStatus("saving");
-      setError(null);
-
-      const result = await onSaveRef.current(toSave);
-
-      saveInFlightRef.current = false;
-
-      if (!result.success) {
-        setError(result.error);
-        setStatus("error");
-        return;
-      }
-
-      setLastSaved(toSave);
-
-      if (contentRef.current !== toSave) {
-        setStatus("idle");
-        return;
-      }
-
-      setStatus("saved");
+    const timer = window.setTimeout(() => {
+      void flushSave();
     }, debounceMs);
 
     return () => window.clearTimeout(timer);
-  }, [content, lastSaved, debounceMs, readOnly]);
+  }, [content, lastSaved, debounceMs, readOnly, flushSave]);
 
   useEffect(() => {
     if (status !== "saved") {
@@ -137,7 +148,7 @@ export function PlantAutosaveTextarea({
   const textarea = (
     <textarea
       className={cn(
-        checkInInputClassName,
+        hildaInputClassName,
         minHeightClassName,
         "resize-y py-2.5",
         !label && "w-full",
@@ -158,7 +169,7 @@ export function PlantAutosaveTextarea({
   return (
     <div className="space-y-1">
       {label ? (
-        <label className={checkInLabelClassName}>
+        <label className={hildaLabelClassName}>
           {label}
           {textarea}
         </label>

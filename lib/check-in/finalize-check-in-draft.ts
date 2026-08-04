@@ -6,6 +6,8 @@ import {
   visitPaymentStatusFromDraft,
 } from "@/lib/check-in/pos-checkout";
 import { checkInPlantsStepSchema } from "@/lib/check-in/plant-schema";
+import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
+import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
 import { copyDraftPhotoToPlant } from "@/lib/photos/upload-draft-photo";
 import type { PosCheckoutPayload } from "@/lib/shopify/pos-checkout-types";
 
@@ -52,7 +54,7 @@ export async function finalizeCheckInDraftWithClient(
   const paymentSnapshot = await getDraftPaymentSnapshotWithClient(supabase, draftId);
   const visitPaymentStatus = paymentSnapshot
     ? visitPaymentStatusFromDraft(paymentSnapshot.paymentStatus)
-    : null;
+    : "not_started";
 
   const missingPhotos = plants.filter(
     (plant) => !draft.photos.some((photo) => photo.plantClientId === plant.clientId),
@@ -69,10 +71,14 @@ export async function finalizeCheckInDraftWithClient(
   const copiedPaths: string[] = [];
 
   try {
-    const records = await createCheckInRecordsWithClient(supabase, {
-      customer: draft.customer,
-      plants,
-    });
+    const records = await createCheckInRecordsWithClient(
+      supabase,
+      {
+        customer: draft.customer,
+        plants,
+      },
+      { deferMailchimp: true },
+    );
 
     if (!records.success) {
       return { success: false, error: records.error };
@@ -80,23 +86,21 @@ export async function finalizeCheckInDraftWithClient(
 
     visitId = records.visitId;
 
-    if (visitPaymentStatus || paymentSnapshot?.shopifyOrderId || paymentSnapshot?.posLineItems) {
-      const { error: visitPaymentError } = await supabase
-        .from("visits")
-        .update({
-          payment_status: visitPaymentStatus,
-          shopify_order_id: paymentSnapshot?.shopifyOrderId ?? null,
-          shopify_paid_at: paymentSnapshot?.paidAt ?? null,
-          pos_line_items: rewritePosPayloadForVisit(
-            paymentSnapshot?.posLineItems ?? null,
-            records.visitId,
-          ),
-        })
-        .eq("id", records.visitId);
+    const { error: visitPaymentError } = await supabase
+      .from("visits")
+      .update({
+        payment_status: visitPaymentStatus,
+        shopify_order_id: paymentSnapshot?.shopifyOrderId ?? null,
+        shopify_paid_at: paymentSnapshot?.paidAt ?? null,
+        pos_line_items: rewritePosPayloadForVisit(
+          paymentSnapshot?.posLineItems ?? null,
+          records.visitId,
+        ),
+      })
+      .eq("id", records.visitId);
 
-      if (visitPaymentError) {
-        throw new Error(visitPaymentError.message);
-      }
+    if (visitPaymentError) {
+      throw new Error(visitPaymentError.message);
     }
 
     const plantIdByClientId = new Map(records.plants.map((row) => [row.clientId, row.plantId]));
@@ -142,6 +146,20 @@ export async function finalizeCheckInDraftWithClient(
     const deleted = await deleteCheckInDraftWithClient(supabase, draftId);
     if (!deleted.success) {
       throw new Error(deleted.error);
+    }
+
+    await syncCheckInToMailchimp({
+      supabase,
+      customer: draft.customer,
+      customerId: records.customerId,
+      visitId: records.visitId,
+      plants: records.plants.map((plant) => ({ plantId: plant.plantId })),
+    });
+
+    for (const plant of records.plants) {
+      if (plant.status === "quarantine") {
+        await emitPlantStatusChangeEvent(supabase, plant.plantId, "check_in", "quarantine");
+      }
     }
 
     return { success: true, visitId: records.visitId };

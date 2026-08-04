@@ -3,6 +3,7 @@ import { AnalyticsCharts } from "@/components/analytics/analytics-charts";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { InfoDefinitionButton } from "@/components/analytics/info-definition-button";
 import { MetricCard } from "@/components/analytics/metric-card";
+import { OpenPlantDetailLink } from "@/components/plants/open-plant-detail-link";
 import {
   comparisonSuffixForPreset,
   previousPeriodNameForPreset,
@@ -20,6 +21,17 @@ function formatDays(value: number | null): string {
   if (value == null) return "—";
   if (value < 1) return `${Math.round(value * 24)} hrs`;
   return `${value.toFixed(value >= 10 ? 0 : 1)} days`;
+}
+
+/** Format average surgery duration (stored as minutes). */
+function formatMinutes(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const mins = Math.round(value);
+  if (mins < 60) return `${mins} min`;
+  const hours = mins / 60;
+  if (hours < 48) return `${hours.toFixed(hours >= 10 ? 0 : 1)} hrs`;
+  const days = hours / 24;
+  return `${days.toFixed(days >= 10 ? 0 : 1)} days`;
 }
 
 function paymentLabel(status: string): string {
@@ -76,7 +88,7 @@ export function AnalyticsDashboard({
             {range.previousLabel})
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <MetricCard
             label="Treatment revenue"
             value={formatGbp(current.treatmentRevenue)}
@@ -85,6 +97,43 @@ export function AnalyticsDashboard({
             previousFormatted={formatGbp(previous.treatmentRevenue)}
             comparisonSuffix={comparisonSuffix}
             definition="Final prices recorded on plants collected during this period. Revenue, not profit."
+          />
+          <MetricCard
+            label="Average collected value"
+            value={
+              current.averageValuePerCollectedPlant == null
+                ? "—"
+                : formatGbp(current.averageValuePerCollectedPlant)
+            }
+            current={current.averageValuePerCollectedPlant}
+            previous={previous.averageValuePerCollectedPlant}
+            previousFormatted={
+              previous.averageValuePerCollectedPlant == null
+                ? null
+                : formatGbp(previous.averageValuePerCollectedPlant)
+            }
+            comparisonSuffix={comparisonSuffix}
+            definition={`Average final price across ${formatCount(current.pricedCollectedPlants)} priced collected plants.`}
+          />
+          <MetricCard
+            label="Avg time in Surgery"
+            value={formatMinutes(current.averageMinutesInSurgery ?? null)}
+            current={current.averageMinutesInSurgery ?? null}
+            previous={previous.averageMinutesInSurgery ?? null}
+            previousFormatted={formatMinutes(previous.averageMinutesInSurgery ?? null)}
+            comparisonSuffix={comparisonSuffix}
+            lowerIsBetter
+            definition="Average time plants spent in In Surgery during this period (from entering surgery until moving to Outpatient or Dead). App check-ins only — historic Zoho imports are excluded. Lower is better."
+          />
+          <MetricCard
+            label="Median turnaround"
+            value={formatDays(current.medianTurnaroundDays)}
+            current={current.medianTurnaroundDays}
+            previous={previous.medianTurnaroundDays}
+            previousFormatted={formatDays(previous.medianTurnaroundDays)}
+            comparisonSuffix={comparisonSuffix}
+            lowerIsBetter
+            definition="Middle time from check-in to collection among plants collected in this period."
           />
           <MetricCard
             label="Plants checked in"
@@ -103,33 +152,6 @@ export function AnalyticsDashboard({
             previousFormatted={formatCount(previous.plantsCollected)}
             comparisonSuffix={comparisonSuffix}
             definition="Plants whose collection was completed during this period."
-          />
-          <MetricCard
-            label="Median turnaround"
-            value={formatDays(current.medianTurnaroundDays)}
-            current={current.medianTurnaroundDays}
-            previous={previous.medianTurnaroundDays}
-            previousFormatted={formatDays(previous.medianTurnaroundDays)}
-            comparisonSuffix={comparisonSuffix}
-            lowerIsBetter
-            definition="Middle time from check-in to collection among plants collected in this period."
-          />
-          <MetricCard
-            label="Average collected value"
-            value={
-              current.averageValuePerCollectedPlant == null
-                ? "—"
-                : formatGbp(current.averageValuePerCollectedPlant)
-            }
-            current={current.averageValuePerCollectedPlant}
-            previous={previous.averageValuePerCollectedPlant}
-            previousFormatted={
-              previous.averageValuePerCollectedPlant == null
-                ? null
-                : formatGbp(previous.averageValuePerCollectedPlant)
-            }
-            comparisonSuffix={comparisonSuffix}
-            definition={`Average final price across ${formatCount(current.pricedCollectedPlants)} priced collected plants.`}
           />
         </div>
       </section>
@@ -308,9 +330,12 @@ export function AnalyticsDashboard({
                   {analytics.oldestActive.map((plant) => (
                     <tr key={plant.plantId}>
                       <td className="px-4 py-3 font-medium text-hilda-heading">
-                        <Link href={`/app/plants/${plant.plantId}`} className="hover:underline">
+                        <OpenPlantDetailLink
+                          plantId={plant.plantId}
+                          className="hover:underline"
+                        >
                           {plant.customerName}
-                        </Link>
+                        </OpenPlantDetailLink>
                       </td>
                       <td className="px-4 py-3 text-hilda-text">{plant.plantName || "Unnamed plant"}</td>
                       <td className="px-4 py-3 text-hilda-text">{plantStatusLabel(plant.status)}</td>

@@ -7,7 +7,7 @@ import {
   type AnalyticsDateRange,
   type AnalyticsPreset,
 } from "@/lib/analytics/date-range";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 
 export function AnalyticsFilters({ range }: { range: AnalyticsDateRange }) {
   const [preset, setPreset] = useState<AnalyticsPreset>(range.preset);
@@ -21,11 +21,11 @@ export function AnalyticsFilters({ range }: { range: AnalyticsDateRange }) {
       className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-4"
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-        <label className={checkInLabelClassName}>
+        <label className={hildaLabelClassName}>
           Period
           <select
             name="preset"
-            className={checkInInputClassName}
+            className={hildaInputClassName}
             value={preset}
             onChange={(event) => setPreset(event.target.value as AnalyticsPreset)}
           >
@@ -39,7 +39,7 @@ export function AnalyticsFilters({ range }: { range: AnalyticsDateRange }) {
 
         {isCustom ? (
           <>
-            <label className={checkInLabelClassName}>
+            <label className={hildaLabelClassName}>
               From
               <input
                 type="date"
@@ -47,10 +47,10 @@ export function AnalyticsFilters({ range }: { range: AnalyticsDateRange }) {
                 required
                 max={today}
                 defaultValue={range.startDate}
-                className={checkInInputClassName}
+                className={hildaInputClassName}
               />
             </label>
-            <label className={checkInLabelClassName}>
+            <label className={hildaLabelClassName}>
               To
               <input
                 type="date"
@@ -58,7 +58,7 @@ export function AnalyticsFilters({ range }: { range: AnalyticsDateRange }) {
                 required
                 max={today}
                 defaultValue={range.endDate}
-                className={checkInInputClassName}
+                className={hildaInputClassName}
               />
             </label>
           </>

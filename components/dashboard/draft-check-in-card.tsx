@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { deleteCheckInDraft } from "@/app/actions/check-in-draft";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   checkInDraftResumePath,
   checkInDraftStepLabel,
@@ -22,6 +23,7 @@ export function DraftCheckInCard({ draft, className }: DraftCheckInCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogTitleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -53,23 +55,24 @@ export function DraftCheckInCard({ draft, className }: DraftCheckInCardProps) {
     };
   }, [open]);
 
-  function onDiscard() {
-
-    if (!window.confirm("Discard this incomplete check-in? This cannot be undone.")) {
-      return;
-    }
-
+  function runDiscard() {
     setError(null);
     startTransition(async () => {
       const result = await deleteCheckInDraft(draft.id);
       if (!result.success) {
         setError(result.error);
+        setConfirmDiscard(false);
         return;
       }
 
+      setConfirmDiscard(false);
       setOpen(false);
       router.refresh();
     });
+  }
+
+  function onDiscard() {
+    setConfirmDiscard(true);
   }
 
   return (
@@ -194,6 +197,17 @@ export function DraftCheckInCard({ draft, className }: DraftCheckInCardProps) {
             document.body,
           )
         : null}
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard check-in?"
+        message="Discard this incomplete check-in? This cannot be undone."
+        confirmLabel="Discard"
+        destructive
+        pending={isPending}
+        onConfirm={runDiscard}
+        onCancel={() => setConfirmDiscard(false)}
+      />
     </div>
   );
 }

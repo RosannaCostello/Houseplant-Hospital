@@ -86,6 +86,20 @@ export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraV
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   async function handleCapture() {

@@ -48,11 +48,11 @@ Houseplant Hospital is Hilda’s **in-store plant treatment ops app**. Staff che
 | Role | Can use |
 |---|---|
 | **Staff** (signed in) | Check-in, Dashboard (kanban), plant / visit detail, pests, notes, tips, propagate, collect / payment actions |
-| **Admin** | Everything staff can, plus **Analytics** and **Settings** in the bottom nav |
+| **Admin** | Everything staff can, plus **Analytics** (bottom nav) and **Settings** (Account menu, top right) |
 
 Non-admins who open `/app/analytics` or `/settings` are sent back to the Dashboard.
 
-Bottom nav (typical): **Check-in** · **Dashboard** · **Analytics** (admin) · **Settings** (admin). Customers is available via links but not in the bottom nav.
+Bottom nav (typical): **Check-in** · **Dashboard** · **Analytics** (admin). **Settings** and **Log out** are under the **Account** pill (top right). Customers is available via links but not in the bottom nav.
 
 ---
 
@@ -67,10 +67,11 @@ Use these words when talking about the app.
 | **Plant** | One plant on a visit. The board is organised by **plants**, not visits. |
 | **Check-in** (flow) | Creating a new visit: customer → plants → photos. |
 | **Incomplete check-in** | A draft visit not finished yet (still on plants or photos step). Shown in the Incomplete lane. |
-| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. |
+| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. Drag a plant card onto another lane to move it (same rules and confirmations as **Actions**). Tap **Actions** on a card to update the plant or move lanes. |
+| **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. |
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
 | **Pests / Bugs found** | Whether pests were found. UI label: **Pests found during treatment?** (Yes / No / Clear answer). Affects price, starting lane, and Outpatient readiness. |
-| **Pest treatments** | Three checkboxes on plant detail (Treatment 1 / 2 / 3) with date/time stamps. Required before Outpatient if pests were **ever** found on that plant. |
+| **Pest treatments** | Three slots on plant detail (Treatment 1 / 2 / 3). Each picks a treatment type from Settings, then **Record** locks it with date/time. Required before Outpatient if pests were **ever** found. |
 | **Treatment notes** | Notes on the plant (required before Outpatient). Max **750 characters** so the full note can reach customer emails via Mailchimp (see below). |
 | **Care tips** | Aftercare advice for the customer, chosen as **Water / Leaves / Light** dropdowns on plant detail (required before Outpatient). Saved as one composed string. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
@@ -139,7 +140,8 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 ### Find a plant on the Dashboard
 
 1. Use the **Search by name or email** box above the lanes.  
-2. As you type, plant cards and incomplete drafts that do not match are hidden.
+2. As you type, plant cards and incomplete drafts that do not match are hidden.  
+3. Each lane has a **Newest / Oldest** toggle. Most lanes sort by check-in date. The **Collected** lane sorts by **collection date** (newest = collected most recently).
 
 ### Move a plant on the board
 
@@ -154,7 +156,7 @@ The app blocks Outpatient until the plant is **Outpatient ready**:
 - **Pests** answered (Yes or No)  
 - **Treatment notes** filled (max 750 characters — counter on plant detail)  
 - **Care tips** — choose all three: Water, Leaves, and Light  
-- If pests were **ever** found on this plant: all three **pest treatments** checked (each stamps date and time; uncheck to correct)
+- If pests were **ever** found on this plant: all three **pest treatments** recorded (type + date/time; locked once recorded)
 
 Propagation plants skip the pests requirement for this gate. Plants that never had pests do not need pest treatments.
 
@@ -164,9 +166,10 @@ On multi-plant visits, move each plant when it is ready. Sibling plants still in
 
 On plant detail (when the plant is in **Quarantine** or has ever had pests):
 
-1. Tick **Treatment 1**, **2**, and **3** as each treatment is done — the app records the date and time beside each box.  
-2. Unchecking clears that stamp (for corrections).  
-3. On **Collected** plants the boxes are view-only.
+1. For **Treatment 1**, **2**, and **3**: choose a treatment type from the dropdown — confirm in the dialog to lock it with date and time. Cancel returns the dropdown to “Select treatment…”.  
+2. Recorded treatments **cannot be undone** (no clear / change).  
+3. Treatment types are managed by admins in **Settings → Pest treatment options**.  
+4. On **Collected** plants the section is view-only.
 
 ### Plant photos on plant detail
 
@@ -174,28 +177,88 @@ On plant detail (when the plant is in **Quarantine** or has ever had pests):
 2. Use **Retake photo** to replace the latest photo (camera or library).  
 3. **Collected** plants: fullscreen view is allowed; retake is disabled.
 
-### Treatment notes, care tips, and Mailchimp emails
+### Mailchimp — events, properties, merge fields, and tags
 
-Mailchimp only allows **255 characters per event property**, and HTML emails collapse line breaks inside a single property to spaces. The app therefore:
+The app does **not** send finished emails. It upserts the contact, applies tags, and queues **events**. Journeys and email copy live in **Mailchimp**.
+
+Mailchimp only allows **255 characters per event property**, and HTML emails collapse line breaks inside a single property to spaces.
+
+#### Journey trigger event names
+
+Use these exact names when wiring journeys:
+
+| Event name | When the app fires it |
+|---|---|
+| `plant_checked_in` | Check-in completes (one event per plant) |
+| `plant_quarantined` | Plant moves to Quarantine (including pests Yes at check-in) |
+| `plant_in_surgery` | Plant moves to In Surgery |
+| `plant_outpatient` | Plant moves to Outpatient **and** the visit is fully ready to collect |
+| `plant_outpatient_partial` | Plant moves to Outpatient but sibling plants still block the ready-to-collect notice |
+| `plant_collected` | Plant moves to Collected |
+| `plant_dead` | Plant moves to Dead |
+| `bugs_found` | Pests set to Yes on plant detail (after check-in) |
+
+#### Event properties (variables on the event)
+
+Properties are only included when the app has a value. Empty / unused properties are omitted.
+
+| Property | Meaning |
+|---|---|
+| `visit_id` | Visit UUID |
+| `plant_id` | Plant UUID |
+| `customer_id` | Customer UUID |
+| `plant_name` | Plant display name (if set) |
+| `previous_status` | Status before the change (status / bugs events) |
+| `new_status` | Status after the change (status events) |
+| `bugs_found` | `"true"` / `"false"` when sent with the `bugs_found` event |
+| `awaiting_plant_count` | How many sibling plants still block collection (`plant_outpatient_partial` only) |
+| `treatment_notes_1` | Treatment note chars 1–250 |
+| `treatment_notes_2` | Treatment note chars 251–500 |
+| `treatment_notes_3` | Treatment note chars 501–750 |
+| `care_tips_water` | Water tip option text only (no `Water:` prefix) |
+| `care_tips_leaves` | Leaves tip option text only |
+| `care_tips_light` | Light tip option text only |
+
+**What typically carries notes / tips:** status-change events and `bugs_found` load the latest treatment notes and care tips for that plant. `plant_checked_in` usually only has ids + optional `plant_name` (notes/tips are rarely filled yet).
+
+**Treatment notes (750 char staff cap):**
 
 1. Caps treatment notes at **750 characters** in the UI (with a live counter).  
-2. Splits the saved note into up to three properties when sending events:
-   - `treatment_notes_1` (chars 1–250)  
-   - `treatment_notes_2` (chars 251–500)  
-   - `treatment_notes_3` (chars 501–750)  
-3. Splits care tips into three properties (option text only — no `Water:` / `Leaves:` / `Light:` prefix):
-   - `care_tips_water`  
-   - `care_tips_leaves`  
-   - `care_tips_light`  
+2. Splits into `treatment_notes_1` / `_2` / `_3` as above.  
+3. In email builders: include **all three** one after another. Unused chunks are blank / omitted.
 
-**Important for email builders:**
+**Care tips:**
 
-- Treatment notes: include **all three** (`treatment_notes_1`, `_2`, `_3`) one after another. Unused chunks are blank.  
-- Care tips: include **all three** (`care_tips_water`, `care_tips_leaves`, `care_tips_light`) **each on its own line** in the email. Do not use the old single `care_tips` tag.
+1. Sent as three separate properties (option text only).  
+2. In email builders: include **all three** (`care_tips_water`, `care_tips_leaves`, `care_tips_light`) **each on its own line**. Do not use the old single `care_tips` tag.
+
+#### Audience merge fields (contact profile)
+
+Set on the Mailchimp contact when check-in sync upserts the member (not event properties):
+
+| Merge field tag | Contents |
+|---|---|
+| `NAME` | Customer full name (`First Last`) |
+| `PHONE` | Customer phone (when present) |
+
+Email address is the contact identity (not a merge field the app sets).
+
+#### Tags the app applies
+
+| Tag | When |
+|---|---|
+| `houseplant_hospital` | Every successful check-in sync |
+| `repeat_hospital_customer` | Customer already has more than one visit |
+| `newsletter` | Marketing consent checked at check-in |
+| `bugs_treatment` | `bugs_found` event (pests Yes on plant detail) |
+
+#### Quarantine email delay (Mailchimp journey)
+
+When pests are **Yes** at check-in, the plant goes straight into **Quarantine**, so the app fires both the check-in event and `plant_quarantined` at the same time. The Mailchimp **quarantine** journey intentionally **delays** that email so the customer is not hit with two messages at once. Quarantine is not time-sensitive for the customer, so the delay is expected — do not treat a late quarantine email as a bug, and do not remove the delay without a product decision.
 
 ### Pests (bugs found)
 
-- Set at check-in (Yes / No). **Yes** places the plant in **Quarantine** when check-in completes.  
+- Set at check-in (Yes / No). **Yes** places the plant in **Quarantine** when check-in completes (which also queues a quarantine Mailchimp event — see **Quarantine email delay** above).  
 - Can be changed on plant detail until **Collected** (Clear answer exists in UI). Clearing Yes does **not** remove the “ever had pests” flag used for treatments / Outpatient.  
 - **Propagation plants** do not show the pests control (always no pests).  
 - Yes → pests treatment pricing when Shopify/rules apply.
@@ -209,9 +272,14 @@ Mailchimp only allows **255 characters per event property**, and HTML emails col
 
 ### Collect / payment
 
-- **Outpatient → Collected** may prompt for payment if the visit is still unpaid: take payment in **Shopify POS** under the customer name, or confirm **Customer paid another way**.  
-- **Collected** is final for that plant — staff can still open the record to view details, but cannot edit notes, care tips, pests, or status.  
+- **Outpatient → Collected** may prompt for payment if the visit is still unpaid.
+  1. Find the order in **Shopify POS** under the customer name and take payment, **or**
+  2. Confirm **Customer paid another way** (second confirm — cannot be undone). That marks the **visit** as settled for Hospital ops.
+- Collecting a plant stamps **final price** from the treatment estimate when none was stored yet (no separate collection form).
+- Payment is **visit-level**: collecting one plant on a multi-plant visit does not require siblings to be collected first.
+- **Collected** is final for that plant — staff can still open the record to view details, but cannot edit notes, care tips, pests, or status.
 - Pricing on plant detail shows the treatment estimate / recorded final price.
+- On **Outpatient** / **Collected** plant detail, **Time in Surgery** shows how long that plant spent in In Surgery (from status history).
 
 ### Find a customer or plant
 
@@ -233,15 +301,16 @@ Mailchimp only allows **255 characters per event property**, and HTML emails col
 
 Period filters (Today, This week, Last 30 days, This month, This year, Custom) compare to the matching previous period.
 
-**Performance metric cards**
+**Performance metric cards** (two rows of three on wide screens)
 
 | Card | Meaning |
 |---|---|
 | **Treatment revenue** | Sum of final prices on plants **collected** in the period (not profit). |
+| **Average collected value** | Average final price across collected plants with a price. |
+| **Avg time in Surgery** | Average time plants spent in **In Surgery** for stints that **ended** in the period (moved to Outpatient or Dead). **App data only** — Zoho historic imports are excluded. **Lower is better.** |
+| **Median turnaround** | Middle check-in → collection time among plants collected in the period (**lower is better**). |
 | **Plants checked in** | Plants on visits checked in during the period. |
 | **Plants collected** | Plants whose collection completed in the period. |
-| **Median turnaround** | Middle check-in → collection time among plants collected in the period (**lower is better**). |
-| **Average collected value** | Average final price across collected plants with a price. |
 
 Info (**i**) icons explain each metric and chart. Charts compare current vs previous period (fainter lines = previous).
 
@@ -288,8 +357,8 @@ Distinct people who checked in during the period. New + Returning should add up 
 **Are “unassessed” pests normal?**  
 Live check-in requires pests Yes/No. Blank pests on old Zoho history were treated as **No**. Analytics no longer emphasises “unassessed.”
 
-**Does Analytics include historic Zoho plants?**  
-Yes, as collected history (synthetic collection date = check-in + 14 days). They are hidden from the day-to-day ops board clutter by design for import notes, but still count in Analytics.
+**Does Analytics include historic Zoho plants?**
+Yes for most Performance metrics (as collected history; synthetic collection date = check-in + 14 days). They are hidden from the day-to-day ops board. **Avg time in Surgery** is an exception: it uses status history from **app** visits only and excludes Zoho imports.
 
 **Who sees Analytics?**  
 Admins only.

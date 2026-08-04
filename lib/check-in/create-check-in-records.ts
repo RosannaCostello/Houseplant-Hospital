@@ -5,13 +5,25 @@ import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
 import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
 import type { PlantStatus } from "@/lib/plant-status";
 
+export type CreatedCheckInPlant = {
+  clientId: string;
+  plantId: string;
+  status: PlantStatus;
+};
+
 export type CreateCheckInRecordsResult =
   | {
       success: true;
       visitId: string;
-      plants: Array<{ clientId: string; plantId: string }>;
+      customerId: string;
+      plants: CreatedCheckInPlant[];
     }
   | { success: false; error: string };
+
+type CreateCheckInOptions = {
+  /** When true, skip Mailchimp (caller runs sync after photos succeed). */
+  deferMailchimp?: boolean;
+};
 
 function buildVisitNotes(plants: CreateCheckInInput["plants"]): string | null {
   const lines = plants
@@ -30,6 +42,7 @@ function buildVisitNotes(plants: CreateCheckInInput["plants"]): string | null {
 export async function createCheckInRecordsWithClient(
   supabase: SupabaseClient,
   input: CreateCheckInInput,
+  options: CreateCheckInOptions = {},
 ): Promise<CreateCheckInRecordsResult> {
   const {
     data: { user },
@@ -66,70 +79,72 @@ export async function createCheckInRecordsWithClient(
 
     visitId = visitRow.id;
 
-    const createdPlants: Array<{
-      clientId: string;
-      plantId: string;
-      status: PlantStatus;
-    }> = [];
-
-    for (const plant of plants) {
+    const plantRows = plants.map((plant) => {
       const initialStatus: PlantStatus = plant.bugsFound === true ? "quarantine" : "check_in";
-      const bugsFoundEver = plant.bugsFound === true;
-
-      const { data: plantRow, error: plantError } = await supabase
-        .from("plants")
-        .insert({
+      return {
+        clientId: plant.clientId,
+        status: initialStatus,
+        insert: {
           visit_id: visitRow.id,
           name: plant.name.trim() || null,
           species: plant.species.trim() || null,
           size: plant.size,
           status: initialStatus,
           bugs_found: plant.bugsFound ?? null,
-          bugs_found_ever: bugsFoundEver,
-        })
-        .select("id")
-        .single();
-
-      if (plantError || !plantRow) {
-        throw new Error(plantError?.message ?? "Could not create plant");
-      }
-
-      const { error: historyError } = await supabase.from("status_history").insert({
-        plant_id: plantRow.id,
-        previous_status: null,
-        new_status: initialStatus,
-        changed_by: user.id,
-      });
-
-      if (historyError) {
-        throw new Error(historyError.message);
-      }
-
-      createdPlants.push({
-        clientId: plant.clientId,
-        plantId: plantRow.id,
-        status: initialStatus,
-      });
-    }
-
-    await syncCheckInToMailchimp({
-      supabase,
-      customer,
-      customerId: customerResult.id,
-      visitId: visitRow.id,
-      plants: createdPlants.map((plant) => ({ plantId: plant.plantId })),
+          bugs_found_ever: plant.bugsFound === true,
+        },
+      };
     });
 
-    for (const plant of createdPlants) {
-      if (plant.status === "quarantine") {
-        await emitPlantStatusChangeEvent(supabase, plant.plantId, "check_in", "quarantine");
+    const { data: insertedPlants, error: plantError } = await supabase
+      .from("plants")
+      .insert(plantRows.map((row) => row.insert))
+      .select("id");
+
+    if (plantError || !insertedPlants || insertedPlants.length !== plantRows.length) {
+      throw new Error(plantError?.message ?? "Could not create plants");
+    }
+
+    const createdPlants: CreatedCheckInPlant[] = plantRows.map((row, index) => ({
+      clientId: row.clientId,
+      plantId: insertedPlants[index]!.id,
+      status: row.status,
+    }));
+
+    const { error: historyError } = await supabase.from("status_history").insert(
+      createdPlants.map((plant) => ({
+        plant_id: plant.plantId,
+        previous_status: null,
+        new_status: plant.status,
+        changed_by: user.id,
+      })),
+    );
+
+    if (historyError) {
+      throw new Error(historyError.message);
+    }
+
+    if (!options.deferMailchimp) {
+      await syncCheckInToMailchimp({
+        supabase,
+        customer,
+        customerId: customerResult.id,
+        visitId: visitRow.id,
+        plants: createdPlants.map((plant) => ({ plantId: plant.plantId })),
+      });
+
+      for (const plant of createdPlants) {
+        if (plant.status === "quarantine") {
+          await emitPlantStatusChangeEvent(supabase, plant.plantId, "check_in", "quarantine");
+        }
       }
     }
 
     return {
       success: true,
       visitId: visitRow.id,
-      plants: createdPlants.map(({ clientId, plantId }) => ({ clientId, plantId })),
+      customerId: customerResult.id,
+      plants: createdPlants,
     };
   } catch (error) {
     if (visitId) {
@@ -163,6 +178,15 @@ export async function rollbackCheckInWithClient(
     throw new Error("You must be signed in.");
   }
 
+  const { error } = await supabase.rpc("rollback_check_in_visit", {
+    p_visit_id: visitId,
+  });
+
+  if (!error) {
+    return;
+  }
+
+  // Fallback before migration 0022: direct delete with ownership check.
   const { data: visit, error: fetchError } = await supabase
     .from("visits")
     .select("created_by")
@@ -183,6 +207,6 @@ export async function rollbackCheckInWithClient(
 
   const { error: deleteError } = await supabase.from("visits").delete().eq("id", visitId);
   if (deleteError) {
-    throw new Error(deleteError.message);
+    throw new Error(deleteError.message || error.message);
   }
 }

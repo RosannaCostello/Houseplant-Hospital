@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
@@ -12,16 +14,21 @@ import { PropagatePlantButton } from "@/components/plants/propagate-plant-button
 import { Button } from "@/components/ui/button";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import type { PlantDetail } from "@/lib/plants/get-plant-detail";
+import { formatMinutesInSurgery } from "@/lib/plants/get-minutes-in-surgery";
 import { plantStatusLabel } from "@/lib/plant-status";
 import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
 import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
+import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
 
 type PlantDetailViewProps = {
   plant: PlantDetail;
   pricing: PlantPriceBreakdown | null;
   careTipOptions: CareTipOptionsByCategory;
+  pestTreatmentOptions: PestTreatmentOption[];
   treatmentNotesPlaceholder: string;
+  /** When true, omit page bottom-nav padding (modal overlay). */
+  embeddedInModal?: boolean;
 };
 
 function plantSubtitle(plant: PlantDetail): string | null {
@@ -38,7 +45,9 @@ export function PlantDetailView({
   plant,
   pricing,
   careTipOptions,
+  pestTreatmentOptions,
   treatmentNotesPlaceholder,
+  embeddedInModal = false,
 }: PlantDetailViewProps) {
   const isCollected = plant.status === "collected";
   const subtitle = plantSubtitle(plant);
@@ -53,7 +62,13 @@ export function PlantDetailView({
       : undefined;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-3 pb-[var(--bottom-nav-inset)]">
+    <div
+      className={
+        embeddedInModal
+          ? "mx-auto w-full max-w-4xl space-y-3"
+          : "mx-auto w-full max-w-4xl space-y-3 pb-[var(--bottom-nav-inset)]"
+      }
+    >
       {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
@@ -147,6 +162,16 @@ export function PlantDetailView({
                 ) : null}
               </dd>
             </div>
+            {plant.status === "outpatient" || plant.status === "collected" ? (
+              <div className="sm:col-span-2">
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                  Time in Surgery
+                </dt>
+                <dd className="mt-0.5 font-medium tabular-nums text-hilda-heading">
+                  {formatMinutesInSurgery(plant.minutesInSurgery)}
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
           <Button asChild variant="outline" className="mt-3 w-full">
@@ -184,6 +209,7 @@ export function PlantDetailView({
         <PestTreatmentsSection
           plantId={plant.id}
           treatments={plant.pestTreatments}
+          options={pestTreatmentOptions}
           disabled={isCollected}
         />
       ) : null}

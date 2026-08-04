@@ -13,6 +13,7 @@ import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
 import { PlantPhotoCapture } from "@/components/check-in/plant-photo-capture";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
 import type { CheckInDraftPhotoView } from "@/lib/check-in/photo-schema";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
@@ -36,6 +37,7 @@ export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: Pho
   const [displayPhotos, setDisplayPhotos] = useState<Map<string, CheckInDraftPhotoView>>(initialPhotoMap);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [uploadingPlantId, setUploadingPlantId] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<string | null>(null);
 
@@ -144,14 +146,11 @@ export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: Pho
     router.refresh();
   }
 
-  async function onDiscard() {
-    if (!window.confirm("Discard this incomplete check-in? This cannot be undone.")) {
-      return;
-    }
-
+  async function runDiscard() {
     setSubmitting(true);
     const result = await deleteCheckInDraft(draftId);
     setSubmitting(false);
+    setConfirmDiscard(false);
 
     if (!result.success) {
       setFormError(result.error);
@@ -160,6 +159,10 @@ export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: Pho
 
     router.push("/app");
     router.refresh();
+  }
+
+  function onDiscard() {
+    setConfirmDiscard(true);
   }
 
   const buttonLabel = submitStatus ?? (submitting ? "Working…" : "Complete check-in");
@@ -231,6 +234,18 @@ export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: Pho
           ))}
         </div>
       </form>
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard check-in?"
+        message="Discard this incomplete check-in? This cannot be undone."
+        confirmLabel="Discard"
+        destructive
+        pending={submitting}
+        onConfirm={() => {
+          void runDiscard();
+        }}
+        onCancel={() => setConfirmDiscard(false)}
+      />
     </CheckInStepShell>
   );
 }

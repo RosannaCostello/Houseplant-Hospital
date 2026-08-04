@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { searchPlantSpeciesAction } from "@/app/actions/search-plant-species";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { SPECIES_AUTOCOMPLETE_MIN_LENGTH } from "@/lib/plants/species-constants";
 import { cn } from "@/lib/utils";
 
@@ -103,10 +103,10 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
 
   return (
     <div ref={containerRef} className="relative">
-      <label className={checkInLabelClassName}>
+      <label className={hildaLabelClassName}>
         Species <span className="font-normal text-hilda-text-muted">(optional)</span>
         <input
-          className={cn(checkInInputClassName, "py-2.5")}
+          className={cn(hildaInputClassName, "py-2.5")}
           type="text"
           autoComplete="off"
           value={value}

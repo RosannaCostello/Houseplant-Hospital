@@ -14,6 +14,7 @@ import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
 import { SpeciesField } from "@/components/check-in/species-field";
 import { BugsFoundToggleField } from "@/components/plants/bugs-found-toggle-field";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { DraftCheckoutState } from "@/lib/check-in/pos-checkout";
 import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
 import {
@@ -21,7 +22,7 @@ import {
   createEmptyPlant,
   type CheckInPlantInput,
 } from "@/lib/check-in/plant-schema";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { PLANT_SIZES } from "@/lib/plant-size";
 import type { PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 import { canProceedToPhotosStep } from "@/lib/shopify/pos-checkout-types";
@@ -69,6 +70,7 @@ export function PlantsStepForm({
   const [checkout, setCheckout] = useState(initialCheckout);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"pay_at_collection" | "discard" | null>(null);
   const [plantErrors, setPlantErrors] = useState<Record<string, Partial<Record<keyof CheckInPlantInput, string>>>>({});
 
   const plants = editedPlants ?? (initialPlants.length ? initialPlants : [createEmptyPlant()]);
@@ -264,17 +266,9 @@ export function PlantsStepForm({
     });
   }
 
-  async function onPayAtCollection() {
+  async function runPayAtCollection() {
     const validPlants = collectPlantValidationErrors();
     if (!validPlants) return;
-
-    if (
-      !window.confirm(
-        "Mark this check-in as pay at collection? You can take payment in Shopify POS when the customer collects their plants.",
-      )
-    ) {
-      return;
-    }
 
     setSubmitting(true);
     setFormError(null);
@@ -282,6 +276,7 @@ export function PlantsStepForm({
     const result = await deferPosCheckout(draftId, validPlants);
 
     setSubmitting(false);
+    setConfirmAction(null);
 
     if (!result.success) {
       setFormError(result.error);
@@ -291,14 +286,11 @@ export function PlantsStepForm({
     setCheckout((current) => ({ ...current, status: "pay_at_collection" }));
   }
 
-  async function onDiscard() {
-    if (!window.confirm("Discard this incomplete check-in? This cannot be undone.")) {
-      return;
-    }
-
+  async function runDiscard() {
     setSubmitting(true);
     const result = await deleteCheckInDraft(draftId);
     setSubmitting(false);
+    setConfirmAction(null);
 
     if (!result.success) {
       setFormError(result.error);
@@ -307,6 +299,15 @@ export function PlantsStepForm({
 
     router.push("/app");
     router.refresh();
+  }
+
+  function onPayAtCollection() {
+    if (!collectPlantValidationErrors()) return;
+    setConfirmAction("pay_at_collection");
+  }
+
+  function onDiscard() {
+    setConfirmAction("discard");
   }
 
   return (
@@ -451,7 +452,7 @@ export function PlantsStepForm({
 
                 <div className="space-y-3">
                   <fieldset>
-                    <legend className={checkInLabelClassName}>Size</legend>
+                    <legend className={hildaLabelClassName}>Size</legend>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {PLANT_SIZES.map((size) => (
                         <button
@@ -485,10 +486,10 @@ export function PlantsStepForm({
                   ) : null}
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <label className={checkInLabelClassName}>
+                    <label className={hildaLabelClassName}>
                       Plant name
                       <input
-                        className={cn(checkInInputClassName, "py-2.5")}
+                        className={cn(hildaInputClassName, "py-2.5")}
                         type="text"
                         value={plant.name}
                         onChange={(event) => updatePlant(plant.clientId, { name: event.target.value })}
@@ -503,10 +504,10 @@ export function PlantsStepForm({
                     />
                   </div>
 
-                  <label className={checkInLabelClassName}>
+                  <label className={hildaLabelClassName}>
                     Notes <span className="font-normal text-hilda-text-muted">(optional)</span>
                     <textarea
-                      className={cn(checkInInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
+                      className={cn(hildaInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
                       rows={2}
                       value={plant.notes}
                       onChange={(event) => updatePlant(plant.clientId, { notes: event.target.value })}
@@ -519,6 +520,29 @@ export function PlantsStepForm({
           })}
         </div>
       </form>
+      <ConfirmDialog
+        open={confirmAction === "pay_at_collection"}
+        title="Pay at collection?"
+        message="Mark this check-in as pay at collection? You can take payment in Shopify POS when the customer collects their plants."
+        confirmLabel="Pay at collection"
+        pending={submitting}
+        onConfirm={() => {
+          void runPayAtCollection();
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
+      <ConfirmDialog
+        open={confirmAction === "discard"}
+        title="Discard check-in?"
+        message="Discard this incomplete check-in? This cannot be undone."
+        confirmLabel="Discard"
+        destructive
+        pending={submitting}
+        onConfirm={() => {
+          void runDiscard();
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </CheckInStepShell>
   );
 }

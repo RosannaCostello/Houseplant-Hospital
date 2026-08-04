@@ -7,7 +7,6 @@ import {
   AnalyticsNavIcon,
   CheckInNavIcon,
   DashboardNavIcon,
-  SettingsNavIcon,
 } from "@/components/app/nav-icons";
 import { cn } from "@/lib/utils";
 
@@ -33,18 +32,12 @@ const NAV_ITEMS: NavItem[] = [
     isActive: (pathname) => pathname === "/app",
   },
   // Customers nav hidden for now — route `/app/customers` remains available via links.
+  // Settings moved to Account menu in the header (HIL-109).
   {
     href: "/app/analytics",
     label: "Analytics",
     icon: AnalyticsNavIcon,
     isActive: (pathname) => pathname.startsWith("/app/analytics"),
-    adminOnly: true,
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: SettingsNavIcon,
-    isActive: (pathname) => pathname.startsWith("/settings"),
     adminOnly: true,
   },
 ];
@@ -61,7 +54,7 @@ export function BottomNav({ isAdmin = false }: BottomNavProps) {
     <div className="bottom-nav-glass-host pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <nav
         aria-label="Main"
-        className="bottom-nav-glass pointer-events-auto flex w-full max-w-lg items-stretch gap-0.5 p-1"
+        className="bottom-nav-glass pointer-events-auto flex w-full max-w-lg items-stretch gap-2 p-1.5 sm:gap-2.5"
       >
         {items.map((item) => {
           const active = item.isActive(pathname);
@@ -73,7 +66,7 @@ export function BottomNav({ isAdmin = false }: BottomNavProps) {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "relative z-10 flex min-h-[3.5rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1.5 py-1.5 text-[10px] font-medium uppercase leading-tight tracking-wide transition-all duration-300 sm:min-h-[3.65rem] sm:gap-1 sm:px-2 sm:py-2 sm:text-[13px]",
+                "relative z-10 flex min-h-[3.5rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-1.5 text-[10px] font-medium uppercase leading-tight tracking-wide transition-all duration-300 sm:min-h-[3.65rem] sm:gap-1 sm:px-3 sm:py-2 sm:text-[13px]",
                 active
                   ? "bottom-nav-glass-tab-active text-hilda-gold"
                   : "text-hilda-nav-ink hover:bg-white/20 hover:text-hilda-heading",

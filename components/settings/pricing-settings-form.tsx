@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { syncShopifyPricingAction } from "@/app/actions/sync-shopify-pricing";
 import { updatePricingSettingsAction } from "@/app/actions/update-pricing-settings";
 import { Button } from "@/components/ui/button";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import type { PlantSize } from "@/lib/plant-size";
 import { PLANT_SIZES } from "@/lib/plant-size";
 import { formatGbp } from "@/lib/pricing/format-gbp";
@@ -171,10 +171,10 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {PLANT_SIZES.map((size) => (
-              <label key={size} className={checkInLabelClassName}>
+              <label key={size} className={hildaLabelClassName}>
                 {size} base price (£)
                 <input
-                  className={checkInInputClassName}
+                  className={hildaInputClassName}
                   type="number"
                   min="0.01"
                   step="0.01"
@@ -188,10 +188,10 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
           </div>
 
           <div>
-            <label className={checkInLabelClassName}>
+            <label className={hildaLabelClassName}>
               Pests surcharge (%)
               <input
-                className={checkInInputClassName}
+                className={hildaInputClassName}
                 type="number"
                 min="0"
                 step="0.1"

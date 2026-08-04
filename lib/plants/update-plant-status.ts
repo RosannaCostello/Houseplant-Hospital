@@ -14,6 +14,8 @@ import {
   checkOutpatientReadinessWithClient,
   formatOutpatientReadinessMessage,
 } from "@/lib/plants/outpatient-readiness";
+import { getPlantPricingWithClient } from "@/lib/pricing/get-plant-pricing";
+import { roundMoney } from "@/lib/pricing/round-money";
 import { isPosPaymentStatus, isVisitUnpaid } from "@/lib/shopify/pos-checkout-types";
 
 export type UpdatePlantStatusOptions = {
@@ -45,7 +47,7 @@ export async function updatePlantStatusWithClient(
 
   const { data: plant, error: fetchError } = await supabase
     .from("plants")
-    .select("status, visit_id")
+    .select("status, visit_id, final_price")
     .eq("id", plantId)
     .maybeSingle();
 
@@ -116,28 +118,84 @@ export async function updatePlantStatusWithClient(
     }
   }
 
-  const { error: updateError } = await supabase
-    .from("plants")
-    .update({ status: newStatus })
-    .eq("id", plantId);
+  let collectedAt: string | null = null;
+  let finalPrice: number | null = null;
 
-  if (updateError) {
-    return { success: false, error: updateError.message };
+  if (newStatus === "collected") {
+    collectedAt = new Date().toISOString();
+
+    const existingPrice =
+      plant.final_price != null && Number.isFinite(Number(plant.final_price))
+        ? roundMoney(Number(plant.final_price))
+        : null;
+
+    if (existingPrice != null && existingPrice > 0) {
+      finalPrice = existingPrice;
+    } else {
+      const pricing = await getPlantPricingWithClient(supabase, plantId);
+      if (pricing && pricing.totalAmount > 0) {
+        finalPrice = roundMoney(pricing.totalAmount);
+      }
+    }
   }
 
-  const { error: historyError } = await supabase.from("status_history").insert({
-    plant_id: plantId,
-    previous_status: plant.status,
-    new_status: newStatus,
-    changed_by: user.id,
+  const { data: rpcRows, error: rpcError } = await supabase.rpc("update_plant_status_atomic", {
+    p_plant_id: plantId,
+    p_new_status: newStatus,
+    p_collected_at: collectedAt,
+    p_final_price: finalPrice,
   });
 
-  if (historyError) {
-    await supabase.from("plants").update({ status: plant.status }).eq("id", plantId);
-    return { success: false, error: historyError.message };
+  if (rpcError) {
+    // Fallback while migration 0022 is pending — still try to keep plant+history consistent.
+    const plantUpdate: {
+      status: PlantStatus;
+      collected_at?: string;
+      final_price?: number;
+    } = { status: newStatus };
+
+    if (collectedAt) plantUpdate.collected_at = collectedAt;
+    if (finalPrice != null) plantUpdate.final_price = finalPrice;
+
+    const { error: updateError } = await supabase.from("plants").update(plantUpdate).eq("id", plantId);
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    const { error: historyError } = await supabase.from("status_history").insert({
+      plant_id: plantId,
+      previous_status: plant.status,
+      new_status: newStatus,
+      changed_by: user.id,
+    });
+
+    if (historyError) {
+      await supabase
+        .from("plants")
+        .update({
+          status: plant.status,
+          collected_at: null,
+          final_price: plant.final_price,
+        })
+        .eq("id", plantId);
+      return { success: false, error: historyError.message };
+    }
+
+    await emitPlantStatusChangeEvent(supabase, plantId, plant.status, newStatus);
+    return { success: true, previousStatus: plant.status, newStatus };
   }
 
-  await emitPlantStatusChangeEvent(supabase, plantId, plant.status, newStatus);
+  const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+  const previousStatus =
+    row && typeof row === "object" && "previous_status" in row && isPlantStatus(String(row.previous_status))
+      ? (row.previous_status as PlantStatus)
+      : plant.status;
+  const appliedStatus =
+    row && typeof row === "object" && "new_status" in row && isPlantStatus(String(row.new_status))
+      ? (row.new_status as PlantStatus)
+      : newStatus;
 
-  return { success: true, previousStatus: plant.status, newStatus };
+  await emitPlantStatusChangeEvent(supabase, plantId, previousStatus, appliedStatus);
+
+  return { success: true, previousStatus, newStatus: appliedStatus };
 }

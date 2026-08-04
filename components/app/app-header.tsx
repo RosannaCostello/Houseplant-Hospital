@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAppPageTitle } from "@/components/app/app-page-title";
+import { cn } from "@/lib/utils";
 
 type AppHeaderProps = {
   userEmail?: string | null;
+  isAdmin?: boolean;
 };
 
 function headerPageLabel(pathname: string): string | null {
@@ -17,10 +20,37 @@ function headerPageLabel(pathname: string): string | null {
   return null;
 }
 
-export function AppHeader({ userEmail }: AppHeaderProps) {
+export function AppHeader({ userEmail, isAdmin = false }: AppHeaderProps) {
   const pathname = usePathname();
   const pageTitle = useAppPageTitle();
   const pageLabel = pageTitle ?? headerPageLabel(pathname);
+  const menuId = useId();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target) || triggerRef.current?.contains(target)) {
+        return;
+      }
+      setAccountOpen(false);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setAccountOpen(false);
+    }
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [accountOpen]);
 
   return (
     <header className="shrink-0 border-b border-hilda-gold/30 bg-hilda-heading">
@@ -41,20 +71,53 @@ export function AppHeader({ userEmail }: AppHeaderProps) {
             </>
           ) : null}
         </Link>
-        <div className="flex items-center gap-4">
-          {userEmail ? (
-            <span className="hidden max-w-[14rem] truncate text-sm text-hilda-gold/55 sm:inline">
-              {userEmail}
+
+        <div className="relative" ref={menuRef}>
+          <button
+            ref={triggerRef}
+            type="button"
+            className={cn(
+              "inline-flex max-w-[14rem] items-center gap-2 rounded-full border border-hilda-gold/45 bg-transparent px-3 py-2 text-xs font-medium uppercase tracking-[0.08em] text-hilda-gold transition-colors hover:border-hilda-gold hover:bg-hilda-gold/10",
+              accountOpen && "border-hilda-gold bg-hilda-gold/10",
+            )}
+            aria-haspopup="menu"
+            aria-expanded={accountOpen}
+            aria-controls={menuId}
+            onClick={() => setAccountOpen((open) => !open)}
+          >
+            <span className="truncate">{userEmail?.trim() || "Account"}</span>
+            <span aria-hidden className="text-hilda-gold/70">
+              ▾
             </span>
-          ) : null}
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
-              className="rounded-hilda-sm border border-hilda-gold/45 bg-transparent px-4 py-2 text-xs font-medium uppercase tracking-[0.08em] text-hilda-gold transition-colors hover:border-hilda-gold hover:bg-hilda-gold/10"
+          </button>
+
+          {accountOpen ? (
+            <div
+              id={menuId}
+              role="menu"
+              className="absolute right-0 z-[60] mt-2 min-w-[11rem] overflow-hidden rounded-hilda border border-hilda-border/15 bg-hilda-surface shadow-lg"
             >
-              Log out
-            </button>
-          </form>
+              {isAdmin ? (
+                <Link
+                  role="menuitem"
+                  href="/settings"
+                  className="block px-4 py-2.5 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  Settings
+                </Link>
+              ) : null}
+              <form action="/auth/signout" method="post">
+                <button
+                  role="menuitem"
+                  type="submit"
+                  className="flex w-full px-4 py-2.5 text-left text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
+                >
+                  Log out
+                </button>
+              </form>
+            </div>
+          ) : null}
         </div>
       </div>
     </header>

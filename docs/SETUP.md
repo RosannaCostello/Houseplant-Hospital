@@ -256,6 +256,10 @@ npm run backfill:zoho-bugs -- --dry-run
 npm run backfill:zoho-bugs
 ```
 
+#### Shopify HH historic import (HIL-108) — canceled
+
+**Canceled:** pre-Zoho Shopify HH order import into Analytics is not needed. Do not run `import:shopify-hh-historic`. Zoho historic plants (HIL-99) remain the Analytics backfill. Leave the Houseplant Hospital pricing / POS app scopes alone for this.
+
 **Consent rules (scope):**
 
 - **Transactional** emails (check-in, surgery, ready for collection, aftercare) — allowed without marketing opt-in; contacts are `transactional` unless they ticked newsletter.

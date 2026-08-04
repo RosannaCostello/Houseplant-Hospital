@@ -6,13 +6,17 @@ import { IncompleteCheckInsLane } from "@/components/dashboard/incomplete-check-
 import { KanbanLane } from "@/components/dashboard/kanban-lane";
 import { PlantCard } from "@/components/dashboard/plant-card";
 import {
+  PlantStatusMoveDialog,
+  type PendingPlantStatusMove,
+} from "@/components/dashboard/plant-status-move-dialog";
+import {
   sortDashboardPlants,
   toggleDashboardLaneSortOrder,
   type DashboardLaneSortOrder,
 } from "@/lib/dashboard/sort-dashboard-plants";
 import type { DashboardPlant } from "@/lib/dashboard/types";
 import type { IncompleteCheckInDraft } from "@/lib/check-in/check-in-draft-types";
-import { PLANT_STATUS_LANES, type PlantStatus } from "@/lib/plant-status";
+import { canTransitionPlantStatus, PLANT_STATUS_LANES, type PlantStatus } from "@/lib/plant-status";
 
 type KanbanBoardProps = {
   plants?: DashboardPlant[];
@@ -53,6 +57,7 @@ function initialSortByLane(): Record<PlantStatus, DashboardLaneSortOrder> {
 export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardProps) {
   const [sortByLane, setSortByLane] = useState(initialSortByLane);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingMove, setPendingMove] = useState<PendingPlantStatusMove | null>(null);
 
   const filteredPlants = useMemo(
     () =>
@@ -71,6 +76,11 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
   );
 
   const plantsByStatus = groupPlantsByStatus(filteredPlants);
+  const plantsById = useMemo(() => {
+    const map = new Map<string, DashboardPlant>();
+    for (const plant of plants) map.set(plant.id, plant);
+    return map;
+  }, [plants]);
 
   const toggleLaneSort = useCallback((status: PlantStatus) => {
     setSortByLane((current) => ({
@@ -78,6 +88,23 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
       [status]: toggleDashboardLaneSortOrder(current[status] ?? DEFAULT_SORT_ORDER),
     }));
   }, []);
+
+  const handlePlantDrop = useCallback(
+    (plantId: string, fromStatus: PlantStatus, toStatus: PlantStatus) => {
+      if (fromStatus === toStatus) return;
+      if (!canTransitionPlantStatus(fromStatus, toStatus)) return;
+      const plant = plantsById.get(plantId);
+      if (!plant) return;
+      setPendingMove({
+        plantId,
+        fromStatus,
+        toStatus,
+        customerName: plant.customerName,
+        paymentStatus: plant.paymentStatus,
+      });
+    },
+    [plantsById],
+  );
 
   return (
     <div className="relative flex min-h-0 flex-1 basis-0 flex-col gap-3">
@@ -120,6 +147,8 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
               count={lanePlants.length}
               sortOrder={sortOrder}
               onToggleSort={() => toggleLaneSort(lane.status)}
+              dropEnabled
+              onPlantDrop={handlePlantDrop}
             >
               {lanePlants.map((plant) => (
                 <PlantCard key={plant.id} plant={plant} />
@@ -128,6 +157,8 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
           );
         })}
       </div>
+
+      <PlantStatusMoveDialog pending={pendingMove} onDismiss={() => setPendingMove(null)} />
     </div>
   );
 }

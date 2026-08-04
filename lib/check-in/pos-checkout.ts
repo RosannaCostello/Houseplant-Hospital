@@ -511,7 +511,8 @@ export async function markPosCheckoutPaidWithClient(
         pos_checkout_paid_at: now,
         shopify_order_id: input.shopifyOrderId,
       })
-      .eq("id", input.draftId);
+      .eq("id", input.draftId)
+      .in("pos_checkout_status", ["queued", "loaded", "pay_at_collection", "paid", "not_started"]);
   }
 
   if (input.visitId) {
@@ -521,8 +522,12 @@ export async function markPosCheckoutPaidWithClient(
         payment_status: "paid",
         shopify_paid_at: now,
         shopify_order_id: input.shopifyOrderId,
+        payment_settled_via: "shopify",
       })
-      .eq("id", input.visitId);
+      .eq("id", input.visitId)
+      .or(
+        `payment_status.is.null,payment_status.in.(queued,loaded,pay_at_collection,not_started,paid)`,
+      );
   }
 }
 
@@ -557,13 +562,13 @@ export async function getDraftPaymentSnapshotWithClient(
 
 export function visitPaymentStatusFromDraft(
   draftStatus: PosPaymentStatus,
-): PosPaymentStatus | null {
+): PosPaymentStatus {
   if (draftStatus === "loaded") {
     return "queued";
   }
 
-  if (draftStatus === "not_started" || draftStatus === "cancelled") {
-    return null;
+  if (draftStatus === "cancelled") {
+    return "not_started";
   }
 
   return draftStatus;

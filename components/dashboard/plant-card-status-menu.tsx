@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { checkOutpatientReadinessAction } from "@/app/actions/check-outpatient-readiness";
 import { updatePlantStatusAction } from "@/app/actions/update-plant-status";
@@ -12,8 +11,10 @@ import {
   plantStatusLabel,
   type PlantStatus,
 } from "@/lib/plant-status";
+import { confirmationForStatusMove } from "@/lib/plants/status-move-confirmation";
 import { cn } from "@/lib/utils";
 import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
+import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import type { PlantCategory } from "@/lib/plant-category";
 import { isVisitUnpaid, type PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 
@@ -26,8 +27,8 @@ type PlantCardStatusMenuProps = {
   hasPropagation: boolean;
   customerName: string;
   paymentStatus: PosPaymentStatus | null;
-  /** Dashboard card hit-target vs visible page button. */
-  variant?: "overlay" | "button";
+  /** Card corner control vs full-page button. Overlay kept for back-compat alias of chip. */
+  variant?: "overlay" | "button" | "chip";
   /** Hide "Update plant" when already on the plant detail page. */
   hideUpdatePlantLink?: boolean;
   className?: string;
@@ -49,47 +50,6 @@ type ConfirmStep =
       kind: "unpaid_collect";
     };
 
-function confirmationForStatusMove(
-  from: PlantStatus,
-  to: PlantStatus,
-): { title: string; message: string } | null {
-  if (from === "check_in" && to === "quarantine") {
-    return {
-      title: "Move to quarantine?",
-      message: "Are you sure you want to move to quarantine?",
-    };
-  }
-  if (
-    (from === "check_in" || from === "quarantine" || from === "propagation") &&
-    to === "in_surgery"
-  ) {
-    return {
-      title: "Move to surgery?",
-      message: "Are you sure you want to move to surgery?",
-    };
-  }
-  if (from === "in_surgery" && to === "dead") {
-    return {
-      title: "Move to Dead?",
-      message: "Are you sure you want to move to Dead?",
-    };
-  }
-  if (from === "in_surgery" && to === "outpatient") {
-    return {
-      title: "Move to Outpatient?",
-      message:
-        "Are you sure you want to move this plant to Outpatient. This will notify the customer that the plant is ready to collect. PLEASE NOTE: If the customer has more than one plant in their visit, they will only be notified when the final plant is moved to outpatient",
-    };
-  }
-  if (from === "outpatient" && to === "collected") {
-    return {
-      title: "Move to collected?",
-      message: "Are you sure you want to move to collected, this cannot be undone",
-    };
-  }
-  return null;
-}
-
 export function PlantCardStatusMenu({
   plantId,
   currentStatus,
@@ -104,6 +64,7 @@ export function PlantCardStatusMenu({
   className,
 }: PlantCardStatusMenuProps) {
   const router = useRouter();
+  const plantDetailModal = useOptionalPlantDetailModal();
   const dialogTitleId = useId();
   const dialogDescriptionId = useId();
   const [open, setOpen] = useState(false);
@@ -167,7 +128,20 @@ export function PlantCardStatusMenu({
 
       closeAll();
       router.refresh();
+
+      if (newStatus === "in_surgery" || hideUpdatePlantLink) {
+        plantDetailModal?.openPlantDetail(plantId);
+      }
     });
+  }
+
+  function openUpdatePlant() {
+    closeAll();
+    if (plantDetailModal) {
+      plantDetailModal.openPlantDetail(plantId);
+      return;
+    }
+    router.push(`/app/plants/${plantId}`);
   }
 
   function selectStatus(newStatus: PlantStatus) {
@@ -219,6 +193,7 @@ export function PlantCardStatusMenu({
 
   const showingConfirm = confirmStep !== null;
   const isButtonVariant = variant === "button";
+  const isChipVariant = variant === "overlay" || variant === "chip";
 
   function openMenu() {
     setConfirmStep(null);
@@ -228,7 +203,10 @@ export function PlantCardStatusMenu({
 
   return (
     <div
-      className={cn(isButtonVariant ? "relative inline-flex" : "contents", className)}
+      className={cn(
+        isButtonVariant || isChipVariant ? "relative inline-flex shrink-0" : "contents",
+        className,
+      )}
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
     >
@@ -248,14 +226,18 @@ export function PlantCardStatusMenu({
         <button
           ref={triggerRef}
           type="button"
-          className="absolute inset-0 z-20 rounded-hilda transition-colors hover:bg-hilda-heading/[0.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hilda-gold disabled:opacity-50"
+          className="-mr-0.5 inline-flex h-8 items-center justify-end rounded-hilda-sm px-0.5 text-hilda-heading transition-colors hover:bg-hilda-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hilda-gold disabled:opacity-50"
           disabled={isPending}
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-label="Open plant actions"
           onClick={openMenu}
         >
-          <span className="sr-only">Open plant actions</span>
+          <svg aria-hidden viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
+            <circle cx="3.25" cy="8" r="1.35" />
+            <circle cx="8" cy="8" r="1.35" />
+            <circle cx="12.75" cy="8" r="1.35" />
+          </svg>
         </button>
       )}
 
@@ -294,13 +276,13 @@ export function PlantCardStatusMenu({
 
                     <div className="max-h-[min(24rem,60dvh)] space-y-2 overflow-y-auto p-4">
                       {!hideUpdatePlantLink ? (
-                        <Link
-                          href={`/app/plants/${plantId}`}
+                        <button
+                          type="button"
                           className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95"
-                          onClick={() => closeAll()}
+                          onClick={openUpdatePlant}
                         >
                           Update plant
-                        </Link>
+                        </button>
                       ) : null}
                       {availableLanes.map((lane) => (
                         <button
@@ -346,13 +328,13 @@ export function PlantCardStatusMenu({
                     </div>
                     <div className="space-y-2 p-4">
                       {!hideUpdatePlantLink ? (
-                        <Link
-                          href={`/app/plants/${plantId}`}
+                        <button
+                          type="button"
                           className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95"
-                          onClick={() => closeAll()}
+                          onClick={openUpdatePlant}
                         >
                           Update plant
-                        </Link>
+                        </button>
                       ) : null}
                       <button
                         type="button"
@@ -472,12 +454,12 @@ export function PlantCardStatusMenu({
         : null}
 
       {!isButtonVariant && isPending && !open ? (
-        <span className="pointer-events-none absolute inset-x-2 bottom-2 z-30 rounded-hilda-sm bg-hilda-surface/95 px-2 py-1 text-center text-xs text-hilda-text-muted shadow-sm">
+        <span className="pointer-events-none absolute bottom-full right-0 mb-1 rounded-hilda-sm bg-hilda-surface/95 px-2 py-1 text-center text-xs text-hilda-text-muted shadow-sm">
           Updating…
         </span>
       ) : null}
       {!isButtonVariant && error && !open ? (
-        <p className="pointer-events-none absolute inset-x-2 bottom-2 z-30 rounded-hilda-sm bg-hilda-error-bg px-2 py-1 text-center text-xs text-hilda-error-text shadow-sm">
+        <p className="pointer-events-none absolute bottom-full right-0 mb-1 max-w-[10rem] rounded-hilda-sm bg-hilda-error-bg px-2 py-1 text-center text-xs text-hilda-error-text shadow-sm">
           {error}
         </p>
       ) : null}

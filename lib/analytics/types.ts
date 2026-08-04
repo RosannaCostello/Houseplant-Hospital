@@ -9,6 +9,8 @@ export type AnalyticsPeriodSummary = {
   pricedCollectedPlants: number;
   medianTurnaroundDays: number | null;
   averageValuePerCollectedPlant: number | null;
+  /** Avg minutes in in_surgery for stints that ended in the period (app data only). */
+  averageMinutesInSurgery: number | null;
   uniqueCustomers: number;
   newCustomers: number;
   returningCustomers: number;

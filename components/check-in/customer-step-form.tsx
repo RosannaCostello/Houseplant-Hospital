@@ -12,6 +12,7 @@ import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
 import { CustomerEmailField } from "@/components/check-in/customer-email-field";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   checkInCustomerSchema,
   type CheckInCustomer,
@@ -20,7 +21,7 @@ import {
 import type { CustomerSearchResult } from "@/lib/customers/search-customers";
 import { cn } from "@/lib/utils";
 
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 
 const defaultValues: CheckInCustomerInput = {
   firstName: "",
@@ -53,6 +54,7 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
   );
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const formValues = editedValues ?? (initialCustomer ? toFormValues(initialCustomer) : defaultValues);
 
@@ -124,19 +126,16 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
     router.push(`/app/check-in/plants?draft=${nextDraftId}`);
   }
 
-  async function onDiscard() {
+  async function runDiscard() {
     if (!draftId) {
       router.push("/app");
-      return;
-    }
-
-    if (!window.confirm("Discard this incomplete check-in? This cannot be undone.")) {
       return;
     }
 
     setSubmitting(true);
     const result = await deleteCheckInDraft(draftId);
     setSubmitting(false);
+    setConfirmDiscard(false);
 
     if (!result.success) {
       setFormError(result.error);
@@ -145,6 +144,14 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
 
     router.push("/app");
     router.refresh();
+  }
+
+  function onDiscard() {
+    if (!draftId) {
+      router.push("/app");
+      return;
+    }
+    setConfirmDiscard(true);
   }
 
   return (
@@ -199,10 +206,10 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
         />
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className={checkInLabelClassName}>
+          <label className={hildaLabelClassName}>
             First name
             <input
-              className={cn(checkInInputClassName, "py-2.5")}
+              className={cn(hildaInputClassName, "py-2.5")}
               type="text"
               name="firstName"
               autoComplete="given-name"
@@ -215,10 +222,10 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
             ) : null}
           </label>
 
-          <label className={checkInLabelClassName}>
+          <label className={hildaLabelClassName}>
             Last name
             <input
-              className={cn(checkInInputClassName, "py-2.5")}
+              className={cn(hildaInputClassName, "py-2.5")}
               type="text"
               name="lastName"
               autoComplete="family-name"
@@ -232,10 +239,10 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
           </label>
         </div>
 
-        <label className={checkInLabelClassName}>
+        <label className={hildaLabelClassName}>
           Phone <span className="font-normal text-hilda-text-muted">(optional)</span>
           <input
-            className={cn(checkInInputClassName, "py-2.5")}
+            className={cn(hildaInputClassName, "py-2.5")}
             type="tel"
             name="phone"
             inputMode="tel"
@@ -281,6 +288,18 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
           </span>
         </label>
       </form>
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard check-in?"
+        message="Discard this incomplete check-in? This cannot be undone."
+        confirmLabel="Discard"
+        destructive
+        pending={submitting}
+        onConfirm={() => {
+          void runDiscard();
+        }}
+        onCancel={() => setConfirmDiscard(false)}
+      />
     </CheckInStepShell>
   );
 }

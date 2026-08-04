@@ -1,8 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
-import { setPestTreatmentAction } from "@/app/actions/set-pest-treatment";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { recordPestTreatmentAction } from "@/app/actions/set-pest-treatment";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
+import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
 import type { PestTreatmentNumber, PlantPestTreatment } from "@/lib/plants/pest-treatments";
 
 const TREATMENT_LABELS: Record<PestTreatmentNumber, string> = {
@@ -14,6 +17,7 @@ const TREATMENT_LABELS: Record<PestTreatmentNumber, string> = {
 type PestTreatmentsSectionProps = {
   plantId: string;
   treatments: PlantPestTreatment[];
+  options: PestTreatmentOption[];
   disabled?: boolean;
 };
 
@@ -27,10 +31,19 @@ function formatTreatedAt(value: string): string {
 export function PestTreatmentsSection({
   plantId,
   treatments: initialTreatments,
+  options,
   disabled = false,
 }: PestTreatmentsSectionProps) {
   const router = useRouter();
   const [treatments, setTreatments] = useState(initialTreatments);
+  const [draftOptionIds, setDraftOptionIds] = useState<Partial<Record<PestTreatmentNumber, string>>>(
+    {},
+  );
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    treatmentNumber: PestTreatmentNumber;
+    optionId: string;
+    optionLabel: string;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -38,22 +51,70 @@ export function PestTreatmentsSection({
     setTreatments(initialTreatments);
   }, [initialTreatments]);
 
-  function treatedAtFor(number: PestTreatmentNumber): string | null {
-    return treatments.find((row) => row.treatmentNumber === number)?.treatedAt ?? null;
+  const optionsById = useMemo(() => new Map(options.map((option) => [option.id, option])), [options]);
+
+  function treatmentFor(number: PestTreatmentNumber): PlantPestTreatment | undefined {
+    return treatments.find((row) => row.treatmentNumber === number);
   }
 
-  function handleToggle(treatmentNumber: PestTreatmentNumber, completed: boolean) {
+  function clearDraft(treatmentNumber: PestTreatmentNumber) {
+    setDraftOptionIds((current) => {
+      const next = { ...current };
+      delete next[treatmentNumber];
+      return next;
+    });
+  }
+
+  function onSelectOption(treatmentNumber: PestTreatmentNumber, optionId: string) {
+    if (!optionId) {
+      clearDraft(treatmentNumber);
+      setPendingConfirm(null);
+      return;
+    }
+
+    const option = optionsById.get(optionId);
+    if (!option) {
+      clearDraft(treatmentNumber);
+      setError("Choose a valid treatment option.");
+      return;
+    }
+
     setError(null);
+    setDraftOptionIds((current) => ({
+      ...current,
+      [treatmentNumber]: optionId,
+    }));
+    setPendingConfirm({
+      treatmentNumber,
+      optionId,
+      optionLabel: option.label,
+    });
+  }
+
+  function cancelConfirm() {
+    if (pendingConfirm) {
+      clearDraft(pendingConfirm.treatmentNumber);
+    }
+    setPendingConfirm(null);
+  }
+
+  function confirmRecord() {
+    if (!pendingConfirm) return;
+
+    const { treatmentNumber, optionId } = pendingConfirm;
+    setPendingConfirm(null);
 
     startTransition(async () => {
-      const result = await setPestTreatmentAction(plantId, treatmentNumber, completed);
+      const result = await recordPestTreatmentAction(plantId, treatmentNumber, optionId);
 
       if (!result.success) {
+        clearDraft(treatmentNumber);
         setError(result.error);
         return;
       }
 
       setTreatments(result.treatments);
+      clearDraft(treatmentNumber);
       router.refresh();
     });
   }
@@ -62,47 +123,74 @@ export function PestTreatmentsSection({
     <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
       <h2 className="text-sm font-medium text-hilda-heading">Pest treatments</h2>
       <p className="mt-1 text-xs text-hilda-text-muted">
-        Record each treatment. All three are required before Outpatient when pests were ever found.
+        Pick a treatment type to record it (you’ll confirm first). Once recorded, a treatment cannot
+        be changed. All three are required before Outpatient when pests were ever found.
       </p>
 
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-3 space-y-3">
         {([1, 2, 3] as const).map((number) => {
-          const treatedAt = treatedAtFor(number);
-          const checked = treatedAt != null;
+          const recorded = treatmentFor(number);
+          const draftId = draftOptionIds[number] ?? "";
 
           return (
             <li
               key={number}
-              className="flex items-start gap-3 rounded-hilda-sm border border-hilda-border/10 px-3 py-2"
+              className="rounded-hilda-sm border border-hilda-border/10 px-3 py-2.5"
             >
-              <input
-                id={`pest-treatment-${plantId}-${number}`}
-                type="checkbox"
-                className="mt-1 h-4 w-4 accent-hilda-heading"
-                checked={checked}
-                disabled={disabled || isPending}
-                onChange={(event) => handleToggle(number, event.target.checked)}
-              />
-              <label
-                htmlFor={`pest-treatment-${plantId}-${number}`}
-                className="min-w-0 flex-1 text-sm text-hilda-text"
-              >
-                <span className="font-medium text-hilda-heading">{TREATMENT_LABELS[number]}</span>
-                {treatedAt ? (
-                  <span className="mt-0.5 block text-xs text-hilda-text-muted">
-                    {formatTreatedAt(treatedAt)}
-                  </span>
-                ) : (
-                  <span className="mt-0.5 block text-xs text-hilda-text-muted">Not recorded</span>
-                )}
-              </label>
+              <p className="text-sm font-medium text-hilda-heading">{TREATMENT_LABELS[number]}</p>
+
+              {recorded ? (
+                <div className="mt-1.5">
+                  <p className="text-sm text-hilda-text">{recorded.optionLabel}</p>
+                  <p className="mt-0.5 text-xs text-hilda-text-muted">
+                    Recorded {formatTreatedAt(recorded.treatedAt)} · Locked
+                  </p>
+                </div>
+              ) : (
+                <label className={`${hildaLabelClassName} mt-2 block`}>
+                  Treatment type
+                  <select
+                    className={`${hildaInputClassName} py-2.5`}
+                    value={draftId}
+                    disabled={disabled || isPending || options.length === 0}
+                    onChange={(event) => onSelectOption(number, event.target.value)}
+                  >
+                    <option value="">Select treatment…</option>
+                    {options.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </li>
           );
         })}
       </ul>
 
+      {options.length === 0 && !disabled ? (
+        <p className="mt-2 text-sm text-hilda-error-text">
+          No treatment options configured. An admin can add them in Settings.
+        </p>
+      ) : null}
       {error ? <p className="mt-2 text-sm text-hilda-error-text">{error}</p> : null}
       {isPending ? <p className="mt-2 text-sm text-hilda-text-muted">Saving…</p> : null}
+
+      <ConfirmDialog
+        open={pendingConfirm != null}
+        title={`Record ${pendingConfirm ? TREATMENT_LABELS[pendingConfirm.treatmentNumber] : "treatment"}?`}
+        message={
+          pendingConfirm
+            ? `Record “${pendingConfirm.optionLabel}” for ${TREATMENT_LABELS[pendingConfirm.treatmentNumber]}? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Record treatment"
+        cancelLabel="Cancel"
+        pending={isPending}
+        onConfirm={confirmRecord}
+        onCancel={cancelConfirm}
+      />
     </section>
   );
 }

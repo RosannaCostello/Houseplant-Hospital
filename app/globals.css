@@ -149,7 +149,7 @@ h4 {
 }
 
 .bottom-nav-glass-tab-active {
-  background: rgba(0, 44, 54, 0.52);
+  background: rgba(0, 44, 54, 0.78);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.22);

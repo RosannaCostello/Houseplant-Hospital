@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { searchCheckInCustomersByEmail } from "@/app/actions/search-check-in-customers";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import type { CustomerSearchResult } from "@/lib/customers/search-customers";
 import { cn } from "@/lib/utils";
 
@@ -100,10 +100,10 @@ export function CustomerEmailField({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className={checkInLabelClassName}>
+      <label className={hildaLabelClassName}>
         Email
         <input
-          className={checkInInputClassName}
+          className={hildaInputClassName}
           type="email"
           name="email"
           inputMode="email"

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { checkInInputClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName } from "@/lib/brand/form-styles";
 import type { CustomerSearchResult } from "@/lib/customers/search-customers";
 
 type CustomerSearchViewProps = {
@@ -63,7 +63,7 @@ export function CustomerSearchView({ initialQuery, results }: CustomerSearchView
           <label className="block">
             <span className="sr-only">Search customers</span>
             <input
-              className={checkInInputClassName}
+              className={hildaInputClassName}
               type="search"
               name="q"
               placeholder="Name, email, or phone…"

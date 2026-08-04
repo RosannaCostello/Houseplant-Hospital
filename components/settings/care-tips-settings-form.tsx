@@ -15,7 +15,7 @@ import {
   type CareTipCategory,
 } from "@/lib/care-tips/compose-parse";
 import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
-import { checkInInputClassName, checkInLabelClassName } from "@/lib/check-in/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 
 type CareTipsSettingsFormProps = {
   optionsByCategory: CareTipOptionsByCategory;
@@ -145,10 +145,10 @@ export function CareTipsSettingsForm({
       ) : null}
 
       <form onSubmit={handleSavePlaceholder} className="space-y-3">
-        <label className={checkInLabelClassName}>
+        <label className={hildaLabelClassName}>
           Treatment notes placeholder
           <textarea
-            className={`${checkInInputClassName} min-h-[5rem] w-full resize-y py-2.5`}
+            className={`${hildaInputClassName} min-h-[5rem] w-full resize-y py-2.5`}
             value={placeholder}
             onChange={(event) => {
               setPlaceholder(event.target.value);
@@ -176,7 +176,7 @@ export function CareTipsSettingsForm({
                   className="flex flex-col gap-2 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg p-3 sm:flex-row sm:items-center"
                 >
                   <input
-                    className={`${checkInInputClassName} w-full flex-1`}
+                    className={`${hildaInputClassName} w-full flex-1`}
                     value={draftLabels[option.id] ?? option.label}
                     onChange={(event) => {
                       setDraftLabels((current) => ({
@@ -211,7 +211,7 @@ export function CareTipsSettingsForm({
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <input
-                className={`${checkInInputClassName} w-full flex-1`}
+                className={`${hildaInputClassName} w-full flex-1`}
                 placeholder={`Add ${CARE_TIP_CATEGORY_LABELS[category].toLowerCase()} option…`}
                 value={newLabels[category]}
                 onChange={(event) => {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
-  setPestTreatmentWithClient,
+  recordPestTreatmentWithClient,
   type PestTreatmentNumber,
 } from "@/lib/plants/pest-treatments";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -11,30 +11,30 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const schema = z.object({
   plantId: z.string().uuid(),
   treatmentNumber: z.union([z.literal(1), z.literal(2), z.literal(3)]),
-  completed: z.boolean(),
+  optionId: z.string().uuid(),
 });
 
-export type SetPestTreatmentActionResult = Awaited<
-  ReturnType<typeof setPestTreatmentWithClient>
+export type RecordPestTreatmentActionResult = Awaited<
+  ReturnType<typeof recordPestTreatmentWithClient>
 >;
 
-export async function setPestTreatmentAction(
+export async function recordPestTreatmentAction(
   plantId: string,
   treatmentNumber: PestTreatmentNumber,
-  completed: boolean,
-): Promise<SetPestTreatmentActionResult> {
-  const parsed = schema.safeParse({ plantId, treatmentNumber, completed });
+  optionId: string,
+): Promise<RecordPestTreatmentActionResult> {
+  const parsed = schema.safeParse({ plantId, treatmentNumber, optionId });
 
   if (!parsed.success) {
     return { success: false, error: "Invalid plant or treatment." };
   }
 
   const supabase = await createSupabaseServerClient();
-  const result = await setPestTreatmentWithClient(
+  const result = await recordPestTreatmentWithClient(
     supabase,
     parsed.data.plantId,
     parsed.data.treatmentNumber,
-    parsed.data.completed,
+    parsed.data.optionId,
   );
 
   if (result.success) {

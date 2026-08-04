@@ -1,4 +1,5 @@
 import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
+import { OpenPlantDetailLink } from "@/components/plants/open-plant-detail-link";
 import Image from "next/image";
 import Link from "next/link";
 import { formatPlantAge } from "@/lib/format-plant-age";
@@ -24,9 +25,9 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
   const subtitle = plantSubtitle(plant);
 
   return (
-    <Link
-      href={`/app/plants/${plant.id}`}
-      className="flex gap-4 rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface p-3 shadow-sm transition-colors hover:border-hilda-border/20 hover:bg-hilda-bg"
+    <OpenPlantDetailLink
+      plantId={plant.id}
+      className="flex w-full gap-4 rounded-hilda-sm border border-hilda-border/15 bg-hilda-surface p-3 shadow-sm transition-colors hover:border-hilda-border/20 hover:bg-hilda-bg"
     >
       <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-hilda-sm border border-hilda-border/10 bg-hilda-bg">
         {plant.thumbnailUrl ? (
@@ -58,7 +59,7 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
           <span className="text-xs text-hilda-text">{plantStatusLabel(plant.status)}</span>
         </div>
       </div>
-    </Link>
+    </OpenPlantDetailLink>
   );
 }
 

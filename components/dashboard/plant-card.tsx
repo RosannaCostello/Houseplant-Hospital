@@ -14,9 +14,17 @@ import type { DashboardPlant } from "@/lib/dashboard/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
 import { cn } from "@/lib/utils";
 
+export const DASHBOARD_PLANT_DRAG_TYPE = "application/x-hh-plant";
+
+export type DashboardPlantDragPayload = {
+  plantId: string;
+  fromStatus: DashboardPlant["status"];
+};
+
 type PlantCardProps = {
   plant: DashboardPlant;
   className?: string;
+  draggableCard?: boolean;
 };
 
 const imageOverlayBadgeClass =
@@ -26,7 +34,12 @@ function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
   if (thumbnailUrl?.startsWith("data:")) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- data URLs are not supported by next/image here.
-      <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
+      <img
+        src={thumbnailUrl}
+        alt=""
+        draggable={false}
+        className="h-full w-full object-cover [-webkit-user-drag:none]"
+      />
     );
   }
 
@@ -37,7 +50,8 @@ function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
         alt=""
         fill
         sizes="18rem"
-        className="object-cover"
+        draggable={false}
+        className="object-cover [-webkit-user-drag:none]"
         unoptimized
       />
     );
@@ -70,7 +84,7 @@ const CARD_IMAGE_ASPECT_CLASS = "aspect-[4/3]";
 
 const footerStatusClass = "text-[11px] text-hilda-text";
 
-export function PlantCard({ plant, className }: PlantCardProps) {
+export function PlantCard({ plant, className, draggableCard = true }: PlantCardProps) {
   const showQuarantineBadge = plant.status === "quarantine" && plant.quarantineSince;
   const showCheckInBadge = plant.status === "check_in";
   const showPropagationAge = plant.status === "propagation";
@@ -82,10 +96,35 @@ export function PlantCard({ plant, className }: PlantCardProps) {
     showPropagationAge ||
     showOutpatientBadge ||
     showCollectedBadge;
-  const showPlantAge = !showCheckInBadge && !showPropagationAge && !showCollectedBadge;
+  const canDrag = draggableCard && plant.status !== "collected" && plant.status !== "dead";
 
   return (
-    <div className={cn("relative rounded-hilda hilda-card-shadow", className)}>
+    <div
+      className={cn(
+        "relative rounded-hilda hilda-card-shadow",
+        canDrag && "cursor-grab active:cursor-grabbing",
+        className,
+      )}
+      draggable={canDrag}
+      onDragStart={(event) => {
+        if (!canDrag) return;
+        const payload: DashboardPlantDragPayload = {
+          plantId: plant.id,
+          fromStatus: plant.status,
+        };
+        event.dataTransfer.setData(DASHBOARD_PLANT_DRAG_TYPE, JSON.stringify(payload));
+        event.dataTransfer.effectAllowed = "move";
+
+        // Always ghost the full card (image-origin drags otherwise preview only the photo).
+        const card = event.currentTarget;
+        const rect = card.getBoundingClientRect();
+        event.dataTransfer.setDragImage(
+          card,
+          event.clientX - rect.left,
+          event.clientY - rect.top,
+        );
+      }}
+    >
       <article className="flex w-full flex-col overflow-hidden rounded-hilda bg-hilda-surface">
         <div
           className={cn(
@@ -120,56 +159,55 @@ export function PlantCard({ plant, className }: PlantCardProps) {
         </div>
 
         <div className="shrink-0">
-          <div className="block space-y-1 p-2.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="truncate text-sm font-medium text-hilda-heading">{plant.customerName}</p>
-              <span className="shrink-0 tabular-nums text-[11px] font-semibold text-hilda-text-muted">
-                {formatVisitPlantPosition(plant.visitPlantIndex, plant.visitPlantTotal)}
-              </span>
+          <div className="flex gap-2 p-2.5">
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="truncate text-sm font-medium leading-8 text-hilda-heading">
+                {plant.customerName}
+              </p>
+              {showFooterBadge ? (
+                <div className="min-w-0">
+                  {showQuarantineBadge ? (
+                    <span className={footerStatusClass}>
+                      {formatDaysInQuarantine(plant.quarantineSince!)}
+                    </span>
+                  ) : showCheckInBadge ? (
+                    <span className={footerStatusClass}>
+                      {formatDaysSinceCheckIn(plant.checkedInAt)}
+                    </span>
+                  ) : showPropagationAge ? (
+                    <span className={footerStatusClass}>
+                      {formatPlantAge(plant.checkedInAt)} in propagation
+                    </span>
+                  ) : showOutpatientBadge ? (
+                    <span className={footerStatusClass}>{plant.outpatientCollectionBadge}</span>
+                  ) : showCollectedBadge ? (
+                    <span className={footerStatusClass}>
+                      {plant.collectedAt ? formatCollectedBadgeLabel(plant.collectedAt) : "Collected"}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
-            <div
-              className={cn(
-                "flex items-center gap-2",
-                showFooterBadge ? "justify-between" : "justify-end",
-              )}
-            >
-              {showQuarantineBadge ? (
-                <span className={footerStatusClass}>
-                  {formatDaysInQuarantine(plant.quarantineSince!)}
-                </span>
-              ) : showCheckInBadge ? (
-                <span className={footerStatusClass}>
-                  {formatDaysSinceCheckIn(plant.checkedInAt)}
-                </span>
-              ) : showPropagationAge ? (
-                <span className={footerStatusClass}>
-                  {formatPlantAge(plant.checkedInAt)} in propagation
-                </span>
-              ) : showOutpatientBadge ? (
-                <span className={footerStatusClass}>{plant.outpatientCollectionBadge}</span>
-              ) : showCollectedBadge ? (
-                <span className={footerStatusClass}>
-                  {plant.collectedAt ? formatCollectedBadgeLabel(plant.collectedAt) : "Collected"}
-                </span>
-              ) : null}
-              {showPlantAge ? (
-                <span className="text-[11px] text-hilda-text-muted">{formatPlantAge(plant.checkedInAt)}</span>
-              ) : null}
+            <div className="flex shrink-0 flex-col items-end justify-between gap-1">
+              <span className="pt-2 text-right text-[11px] font-semibold tabular-nums leading-none text-hilda-text-muted">
+                {formatVisitPlantPosition(plant.visitPlantIndex, plant.visitPlantTotal)}
+              </span>
+              <PlantCardStatusMenu
+                plantId={plant.id}
+                currentStatus={plant.status}
+                size={plant.size}
+                bugsFound={plant.bugsFound}
+                plantCategory={plant.plantCategory}
+                hasPropagation={plant.hasPropagation}
+                customerName={plant.customerName}
+                paymentStatus={plant.paymentStatus}
+                variant="chip"
+              />
             </div>
           </div>
         </div>
       </article>
-      <PlantCardStatusMenu
-        plantId={plant.id}
-        currentStatus={plant.status}
-        size={plant.size}
-        bugsFound={plant.bugsFound}
-        plantCategory={plant.plantCategory}
-        hasPropagation={plant.hasPropagation}
-        customerName={plant.customerName}
-        paymentStatus={plant.paymentStatus}
-      />
     </div>
   );
 }

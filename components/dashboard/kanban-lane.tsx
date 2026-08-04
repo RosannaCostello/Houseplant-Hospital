@@ -1,12 +1,13 @@
 "use client";
 
-import { Children, type ReactNode } from "react";
+import { Children, useState, type DragEvent, type ReactNode } from "react";
 import {
   dashboardLaneSortLabel,
   type DashboardLaneSortOrder,
 } from "@/lib/dashboard/sort-dashboard-plants";
 import { cn } from "@/lib/utils";
-import type { PlantStatusLane } from "@/lib/plant-status";
+import type { PlantStatus, PlantStatusLane } from "@/lib/plant-status";
+import { DASHBOARD_PLANT_DRAG_TYPE } from "@/components/dashboard/plant-card";
 
 /** Fixed lane width — ~288px; comfortable for card text on iPad with horizontal scroll. */
 const LANE_WIDTH_CLASS = "w-[18rem] min-w-[18rem] max-w-[18rem] basis-[18rem]";
@@ -17,12 +18,52 @@ type KanbanLaneProps = {
   sortOrder?: DashboardLaneSortOrder;
   onToggleSort?: () => void;
   children?: ReactNode;
+  dropEnabled?: boolean;
+  onPlantDrop?: (plantId: string, fromStatus: PlantStatus, toStatus: PlantStatus) => void;
 };
 
-export function KanbanLane({ lane, count, sortOrder, onToggleSort, children }: KanbanLaneProps) {
+export function KanbanLane({
+  lane,
+  count,
+  sortOrder,
+  onToggleSort,
+  children,
+  dropEnabled = false,
+  onPlantDrop,
+}: KanbanLaneProps) {
   const childCount = Children.count(children);
   const displayCount = count ?? childCount;
   const isEmpty = displayCount === 0;
+  const [dragOver, setDragOver] = useState(false);
+
+  function handleDragOver(event: DragEvent<HTMLElement>) {
+    if (!dropEnabled || !onPlantDrop) return;
+    if (![...event.dataTransfer.types].includes(DASHBOARD_PLANT_DRAG_TYPE)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+      setDragOver(false);
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLElement>) {
+    if (!dropEnabled || !onPlantDrop) return;
+    event.preventDefault();
+    setDragOver(false);
+    const raw = event.dataTransfer.getData(DASHBOARD_PLANT_DRAG_TYPE);
+    if (!raw) return;
+    try {
+      const payload = JSON.parse(raw) as { plantId: string; fromStatus: PlantStatus };
+      if (!payload.plantId || !payload.fromStatus) return;
+      onPlantDrop(payload.plantId, payload.fromStatus, lane.status);
+    } catch {
+      // ignore malformed payload
+    }
+  }
 
   return (
     <section
@@ -31,11 +72,15 @@ export function KanbanLane({ lane, count, sortOrder, onToggleSort, children }: K
         "flex h-full min-h-0 shrink-0 grow-0 snap-center flex-col gap-2.5 overflow-visible",
         LANE_WIDTH_CLASS,
       )}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <header
         className={cn(
           "flex shrink-0 items-center justify-between gap-2 rounded-hilda border border-hilda-border/15 border-t-4 bg-hilda-surface px-3 py-2.5 shadow-sm",
           lane.accentClass,
+          dragOver && "ring-2 ring-hilda-gold ring-offset-2 ring-offset-hilda-bg",
         )}
       >
         <h2 className="min-w-0 truncate font-serif text-sm font-normal leading-snug text-hilda-heading">
@@ -58,7 +103,12 @@ export function KanbanLane({ lane, count, sortOrder, onToggleSort, children }: K
         </div>
       </header>
 
-      <div className="-mx-6 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 pb-[var(--bottom-nav-inset)] [overflow-clip-margin:1.5rem] [-webkit-overflow-scrolling:touch]">
+      <div
+        className={cn(
+          "-mx-6 min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 pb-[var(--bottom-nav-inset)] [overflow-clip-margin:1.5rem] [-webkit-overflow-scrolling:touch]",
+          dragOver && "rounded-hilda bg-hilda-gold/10",
+        )}
+      >
         <div className="space-y-2.5">{children}</div>
         {isEmpty ? (
           <p className="flex min-h-[12rem] items-center justify-center rounded-hilda border border-dashed border-hilda-border/20 px-3 py-8 text-center text-xs text-hilda-text-muted">
