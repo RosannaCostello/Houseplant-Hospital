@@ -8,6 +8,8 @@ export type PrintJobPayload = {
   plantName: string;
   size: string;
   pestsFound: boolean;
+  /** e.g. "1/2" — index in the check-in visit */
+  visitPosition?: string;
   checkedInAt: string;
 };
 

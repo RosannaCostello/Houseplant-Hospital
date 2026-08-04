@@ -6,6 +6,10 @@ import { deliverPrintJobToBridge } from "@/lib/printing/deliver-print-job";
 import { isPrintBridgeConfigured } from "@/lib/printing/env";
 import type { PrintJobPayload } from "@/lib/printing/types";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  formatVisitPlantPosition,
+  visitPlantPositionFromOrderedIds,
+} from "@/lib/visits/visit-plant-position";
 
 export type RequestPlantLabelPrintResult =
   | {
@@ -37,6 +41,7 @@ async function loadPlantForPrint(
       species,
       size,
       bugs_found,
+      visit_id,
       visits!inner (
         checkin_date,
         customers!inner (
@@ -62,6 +67,20 @@ async function loadPlantForPrint(
     return { error: "Plant visit or customer missing." };
   }
 
+  const visitId = data.visit_id as string;
+  const { data: siblings, error: siblingsError } = await supabase
+    .from("plants")
+    .select("id, created_at")
+    .eq("visit_id", visitId)
+    .order("created_at", { ascending: true });
+
+  if (siblingsError) {
+    return { error: siblingsError.message };
+  }
+
+  const orderedIds = (siblings ?? []).map((row) => row.id as string);
+  const position = visitPlantPositionFromOrderedIds(plantId, orderedIds);
+
   return {
     id: data.id as string,
     name: (data.name as string | null) ?? null,
@@ -69,6 +88,7 @@ async function loadPlantForPrint(
     size: data.size as string,
     bugsFound: (data.bugs_found as boolean | null) ?? null,
     checkedInAt: visit.checkin_date as string,
+    visitPosition: formatVisitPlantPosition(position.index, position.total),
     customer: { lastName: (customer.last_name as string) ?? "" },
   };
 }

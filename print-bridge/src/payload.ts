@@ -11,6 +11,8 @@ export const printJobPayloadSchema = z.object({
   plantName: z.string().min(1).max(120),
   size: z.string().min(1).max(40),
   pestsFound: z.boolean(),
+  /** e.g. "1/2" — this plant's index in the check-in visit */
+  visitPosition: z.string().min(3).max(12).optional(),
   checkedInAt: z.string().datetime({ offset: true }).or(z.string().min(4).max(40)),
 });
 

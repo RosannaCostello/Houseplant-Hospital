@@ -10,6 +10,7 @@ export type PlantPrintSource = {
   size: string;
   bugsFound: boolean | null;
   checkedInAt: string;
+  visitPosition: string;
   customer: {
     lastName: string;
   };
@@ -50,6 +51,7 @@ export function buildPrintJobPayload(
     plantName: plantDisplayName(plant),
     size: plant.size.trim().slice(0, 40) || "—",
     pestsFound: plant.bugsFound === true,
+    visitPosition: plant.visitPosition,
     checkedInAt: toCheckedInAt(plant.checkedInAt),
   };
 }

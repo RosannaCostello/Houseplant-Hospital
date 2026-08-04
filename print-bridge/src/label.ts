@@ -74,6 +74,11 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
       margin: 0 0 4mm;
       color: #002c36;
     }
+    .visit {
+      font-weight: 500;
+      color: #315f5f;
+      font-size: 11pt;
+    }
     .meta {
       margin: 0;
       padding: 0;
@@ -114,7 +119,11 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
     <p class="product">Houseplant Hospital</p>
   </header>
   <h1 class="plant">${escapeHtml(payload.plantName)}</h1>
-  <p class="customer">${escapeHtml(payload.customerSurname)}</p>
+  <p class="customer">${escapeHtml(payload.customerSurname)}${
+    payload.visitPosition
+      ? ` <span class="visit">${escapeHtml(payload.visitPosition)}</span>`
+      : ""
+  }</p>
   <ul class="meta">
     <li><span class="k">Size</span><span class="v">${escapeHtml(payload.size)}</span></li>
     <li><span class="k">Checked in</span><span class="v">${escapeHtml(formatDate(payload.checkedInAt))}</span></li>
