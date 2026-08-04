@@ -17,7 +17,7 @@ export type PrintResult = {
 };
 
 /**
- * Render label HTML, optionally convert to PDF and silent-print via CUPS `lp` (HIL-82).
+ * Render label HTML (60×86mm), convert to PDF, silent-print via `lp` to AirPrint (HIL-82).
  */
 export async function handlePrintJob(
   payload: PrintJobPayload,

@@ -1,7 +1,8 @@
 import type { PrintJobPayload } from "./payload.js";
+import { LABEL_HEIGHT_MM, LABEL_WIDTH_MM } from "./label-size.js";
 
 /**
- * Minimal branded HTML label for Brother QL continuous/die-cut (~62mm wide).
+ * Branded HTML label for Brother QL via AirPrint (Hilda: 60×86mm).
  * Logo asset lands with HIL-10 / HIL-81 polish — text layout is enough for dry-run.
  */
 export function renderLabelHtml(payload: PrintJobPayload): string {
@@ -18,12 +19,13 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
   <meta charset="utf-8" />
   <title>HH ${caseLine}</title>
   <style>
-    @page { margin: 0; size: 62mm 100mm; }
+    @page { margin: 0; size: ${LABEL_WIDTH_MM}mm ${LABEL_HEIGHT_MM}mm; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 3mm;
-      width: 62mm;
+      width: ${LABEL_WIDTH_MM}mm;
+      min-height: ${LABEL_HEIGHT_MM}mm;
       font-family: "Libre Franklin", Helvetica, Arial, sans-serif;
       color: #002c36;
       background: #fff;
@@ -43,13 +45,13 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
     }
     .grid {
       display: grid;
-      grid-template-columns: 1fr 22mm;
+      grid-template-columns: 1fr 20mm;
       gap: 2mm;
       align-items: start;
     }
     h1 {
       font-family: "DM Serif Display", Georgia, serif;
-      font-size: 13pt;
+      font-size: 12pt;
       font-weight: 400;
       margin: 0 0 1.5mm;
       line-height: 1.15;
@@ -58,8 +60,8 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
     dt { color: #315f5f; font-weight: 500; }
     dd { margin: 0 0 1.5mm; }
     .qr {
-      width: 22mm;
-      height: 22mm;
+      width: 20mm;
+      height: 20mm;
       border: 0.4mm solid #171d1a;
       display: flex;
       align-items: center;

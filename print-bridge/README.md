@@ -1,21 +1,28 @@
 # Print bridge (Mac Mini)
 
-Local Node service that receives Houseplant Hospital print jobs and silently prints branded labels on the Brother QL-820NWBc via CUPS.
+Local Node service that receives Houseplant Hospital print jobs and silently prints branded labels on the Brother QL-820NWBc.
 
 Linear: [HIL-80](https://linear.app/hilda-houseplant-hospital/issue/HIL-80) (service), [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12) (hardware — Done), [HIL-82](https://linear.app/hilda-houseplant-hospital/issue/HIL-82) (silent `lp`).
 
+## Hilda shop decision (2026-08-04)
+
+- Use the **AirPrint** queue (not Brother CUPS). AirPrint prints reliably on site; CUPS hit repeated **Wrong Roll Type** with the current media.
+- Label size: **60×86mm** (`LP_OPTIONS=media=Custom.60x86mm`).
+- CUPS remains optional later for **2-colour** (black/red) tape only.
+
 ## Setup on the Mac Mini
 
-1. Finish [HIL-12](https://linear.app/hilda-houseplant-hospital/issue/HIL-12): shop WiFi, Brother **CUPS** driver (not AirPrint), successful test print with the correct DK media size.
-2. Install **Node.js LTS** and **Google Chrome** (used headless for HTML → PDF).
-3. Clone this repo (or copy `print-bridge/`).
+1. Mac Mini on shop WiFi; Brother QL-820NWBc printing via **AirPrint** (test from Preview/System Settings).
+2. Install **Node.js LTS** and **Google Chrome** (headless HTML → PDF).
+3. Clone this repo (or copy `print-bridge/`). Prefer branch with HIL-82 silent print.
 4. From this folder:
 
 ```bash
 cp .env.example .env
 # Set PRINT_BRIDGE_SECRET (16+ chars)
-# Set PRINTER_NAME from: lpstat -p -d
+# Set PRINTER_NAME to the AirPrint queue from: lpstat -p -d
 # Set PRINT_MODE=print when ready for real labels
+# LP_OPTIONS defaults to media=Custom.60x86mm
 npm install
 npm run start
 ```
@@ -25,7 +32,6 @@ npm run start
 ```bash
 curl -s http://127.0.0.1:8787/health
 
-# Dry-run first (PRINT_MODE=dry-run) — opens HTML under .tmp/
 curl -s -X POST http://127.0.0.1:8787/print \
   -H "authorization: Bearer YOUR_SECRET" \
   -H "content-type: application/json" \
@@ -40,7 +46,7 @@ curl -s -X POST http://127.0.0.1:8787/print \
   }'
 ```
 
-Then set `PRINT_MODE=print`, restart, and POST again — a label should come out with no dialog.
+With `PRINT_MODE=dry-run`, open the HTML under `.tmp/`. With `PRINT_MODE=print`, a 60×86mm label should print with no dialog.
 
 ## Endpoints
 
@@ -51,7 +57,6 @@ Then set `PRINT_MODE=print`, restart, and POST again — a label should come out
 
 ## Notes
 
-- Prefer **CUPS** driver over AirPrint for silent print and 2-colour labels.
-- Queue name: `lpstat -p -d`.
-- Media size: set once in CUPS (`http://localhost:631/printers` → Set Default Options) to match the DK roll. Only use `LP_OPTIONS` if you need to override.
+- Queue name: `lpstat -p -d` — pick the **AirPrint** entry.
+- If `Custom.60x86mm` is rejected, run `lpoptions -p "$QUEUE" -l | grep -i media` and set `LP_OPTIONS` to the matching token.
 - Production reachability from Cloudflare is [HIL-85](https://linear.app/hilda-houseplant-hospital/issue/HIL-85) (tunnel / allowlist).
