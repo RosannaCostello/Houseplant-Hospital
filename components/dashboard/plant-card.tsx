@@ -14,6 +14,7 @@ import {
 } from "@/lib/format-quarantine-age";
 import type { DashboardPlant } from "@/lib/dashboard/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
+import { formatPlantSizeLabel } from "@/lib/plant-size";
 import { cn } from "@/lib/utils";
 
 export const DASHBOARD_PLANT_DRAG_TYPE = "application/x-hh-plant";
@@ -155,7 +156,7 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
                 "bg-hilda-surface text-[11px] font-semibold uppercase tracking-wide text-hilda-heading",
               )}
             >
-              {plant.size}
+              {formatPlantSizeLabel(plant.size)}
             </span>
             {plant.plantCategory === "propagation" ? <PropagationBadge /> : null}
             {plant.bugsFound ? (
@@ -174,7 +175,7 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
         </button>
 
         <div className="shrink-0">
-          <div className="flex gap-2 p-2.5">
+          <div className="flex items-start gap-2 p-2.5">
             <button
               type="button"
               className="min-w-0 flex-1 space-y-1 text-left"
@@ -183,9 +184,9 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
               <p className="truncate text-sm font-medium leading-8 text-hilda-heading">
                 {plant.customerName}
               </p>
-              {showFooterBadge ? (
-                <div className="min-w-0">
-                  {showQuarantineBadge ? (
+              <div className="min-h-4 min-w-0">
+                {showFooterBadge ? (
+                  showQuarantineBadge ? (
                     <span className={footerStatusClass}>
                       {formatDaysInQuarantine(plant.quarantineSince!)}
                     </span>
@@ -203,12 +204,12 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
                     <span className={footerStatusClass}>
                       {plant.collectedAt ? formatCollectedBadgeLabel(plant.collectedAt) : "Collected"}
                     </span>
-                  ) : null}
-                </div>
-              ) : null}
+                  ) : null
+                ) : null}
+              </div>
             </button>
 
-            <div className="flex shrink-0 flex-col items-end justify-between gap-1">
+            <div className="flex shrink-0 flex-col items-end justify-between gap-1 self-stretch">
               <span className="pt-2 text-right text-[11px] font-semibold tabular-nums leading-none text-hilda-text-muted">
                 {formatVisitPlantPosition(plant.visitPlantIndex, plant.visitPlantTotal)}
               </span>

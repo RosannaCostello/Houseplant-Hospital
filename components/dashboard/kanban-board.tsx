@@ -9,6 +9,7 @@ import {
   PlantStatusMoveDialog,
   type PendingPlantStatusMove,
 } from "@/components/dashboard/plant-status-move-dialog";
+import { Button } from "@/components/ui/button";
 import {
   sortDashboardPlants,
   toggleDashboardLaneSortOrder,
@@ -108,7 +109,7 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
 
   return (
     <div className="relative flex min-h-0 flex-1 basis-0 flex-col gap-3">
-      <div className="shrink-0 px-1">
+      <div className="flex shrink-0 items-center gap-2 px-1">
         <label className="sr-only" htmlFor="dashboard-search">
           Search plants by customer name or email
         </label>
@@ -117,10 +118,25 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
           type="search"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && searchQuery) {
+              setSearchQuery("");
+            }
+          }}
           placeholder="Search by name or email…"
-          className="w-full max-w-md rounded-hilda border border-hilda-border/20 bg-hilda-surface px-3 py-2 text-sm text-hilda-text placeholder:text-hilda-text-muted focus:border-hilda-border/40 focus:outline-none"
+          className="min-w-0 flex-1 max-w-md rounded-hilda border border-hilda-border/20 bg-hilda-surface px-3 py-2 text-sm text-hilda-text placeholder:text-hilda-text-muted focus:border-hilda-border/40 focus:outline-none"
           autoComplete="off"
         />
+        {searchQuery.trim() ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setSearchQuery("")}
+          >
+            Cancel search
+          </Button>
+        ) : null}
       </div>
 
       <div

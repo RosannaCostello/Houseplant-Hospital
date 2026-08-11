@@ -11,6 +11,8 @@ export const MAILCHIMP_EVENT_NAMES = {
   plantCollected: "plant_collected",
   plantDead: "plant_dead",
   plantQuarantined: "plant_quarantined",
+  /** Staff propagated a source plant (creates a child in Propagation). */
+  plantPropagated: "plant_propagated",
 } as const;
 
 export type MailchimpEventName = (typeof MAILCHIMP_EVENT_NAMES)[keyof typeof MAILCHIMP_EVENT_NAMES];
@@ -40,6 +42,10 @@ export type MailchimpEventPayload = {
   treatmentNotes?: string;
   /** Latest care tips content (HIL-98). */
   careTips?: string;
+  /** New propagation child plant id (`plant_propagated` only). */
+  childPlantId?: string;
+  /** Propagation size band chosen by staff (`plant_propagated` only). */
+  size?: string;
   /** Set by outbox worker (HIL-57) when delivery fails. */
   _deliveryError?: string;
   _failedAt?: string;

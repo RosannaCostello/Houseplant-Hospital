@@ -1,0 +1,98 @@
+Houseplant Hospital — Permanent tunnel (no Terminal) — Mac Mini
+==============================================================
+
+After this, printing survives reboot with NO Terminal windows open.
+(Print-bridge LaunchAgent + cloudflared LaunchAgent + auto-login.)
+
+Do ON the Mini. Keep the old quick-tunnel Terminal open until STEP 4 succeeds.
+
+
+----------------------------------------
+STEP 0 — On MacBook first (Jack / Cursor)
+----------------------------------------
+
+1) Paste this SQL in Supabase → SQL Editor → Run:
+
+create table if not exists public.print_bridge_runtime (
+  id integer primary key default 1 check (id = 1),
+  base_url text not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.print_bridge_runtime enable row level security;
+drop policy if exists "print_bridge_runtime_admin" on public.print_bridge_runtime;
+create policy "print_bridge_runtime_admin"
+on public.print_bridge_runtime
+for all to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+2) Wait until Cursor says live app is redeployed.
+
+
+----------------------------------------
+STEP 1 — Copy new scripts from MacBook onto Mini
+----------------------------------------
+
+Copy these onto the Mini (AirDrop/USB), replacing:
+
+  print-bridge/scripts/run-permanent-tunnel.sh
+  print-bridge/scripts/install-tunnel-launchd.sh
+
+Into:
+
+  ~/Hilda/Houseplant-Hospital/print-bridge/scripts/
+
+
+----------------------------------------
+STEP 2 — Make executable + install LaunchAgent
+----------------------------------------
+
+chmod +x ~/Hilda/Houseplant-Hospital/print-bridge/scripts/run-permanent-tunnel.sh
+chmod +x ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-tunnel-launchd.sh
+
+bash ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-tunnel-launchd.sh
+
+
+----------------------------------------
+STEP 3 — Confirm tunnel registered
+----------------------------------------
+
+sleep 15
+
+tail -40 ~/Hilda/Houseplant-Hospital/print-bridge/logs/cloudflared.stdout.log
+
+You want lines like:
+  Your quick Tunnel has been created!
+  https://….trycloudflare.com
+  [tunnel] registering …
+  [tunnel] registered ok
+
+
+----------------------------------------
+STEP 4 — Stop the OLD manual Terminal tunnel
+----------------------------------------
+
+In the Terminal that was running:
+  cloudflared tunnel --url http://127.0.0.1:8787
+press Ctrl+C.
+
+Leave Terminal closed. LaunchAgent keeps the tunnel up.
+
+
+----------------------------------------
+STEP 5 — Smoke checks
+----------------------------------------
+
+curl -s http://127.0.0.1:8787/health
+
+# iPad: plant → Print label
+
+
+----------------------------------------
+If reboot
+----------------------------------------
+
+With automatic login for hilda, both LaunchAgents start alone:
+  - print-bridge
+  - cloudflared (registers new URL automatically)
+No Terminal needed.

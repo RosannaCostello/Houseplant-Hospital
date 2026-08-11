@@ -4,6 +4,7 @@ import { resolveCheckInCustomerId } from "@/lib/check-in/resolve-check-in-custom
 import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
 import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
 import type { PlantStatus } from "@/lib/plant-status";
+import { plantCheckInLabel } from "@/lib/plants/internal-notes";
 
 export type CreatedCheckInPlant = {
   clientId: string;
@@ -25,18 +26,21 @@ type CreateCheckInOptions = {
   deferMailchimp?: boolean;
 };
 
-function buildVisitNotes(plants: CreateCheckInInput["plants"]): string | null {
+function buildLegacyVisitNotes(plants: CreateCheckInInput["plants"]): string | null {
   const lines = plants
     .map((plant, index) => {
       const notes = plant.notes.trim();
       if (!notes) return null;
-
-      const label = plant.name.trim() || plant.species.trim() || `Plant ${index + 1}`;
-      return `${label}: ${notes}`;
+      return `${plantCheckInLabel(plant, index + 1)}: ${notes}`;
     })
     .filter((line): line is string => Boolean(line));
 
   return lines.length > 0 ? lines.join("\n") : null;
+}
+
+function isMissingPlantNotesColumnError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes("notes") && lower.includes("plants");
 }
 
 export async function createCheckInRecordsWithClient(
@@ -67,7 +71,7 @@ export async function createCheckInRecordsWithClient(
       .from("visits")
       .insert({
         customer_id: customerResult.id,
-        notes: buildVisitNotes(plants),
+        notes: null,
         created_by: user.id,
       })
       .select("id")
@@ -81,10 +85,21 @@ export async function createCheckInRecordsWithClient(
 
     const plantRows = plants.map((plant) => {
       const initialStatus: PlantStatus = plant.bugsFound === true ? "quarantine" : "check_in";
+      const notes = plant.notes.trim() || null;
       return {
         clientId: plant.clientId,
         status: initialStatus,
-        insert: {
+        insertWithNotes: {
+          visit_id: visitRow.id,
+          name: plant.name.trim() || null,
+          species: plant.species.trim() || null,
+          size: plant.size,
+          status: initialStatus,
+          bugs_found: plant.bugsFound ?? null,
+          bugs_found_ever: plant.bugsFound === true,
+          notes,
+        },
+        insertLegacy: {
           visit_id: visitRow.id,
           name: plant.name.trim() || null,
           species: plant.species.trim() || null,
@@ -96,10 +111,28 @@ export async function createCheckInRecordsWithClient(
       };
     });
 
-    const { data: insertedPlants, error: plantError } = await supabase
+    let { data: insertedPlants, error: plantError } = await supabase
       .from("plants")
-      .insert(plantRows.map((row) => row.insert))
+      .insert(plantRows.map((row) => row.insertWithNotes))
       .select("id");
+
+    if (plantError && isMissingPlantNotesColumnError(plantError.message)) {
+      const legacyNotes = buildLegacyVisitNotes(plants);
+      if (legacyNotes) {
+        const { error: visitNotesError } = await supabase
+          .from("visits")
+          .update({ notes: legacyNotes })
+          .eq("id", visitRow.id);
+        if (visitNotesError) {
+          throw new Error(visitNotesError.message);
+        }
+      }
+
+      ({ data: insertedPlants, error: plantError } = await supabase
+        .from("plants")
+        .insert(plantRows.map((row) => row.insertLegacy))
+        .select("id"));
+    }
 
     if (plantError || !insertedPlants || insertedPlants.length !== plantRows.length) {
       throw new Error(plantError?.message ?? "Could not create plants");

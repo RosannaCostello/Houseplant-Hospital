@@ -142,7 +142,7 @@ export function AnalyticsDashboard({
             previous={previous.plantsCheckedIn}
             previousFormatted={formatCount(previous.plantsCheckedIn)}
             comparisonSuffix={comparisonSuffix}
-            definition="Plants belonging to visits checked in during this period."
+            definition="Plants belonging to drop-offs checked in during this period."
           />
           <MetricCard
             label="Plants collected"
@@ -176,7 +176,7 @@ export function AnalyticsDashboard({
             </h2>
             <InfoDefinitionButton
               label="Customers"
-              definition="Customers with a visit in this period."
+              definition="Customers with a drop-off in this period."
             />
           </div>
           <dl className="mt-4 space-y-3 text-sm">
@@ -287,7 +287,7 @@ export function AnalyticsDashboard({
 
             <div className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-4">
               <h3 className="font-serif text-xl text-hilda-heading">Outstanding payments</h3>
-              <p className="mt-1 text-xs text-hilda-text-muted">Visit counts only; no value inferred.</p>
+              <p className="mt-1 text-xs text-hilda-text-muted">Drop-off counts only; no value inferred.</p>
               <dl className="mt-3 space-y-2 text-sm">
                 {analytics.paymentSnapshot.map((payment) => (
                   <div key={payment.status} className="flex justify-between gap-3">

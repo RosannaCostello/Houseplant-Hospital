@@ -2,6 +2,7 @@ import "server-only";
 
 import { getEnv } from "@/lib/env";
 import type { PrintJobPayload } from "@/lib/printing/types";
+import { formatPlantSizeLabel } from "@/lib/plant-size";
 
 export type PlantPrintSource = {
   id: string;
@@ -12,6 +13,7 @@ export type PlantPrintSource = {
   checkedInAt: string;
   visitPosition: string;
   customer: {
+    firstName: string;
     lastName: string;
   };
 };
@@ -41,15 +43,17 @@ export function buildPrintJobPayload(
     ? `${env.APP_BASE_URL.replace(/\/$/, "")}/hh/case/${plant.id}`
     : undefined;
 
-  const surname = plant.customer.lastName.trim() || "Customer";
+  const firstName = plant.customer.firstName.trim();
+  const lastName = plant.customer.lastName.trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || "Customer";
 
   return {
     ...(jobId ? { jobId } : {}),
     plantId: plant.id,
     ...(caseUrl ? { caseUrl } : {}),
-    customerSurname: surname.slice(0, 80),
+    customerSurname: fullName.slice(0, 80),
     plantName: plantDisplayName(plant),
-    size: plant.size.trim().slice(0, 40) || "—",
+    size: formatPlantSizeLabel(plant.size).slice(0, 40) || "—",
     pestsFound: plant.bugsFound === true,
     visitPosition: plant.visitPosition,
     checkedInAt: toCheckedInAt(plant.checkedInAt),

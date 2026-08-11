@@ -21,19 +21,18 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (server only)
 
-### Phase 4 — Label printing (HIL-83)
+## Phase 4 — Label printing (HIL-83 / HIL-85)
 
 | Variable | Purpose |
 |----------|---------|
 | `APP_BASE_URL` | Public app origin (optional `caseUrl` in print payload) |
-| `PRINT_BRIDGE_URL` | Base URL of the Mac Mini print-bridge (must be reachable from Cloudflare — **not** `http://127.0.0.1:8787` on the live Worker) |
-| `PRINT_BRIDGE_SECRET` | Same Bearer secret as on the Mini `.env` |
+| `PRINT_BRIDGE_SECRET` | Shared Bearer secret (Mini `.env` + Worker). Also authorizes tunnel URL registration. |
+| `PRINT_BRIDGE_URL` | Optional fallback URL. Prefer runtime registration from the Mini. |
 
-**Flow:** Plant detail → **Print label** → row in `print_jobs` → POST `{PRINT_BRIDGE_URL}/print`. If the Mini is offline, the job stays `pending` and `/api/cron/print-jobs` (every 5 minutes with Mailchimp) retries.
+**Flow:** Plant detail → **Print label** → `print_jobs` → POST to the Mini bridge.  
+**Reachability:** Mini LaunchAgent runs `cloudflared` and POSTs its public URL to `/api/print-bridge/register` (stored in `print_bridge_runtime`). Survives reboot without a Terminal window. Permanent hostname on a Cloudflare zone is optional later.
 
-**Reachability (HIL-85):** expose the Mini bridge with Cloudflare Tunnel (or similar) and set `PRINT_BRIDGE_URL` to that HTTPS URL in the Worker env. Until then, taps still queue jobs safely.
-
-Apply migration `0026_print_jobs_delivery.sql` (adds `sent_at`, `last_error`, `attempts` on `print_jobs`).
+Apply migrations `0026_print_jobs_delivery.sql` (optional columns) and **`0027_print_bridge_runtime.sql`** (required for permanent tunnel).
 
 ## Install + run
 
@@ -109,11 +108,11 @@ If **Bugs found** reports a missing surcharge rule, also run `supabase/migration
 
 For **collection workflow** (final price + collected timestamp), run `supabase/migrations/0006_plant_collection_hil49.sql`.
 
-For **Shopify pricing sync** (HIL-52), run `supabase/migrations/0009_shopify_pricing_hil52.sql`.
+For **per-plant internal notes** (check-in notes on each plant), run `supabase/migrations/0029_plant_internal_notes.sql` (or `node scripts/apply-migration-0029.mjs`).
 
 ## Shopify pricing (HIL-52)
 
-Shopify is the source of truth for **standard** and **pests** treatment prices. The app size **XS** maps to Shopify option **Mini** on both products.
+Shopify is the source of truth for **standard** and **pests** treatment prices. App size **Mini** matches Shopify option **Mini** on both products.
 
 ### Env vars (server only)
 
@@ -238,6 +237,7 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 | Check-in (per plant) | `plant_checked_in` | Existing HH App — keep; finalize email copy |
 | Move to Quarantine | `plant_quarantined` | **Build** new flow + email |
 | Move to In surgery | `plant_in_surgery` | **Build** new flow + email |
+| Propagate plant | `plant_propagated` | **Build** HH App - Propagated |
 | Move to Outpatient (visit fully ready) | `plant_outpatient` | **Build** HH App - Outpatient |
 | Move to Outpatient (multi-plant, not last) | `plant_outpatient_partial` | **Build** HH App - Outpatient (partial) |
 | Collect plant | `plant_collected` | **Build** new flow + email |
@@ -300,6 +300,7 @@ Suggested journey names (HIL-96):
 | `plant_checked_in` | HH App - Check-in (existing; rename if needed) |
 | `plant_quarantined` | HH App - Quarantine |
 | `plant_in_surgery` | HH App - Surgery |
+| `plant_propagated` | HH App - Propagated |
 | `plant_outpatient` | HH App - Outpatient |
 | `plant_outpatient_partial` | HH App - Outpatient (partial) |
 | `plant_collected` | HH App - Collected |
@@ -420,7 +421,7 @@ When all boxes are ticked, mark **HIL-39** Done in Linear — Phase 2 is complet
 - [x] Care tips: add and persist
 - [x] Bugs found toggle: saves, shows warning on card + detail, adjusts price estimate
 - [x] Pricing summary on plant detail matches size band + bugs adjustment
-- [x] Admin settings: edit XS–XL base prices
+- [x] Admin settings: edit Mini–XL base prices
 - [x] Collection: enter final price, mark collected; form hidden when collected
 - [x] Full lifecycle: check-in → surgery → outpatient → collected (audit trail intact)
 - [x] Post–HIL-51 smoke: collection £0 blocked, check-in photos survive refresh, kanban inline errors

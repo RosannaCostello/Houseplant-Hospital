@@ -7,6 +7,7 @@ import { isPosPaymentStatus, type PosPaymentStatus } from "@/lib/shopify/pos-che
 import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
 import type { PestTreatmentNumber, PlantPestTreatment } from "@/lib/plants/pest-treatments";
 import { getMinutesInSurgeryWithClient } from "@/lib/plants/get-minutes-in-surgery";
+import { resolvePlantInternalNotes } from "@/lib/plants/internal-notes";
 
 export type PlantDetailPhoto = {
   id: string;
@@ -37,7 +38,8 @@ export type PlantDetail = {
   shopifyOrderId: string | null;
   visitPlantIndex: number;
   visitPlantTotal: number;
-  visitNotes: string | null;
+  /** Check-in internal notes for this plant only. */
+  internalNotes: string | null;
   customer: {
     firstName: string;
     lastName: string;
@@ -129,6 +131,7 @@ const PLANT_DETAIL_SELECT = `
       source_plant_id,
       final_price,
       collected_at,
+      notes,
       created_at,
       ${PLANT_DETAIL_RELATIONS}
 `;
@@ -145,6 +148,7 @@ const PLANT_DETAIL_SELECT_PRE_OPTIONS = `
       source_plant_id,
       final_price,
       collected_at,
+      notes,
       created_at,
       ${PLANT_DETAIL_RELATIONS_PRE_OPTIONS}
 `;
@@ -162,8 +166,29 @@ const PLANT_DETAIL_SELECT_LEGACY = `
       ${PLANT_DETAIL_RELATIONS_BASE}
 `;
 
+const PLANT_DETAIL_SELECT_WITHOUT_PLANT_NOTES = `
+      id,
+      name,
+      species,
+      size,
+      status,
+      bugs_found,
+      bugs_found_ever,
+      plant_category,
+      source_plant_id,
+      final_price,
+      collected_at,
+      created_at,
+      ${PLANT_DETAIL_RELATIONS}
+`;
+
 function isMissingCollectionColumnsError(message: string): boolean {
   return message.includes("final_price") || message.includes("collected_at");
+}
+
+function isMissingPlantNotesColumnError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes("notes") && (lower.includes("plants") || lower.includes("'notes'"));
 }
 
 function isMissingPestTreatmentOptionColumnsError(message: string): boolean {
@@ -224,6 +249,14 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     .eq("id", plantId)
     .maybeSingle();
 
+  if (error && isMissingPlantNotesColumnError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT_WITHOUT_PLANT_NOTES)
+      .eq("id", plantId)
+      .maybeSingle());
+  }
+
   if (error && isMissingPestTreatmentOptionColumnsError(error.message)) {
     ({ data, error } = await supabase
       .from("plants")
@@ -264,6 +297,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     source_plant_id?: string | null;
     final_price?: number | null;
     collected_at?: string | null;
+    notes?: string | null;
     plant_pest_treatments?: Array<{
       treatment_number?: number;
       treated_at?: string;
@@ -426,7 +460,14 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     shopifyOrderId: visit.shopify_order_id ?? null,
     visitPlantIndex: visitPlantPosition.index,
     visitPlantTotal: visitPlantPosition.total,
-    visitNotes: visit.notes,
+    internalNotes: resolvePlantInternalNotes({
+      plantNotes: row.notes ?? null,
+      visitNotes: visit.notes,
+      name: row.name ?? null,
+      species: row.species ?? null,
+      visitPlantIndex: visitPlantPosition.index,
+      visitPlantTotal: visitPlantPosition.total,
+    }),
     customer: {
       firstName: customer.first_name,
       lastName: customer.last_name,

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { emitPlantPropagatedEvent } from "@/lib/mailchimp/emit-plant-event";
 import type { PlantSize } from "@/lib/plant-size";
 import { SHOPIFY_VARIANT_IDS } from "@/lib/shopify/config";
 import type { PosCheckoutPayload } from "@/lib/shopify/pos-checkout-types";
@@ -88,6 +89,8 @@ export async function propagatePlantWithClient(
   if (!result?.plant_id || !result?.visit_id) {
     return { success: false, error: "Propagation was not created." };
   }
+
+  await emitPlantPropagatedEvent(supabase, sourcePlantId, result.plant_id as string, size);
 
   return { success: true, plantId: result.plant_id, visitId: result.visit_id };
 }

@@ -25,7 +25,6 @@ type PrintJobRow = {
   plant_id: string | null;
   payload: PrintJobPayload;
   status: string;
-  attempts: number;
 };
 
 async function loadPlantForPrint(
@@ -45,6 +44,7 @@ async function loadPlantForPrint(
       visits!inner (
         checkin_date,
         customers!inner (
+          first_name,
           last_name
         )
       )
@@ -89,26 +89,34 @@ async function loadPlantForPrint(
     bugsFound: (data.bugs_found as boolean | null) ?? null,
     checkedInAt: visit.checkin_date as string,
     visitPosition: formatVisitPlantPosition(position.index, position.total),
-    customer: { lastName: (customer.last_name as string) ?? "" },
+    customer: {
+      firstName: (customer.first_name as string) ?? "",
+      lastName: (customer.last_name as string) ?? "",
+    },
   };
 }
 
+/** Status-only updates — works before migration 0026 columns exist. */
 async function markJobAttempt(
   admin: ReturnType<typeof createSupabaseAdminClient>,
   jobId: string,
-  attempts: number,
+  payload: PrintJobPayload,
   result: Awaited<ReturnType<typeof deliverPrintJobToBridge>>,
 ): Promise<"pending" | "sent" | "failed"> {
   if (result.ok) {
-    await admin
+    const { error } = await admin
       .from("print_jobs")
       .update({
         status: "sent",
-        sent_at: new Date().toISOString(),
-        last_error: null,
-        attempts: attempts + 1,
+        payload: {
+          ...payload,
+          _delivery: { ok: true, at: new Date().toISOString() },
+        },
       })
       .eq("id", jobId);
+    if (error) {
+      console.error("[print] failed to mark sent:", error.message);
+    }
     return "sent";
   }
 
@@ -117,8 +125,14 @@ async function markJobAttempt(
     .from("print_jobs")
     .update({
       status,
-      last_error: result.error.slice(0, 500),
-      attempts: attempts + 1,
+      payload: {
+        ...payload,
+        _delivery: {
+          ok: false,
+          at: new Date().toISOString(),
+          error: result.error.slice(0, 500),
+        },
+      },
     })
     .eq("id", jobId);
   return status;
@@ -162,7 +176,6 @@ export async function requestPlantLabelPrint(
       plant_id: plantId,
       payload: draftPayload,
       status: "pending",
-      attempts: 0,
     })
     .select("id")
     .single();
@@ -189,7 +202,7 @@ export async function requestPlantLabelPrint(
   }
 
   const delivery = await deliverPrintJobToBridge(payload);
-  const status = await markJobAttempt(admin, jobId, 0, delivery);
+  const status = await markJobAttempt(admin, jobId, payload, delivery);
 
   if (status === "sent") {
     return {
@@ -226,7 +239,6 @@ export type ProcessPendingPrintJobsResult = {
 };
 
 const BATCH_SIZE = 20;
-const MAX_ATTEMPTS = 12;
 
 /** Drain pending print_jobs (cron / manual). Leaves pending when Mini is offline. */
 export async function processPendingPrintJobs(): Promise<ProcessPendingPrintJobsResult> {
@@ -257,9 +269,8 @@ export async function processPendingPrintJobs(): Promise<ProcessPendingPrintJobs
 
   const { data: rows, error } = await admin
     .from("print_jobs")
-    .select("id, plant_id, payload, status, attempts")
+    .select("id, plant_id, payload, status")
     .eq("status", "pending")
-    .lt("attempts", MAX_ATTEMPTS)
     .order("created_at", { ascending: true })
     .limit(BATCH_SIZE);
 
@@ -285,7 +296,7 @@ export async function processPendingPrintJobs(): Promise<ProcessPendingPrintJobs
       plantId: row.payload.plantId || row.plant_id || "",
     };
     const delivery = await deliverPrintJobToBridge(payload);
-    const status = await markJobAttempt(admin, row.id, row.attempts ?? 0, delivery);
+    const status = await markJobAttempt(admin, row.id, payload, delivery);
     if (status === "sent") sent += 1;
     else if (status === "failed") failed += 1;
     else stillPending += 1;

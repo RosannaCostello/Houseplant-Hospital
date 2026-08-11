@@ -14,12 +14,12 @@ export type DeliverPrintJobResult =
 export async function deliverPrintJobToBridge(
   payload: PrintJobPayload,
 ): Promise<DeliverPrintJobResult> {
-  const config = getPrintBridgeConfig();
+  const config = await getPrintBridgeConfig();
   if (!config.configured) {
     return {
       ok: false,
       retryable: true,
-      error: "PRINT_BRIDGE_URL / PRINT_BRIDGE_SECRET not configured",
+      error: config.reason,
     };
   }
 

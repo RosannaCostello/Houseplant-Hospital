@@ -2,6 +2,7 @@ import type { PlantStatus } from "@/lib/plant-status";
 import { PLANT_STATUSES } from "@/lib/plant-status";
 import { signPhotoPaths } from "@/lib/photos/sign-photo-urls";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolvePlantInternalNotes } from "@/lib/plants/internal-notes";
 
 export type VisitDetailPlant = {
   id: string;
@@ -10,6 +11,7 @@ export type VisitDetailPlant = {
   size: string;
   status: PlantStatus;
   bugsFound: boolean | null;
+  notes: string | null;
   thumbnailUrl: string | null;
 };
 
@@ -74,6 +76,7 @@ export async function getVisitDetail(visitId: string): Promise<VisitDetail | nul
         size,
         status,
         bugs_found,
+        notes,
         created_at,
         plant_photos (
           storage_path,
@@ -86,15 +89,56 @@ export async function getVisitDetail(visitId: string): Promise<VisitDetail | nul
     .eq("id", visitId)
     .maybeSingle();
 
-  if (error) {
-    throw new Error(`Failed to load visit: ${error.message}`);
+  let visitData = data;
+  let visitError = error;
+
+  if (
+    visitError &&
+    visitError.message.toLowerCase().includes("notes") &&
+    visitError.message.toLowerCase().includes("plants")
+  ) {
+    ({ data: visitData, error: visitError } = await supabase
+      .from("visits")
+      .select(
+        `
+      id,
+      checkin_date,
+      notes,
+      customers!inner (
+        first_name,
+        last_name,
+        email,
+        phone
+      ),
+      plants (
+        id,
+        name,
+        species,
+        size,
+        status,
+        bugs_found,
+        created_at,
+        plant_photos (
+          storage_path,
+          thumbnail_path,
+          created_at
+        )
+      )
+    `,
+      )
+      .eq("id", visitId)
+      .maybeSingle());
   }
 
-  if (!data || typeof data !== "object") {
+  if (visitError) {
+    throw new Error(`Failed to load visit: ${visitError.message}`);
+  }
+
+  if (!visitData || typeof visitData !== "object") {
     return null;
   }
 
-  const row = data as {
+  const row = visitData as {
     id?: string;
     checkin_date?: string;
     notes?: string | null;
@@ -119,6 +163,7 @@ export async function getVisitDetail(visitId: string): Promise<VisitDetail | nul
           size: string;
           status: string;
           bugs_found: boolean | null;
+          notes?: string | null;
           created_at: string;
           plant_photos: PlantPhotoRow[] | null;
         }>
@@ -147,7 +192,7 @@ export async function getVisitDetail(visitId: string): Promise<VisitDetail | nul
 
   const plants: VisitDetailPlant[] = [];
 
-  for (const plant of plantRows) {
+  for (const [index, plant] of plantRows.entries()) {
     if (!isPlantStatus(plant.status)) continue;
 
     const photoPath = latestPhotoPath(plant.plant_photos);
@@ -159,6 +204,14 @@ export async function getVisitDetail(visitId: string): Promise<VisitDetail | nul
       size: plant.size,
       status: plant.status,
       bugsFound: plant.bugs_found ?? null,
+      notes: resolvePlantInternalNotes({
+        plantNotes: plant.notes ?? null,
+        visitNotes: row.notes ?? null,
+        name: plant.name,
+        species: plant.species,
+        visitPlantIndex: index + 1,
+        visitPlantTotal: plantRows.length,
+      }),
       thumbnailUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
     });
   }

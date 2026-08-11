@@ -66,10 +66,12 @@ export function PlantsStepForm({
   const router = useRouter();
   const plantSectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const closingToDashboardRef = useRef(false);
+  const prevCheckoutStatusRef = useRef(initialCheckout.status);
   const [editedPlants, setEditedPlants] = useState<CheckInPlantInput[] | null>(null);
   const [checkout, setCheckout] = useState(initialCheckout);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [closingToDashboard, setClosingToDashboard] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"pay_at_collection" | "discard" | null>(null);
   const [plantErrors, setPlantErrors] = useState<Record<string, Partial<Record<keyof CheckInPlantInput, string>>>>({});
 
@@ -79,7 +81,7 @@ export function PlantsStepForm({
   const canContinueToPhotos = canProceedToPhotosStep(checkout.status, posCheckoutRequired);
   const awaitingPosPayment =
     posCheckoutRequired && (checkout.status === "queued" || checkout.status === "loaded");
-  const shouldReturnToDashboard =
+  const checkoutSettled =
     posCheckoutRequired &&
     (checkout.status === "paid" || checkout.status === "pay_at_collection");
 
@@ -102,10 +104,20 @@ export function PlantsStepForm({
     return () => window.clearInterval(interval);
   }, [awaitingPosPayment, draftId]);
 
+  // Auto-return only when checkout newly settles here — not when revisiting after "Back to plants".
   useEffect(() => {
-    if (!shouldReturnToDashboard || closingToDashboardRef.current) return;
+    const previousStatus = prevCheckoutStatusRef.current;
+    const justSettled =
+      checkoutSettled && previousStatus !== checkout.status && !closingToDashboardRef.current;
 
+    if (!justSettled) {
+      prevCheckoutStatusRef.current = checkout.status;
+      return;
+    }
+
+    prevCheckoutStatusRef.current = checkout.status;
     closingToDashboardRef.current = true;
+    setClosingToDashboard(true);
     setSubmitting(true);
     setFormError(null);
 
@@ -114,7 +126,9 @@ export function PlantsStepForm({
       if (parsed.success) {
         const result = await updateCheckInDraftPlants(draftId, parsed.data.plants);
         if (!result.success) {
+          prevCheckoutStatusRef.current = previousStatus;
           closingToDashboardRef.current = false;
+          setClosingToDashboard(false);
           setSubmitting(false);
           setFormError(result.error);
           return;
@@ -124,7 +138,7 @@ export function PlantsStepForm({
       router.push("/app");
       router.refresh();
     })();
-  }, [shouldReturnToDashboard, draftId, plants, router]);
+  }, [checkout.status, checkoutSettled, draftId, plants, router]);
 
   function scrollToPlant(clientId: string) {
     requestAnimationFrame(() => {
@@ -356,7 +370,16 @@ export function PlantsStepForm({
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
-              {shouldReturnToDashboard ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={submitting}
+                onClick={addPlant}
+              >
+                Add another plant
+              </Button>
+              {closingToDashboard ? (
                 <p className="self-center text-sm text-hilda-text-muted">
                   {submitting ? "Saving and returning to dashboard…" : "Returning to dashboard…"}
                 </p>
@@ -416,12 +439,6 @@ export function PlantsStepForm({
         onSubmit={(event) => void onContinueToPhotos(event)}
         noValidate
       >
-        <div className="flex shrink-0 justify-end">
-          <Button type="button" variant="outline" onClick={addPlant}>
-            Add plant
-          </Button>
-        </div>
-
         <div className="flex flex-col gap-3">
           {plants.map((plant, index) => {
             const errors = plantErrors[plant.clientId] ?? {};
@@ -507,7 +524,8 @@ export function PlantsStepForm({
                   </div>
 
                   <label className={hildaLabelClassName}>
-                    Notes <span className="font-normal text-hilda-text-muted">(optional)</span>
+                    Internal notes{" "}
+                    <span className="font-normal text-hilda-text-muted">(optional)</span>
                     <textarea
                       className={cn(hildaInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
                       rows={2}

@@ -190,7 +190,7 @@ export function AnalyticsCharts({
           </ResponsiveContainer>
         </div>
         <p className="mt-2 text-xs text-hilda-text-muted">
-          Source: Houseplant Hospital visits and collections · {rangeLabel}
+          Source: Houseplant Hospital drop-offs and collections · {rangeLabel}
         </p>
       </figure>
 
