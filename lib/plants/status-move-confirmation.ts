@@ -30,7 +30,7 @@ export function confirmationForStatusMove(
     return {
       title: "Move to Outpatient?",
       message:
-        "Are you sure you want to move this plant to Outpatient. This will notify the customer that the plant is ready to collect. PLEASE NOTE: If the customer has more than one plant in their visit, they will only be notified when the final plant is moved to outpatient",
+        "Are you sure you want to move this plant to Outpatient. This will notify the customer that the plant is ready to collect. PLEASE NOTE: If the customer has more than one plant in their drop-off, they will only be notified when the final plant is moved to outpatient",
     };
   }
   if (from === "outpatient" && to === "collected") {

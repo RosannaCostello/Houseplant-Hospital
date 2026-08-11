@@ -47,7 +47,7 @@ Houseplant Hospital is Hilda’s **in-store plant treatment ops app**. Staff che
 
 | Role | Can use |
 |---|---|
-| **Staff** (signed in) | Check-in, Dashboard (kanban), plant / visit detail, pests, notes, tips, propagate, collect / payment actions |
+| **Staff** (signed in) | Check-in, Dashboard (kanban), plant / drop-off detail, pests, notes, tips, propagate, collect / payment actions |
 | **Admin** | Everything staff can, plus **Analytics** (bottom nav) and **Settings** (Account menu, top right) |
 
 Non-admins who open `/app/analytics` or `/settings` are sent back to the Dashboard.
@@ -63,30 +63,31 @@ Use these words when talking about the app.
 | Term | Meaning |
 |---|---|
 | **Customer** | Person bringing plants in (name, email, phone). |
-| **Visit** | One check-in occasion for a customer (may include several plants). |
-| **Plant** | One plant on a visit. The board is organised by **plants**, not visits. |
-| **Check-in** (flow) | Creating a new visit: customer → plants → photos. |
-| **Incomplete check-in** | A draft visit not finished yet (still on plants or photos step). Shown in the Incomplete lane. |
-| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. On iPad, **tap the photo or customer name** to **Update plant**; use the **⋯** menu for lane moves (drag between lanes also works, but tap is the reliable path). |
-| **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. Treatment notes autosave on pause and when you tap **Close** — wait for “Saving…” if you just typed. |
+| **Drop-off** | One check-in occasion for a customer (may include several plants). Formerly called a visit in the staff UI; the database still uses `visit`. |
+| **Plant** | One plant on a drop-off. The board is organised by **plants**, not drop-offs. |
+| **Check-in** (flow) | Creating a new drop-off: customer → plants → photos. |
+| **Incomplete check-in** | A draft drop-off not finished yet (still on plants or photos step). Shown in the Incomplete lane. |
+| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. When search has text, tap **Cancel search** to clear it and show the full board again. On iPad, **tap the photo or customer name** to **Update plant**; use the **⋯** menu for lane moves (drag between lanes also works, but tap is the reliable path). |
+| **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. Treatment notes autosave on pause and when you tap **Close** — wait for “Saving…” if you just typed. From Update plant, **View drop-off** closes the overlay and opens the drop-off page. |
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
 | **Pests / Bugs found** | Whether pests were found. At **check-in**: **Any pests visible on this plant?** On **Update plant**: **Pests found during treatment?** (Yes / No / Clear answer). Affects price, starting lane, and Outpatient readiness. |
 | **Pest treatments** | Three slots on plant detail (Treatment 1 / 2 / 3). Each picks a treatment type from Settings, then **Record** locks it with date/time. Required before Outpatient if pests were **ever** found. |
+| **Internal notes** | Staff notes taken at check-in for **that plant** (optional). Shown read-only on **Update plant** for that plant, and on the plant’s row on the drop-off page. Not the same as **Treatment notes**. |
 | **Treatment notes** | Notes on the plant (required before Outpatient). Max **750 characters** so the full note can reach customer emails via Mailchimp (see below). |
 | **Care tips** | Aftercare advice for the customer, chosen as **Water / Leaves / Light** dropdowns on plant detail (required before Outpatient). Saved as one composed string. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
 | **Treatment revenue** | Sum of final prices on plants collected in a period. **Revenue, not profit.** |
 | **Propagation** | Creating a child plant from a healthy (pests-free) plant in Surgery. Also a **lane** and a plant **category**. |
-| **Standard plant** | Normal Hospital plant (not a propagation child). |
+| **Size** | Plant size band: **Mini**, S, M, L, XL (never “XS” — use Mini). Matches Shopify Mini for the smallest band. |
 | **Pay at collection** | Customer pays when collecting, not at check-in. |
 | **POS / Shopify POS** | Shop till extension used to take Hospital payment. |
 | **Outpatient** | Plant is ready for collection. |
 | **Outpatient ready** | This plant has pests answered (if standard), treatment notes, all three care tip dropdowns (Water, Leaves, Light), and — if pests were ever found — all three pest treatments — so it can move to Outpatient. |
-| **Outpatient partial** | On a multi-plant visit, one plant is in Outpatient but siblings are not yet ready. Staff still move plants one by one; the app emails Mailchimp a “partial” event until the last sibling is ready (then a full ready-to-collect event). Staff do not manage this as a separate screen. |
-| **Collected** | Plant has gone home. Terminal status — **view only** (notes, tips, pests, treatments, photo retake, and actions locked). |
+| **Outpatient partial** | On a multi-plant drop-off, one plant is in Outpatient but siblings are not yet ready. Staff still move plants one by one; the app emails Mailchimp a “partial” event until the last sibling is ready (then a full ready-to-collect event). Staff do not manage this as a separate screen. |
+| **Collected** | Plant has gone home. Terminal status — **view only** (notes, tips, pests, treatments, photo retake, **Reprint label**, and actions locked). |
 | **Dead** | Plant did not survive treatment. Terminal status. |
-| **Total customers** (Analytics) | Distinct customers with a visit check-in in the selected period. |
-| **New / Returning customers** | First-ever visit in this period vs had an earlier visit before this period. |
+| **Total customers** (Analytics) | Distinct customers with a drop-off check-in in the selected period. |
+| **New / Returning customers** | First-ever drop-off in this period vs had an earlier drop-off before this period. |
 
 ### Lanes
 
@@ -120,13 +121,13 @@ Board order (left → right):
 2. Sign in with your Hospital staff account.  
 3. You land on the **Dashboard**.
 
-### Check in a customer (new visit)
+### Check in a customer (new drop-off)
 
 **iPad tip:** Hand the iPad to the customer for this flow. Primary buttons are large; **Continue** sits above **Discard**. Staff chrome (Dashboard / Account) is de-emphasised so customers are less likely to leave mid-flow. Test with the software keyboard open — fields and Continue should stay usable.
 
 1. Bottom nav → **Check-in**.  
-2. Enter **customer** details → continue (creates an incomplete draft). **Marketing emails** starts **unchecked** (customer opts in).  
-3. **Plants** step: add each plant (name optional, **species** optional with typeahead from species used before, **size**, **Any pests visible on this plant?**).  
+2. Enter **customer** details → continue (creates an incomplete draft). **Marketing emails** starts **checked** (customer is opted in unless they uncheck — **Uncheck to opt out**).  
+3. **Plants** step: add each plant (name optional, **species** optional with typeahead from species used before, **size**, **Any pests visible on this plant?**, optional **Internal notes**). Use **Add another plant** (above **Go to checkout**) for multi-plant drop-offs.  
 4. If Shopify pricing is on: choose **Go to checkout** (queue for POS) or **Pay at collection**. After **POS paid** or **Pay at collection**, the app returns you to the **Dashboard**. Finish photos later from the **Incomplete check-ins** lane if needed.  
 5. **Photos** step (when you continue or resume): one photo per plant → **Complete check-in**.  
 6. Plants appear on the **Dashboard**. Plants marked **pests Yes** land in **Quarantine** (not Check-in).
@@ -136,8 +137,9 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 ### Update plant (esp. Surgery / dirty hands)
 
 1. On the Dashboard, tap the plant **photo** or **customer name** (or **Update plant** from **⋯**).  
-2. Edit pests, notes, care tips, treatments as needed. Notes save automatically; **Close** waits for a pending save.  
-3. Use **⋯** (or drag) to move lanes — not the photo tap.
+2. Edit pests, notes, care tips, treatments as needed. Notes save automatically; **Close** waits for a pending save. **Internal notes** (from check-in for this plant only) appear in their own box — read-only. Use **Reprint label** to print again (greyed out once the plant is **Collected**).  
+3. Use **⋯** (or drag) to move lanes — not the photo tap.  
+4. **View drop-off** opens the shared drop-off page (closes the Update plant overlay first).
 
 ### Species at check-in
 
@@ -149,7 +151,8 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 
 1. Use the **Search by name or email** box above the lanes.  
 2. As you type, plant cards and incomplete drafts that do not match are hidden.  
-3. Each lane has a **Newest / Oldest** toggle. Most lanes sort by check-in date. The **Collected** lane sorts by **collection date** (newest = collected most recently).
+3. Tap **Cancel search** to clear the filter and show the full board.  
+4. Each lane has a **Newest / Oldest** toggle. Most lanes sort by check-in date. The **Collected** lane sorts by **collection date** (newest = collected most recently).
 
 ### Move a plant on the board
 
@@ -169,7 +172,7 @@ The app blocks Outpatient until the plant is **Outpatient ready**:
 
 Propagation plants skip the pests requirement for this gate. Plants that never had pests do not need pest treatments.
 
-On multi-plant visits, move each plant when it is ready. Sibling plants still in earlier lanes mean **Outpatient partial** for email purposes — no extra staff step.
+On multi-plant drop-offs, move each plant when it is ready. Sibling plants still in earlier lanes mean **Outpatient partial** for email purposes — no extra staff step.
 
 ### Quarantine pest treatments
 
@@ -200,8 +203,9 @@ Use these exact names when wiring journeys:
 |---|---|
 | `plant_checked_in` | Check-in completes (one event per plant) |
 | `plant_quarantined` | Plant moves to Quarantine (including pests Yes at check-in) |
-| `plant_in_surgery` | Plant moves to In Surgery |
-| `plant_outpatient` | Plant moves to Outpatient **and** the visit is fully ready to collect |
+| `plant_in_surgery` | First plant on a drop-off moves to In Surgery (later sibling plants entering Surgery do **not** fire again) |
+| `plant_propagated` | Staff propagates a plant in Surgery (creates a child in Propagation) |
+| `plant_outpatient` | Plant moves to Outpatient **and** the drop-off is fully ready to collect |
 | `plant_outpatient_partial` | Plant moves to Outpatient but sibling plants still block the ready-to-collect notice |
 | `plant_collected` | Plant moves to Collected |
 | `plant_dead` | Plant moves to Dead |
@@ -213,14 +217,16 @@ Properties are only included when the app has a value. Empty / unused properties
 
 | Property | Meaning |
 |---|---|
-| `visit_id` | Visit UUID |
-| `plant_id` | Plant UUID |
+| `visit_id` | Drop-off UUID (stored as visit id) |
+| `plant_id` | Plant UUID (for `plant_propagated`: the **source** plant) |
 | `customer_id` | Customer UUID |
 | `plant_name` | Plant display name (if set) |
 | `previous_status` | Status before the change (status / bugs events) |
 | `new_status` | Status after the change (status events) |
 | `bugs_found` | `"true"` / `"false"` when sent with the `bugs_found` event |
 | `awaiting_plant_count` | How many sibling plants still block collection (`plant_outpatient_partial` only) |
+| `child_plant_id` | New propagation plant UUID (`plant_propagated` only) |
+| `size` | Propagation size band Mini/S/M/L/XL (`plant_propagated` only) |
 | `treatment_notes_1` | Treatment note chars 1–250 |
 | `treatment_notes_2` | Treatment note chars 251–500 |
 | `treatment_notes_3` | Treatment note chars 501–750 |
@@ -257,7 +263,7 @@ Email address is the contact identity (not a merge field the app sets).
 | Tag | When |
 |---|---|
 | `houseplant_hospital` | Every successful check-in sync |
-| `repeat_hospital_customer` | Customer already has more than one visit |
+| `repeat_hospital_customer` | Customer already has more than one drop-off |
 | `newsletter` | Marketing consent checked at check-in |
 | `bugs_treatment` | `bugs_found` event (pests Yes on plant detail) |
 
@@ -276,16 +282,16 @@ When pests are **Yes** at check-in, the plant goes straight into **Quarantine**,
 
 1. Plant must be **standard**, in **In Surgery**, **pests = No**, and not already propagated.  
 2. Use **Propagate** → pick child **size** → confirm.  
-3. A **new visit** with one child plant appears in **Propagation**.  
+3. A **new drop-off** with one child plant appears in **Propagation**.  
 4. Source plant can only propagate **once**.
 
 ### Collect / payment
 
-- **Outpatient → Collected** may prompt for payment if the visit is still unpaid.
+- **Outpatient → Collected** may prompt for payment if the drop-off is still unpaid.
   1. Find the order in **Shopify POS** under the customer name and take payment, **or**
-  2. Confirm **Customer paid another way** (second confirm — cannot be undone). That marks the **visit** as settled for Hospital ops.
+  2. Confirm **Customer paid another way** (second confirm — cannot be undone). That marks the **drop-off** as settled for Hospital ops.
 - Collecting a plant stamps **final price** from the treatment estimate when none was stored yet (no separate collection form).
-- Payment is **visit-level**: collecting one plant on a multi-plant visit does not require siblings to be collected first.
+- Payment is **drop-off-level**: collecting one plant on a multi-plant drop-off does not require siblings to be collected first.
 - **Collected** is final for that plant — staff can still open the record to view details, but cannot edit notes, care tips, pests, or status.
 - Pricing on plant detail shows the treatment estimate / recorded final price.
 - On **Outpatient** / **Collected** plant detail, **Time in Surgery** shows how long that plant spent in In Surgery (from status history).
@@ -293,7 +299,7 @@ When pests are **Yes** at check-in, the plant goes straight into **Quarantine**,
 ### Find a customer or plant
 
 - Open the plant from the Dashboard card.  
-- Customer pages exist via links from plant/visit detail (Customers is not in the bottom nav).
+- Customer pages exist via links from plant/drop-off detail (Customers is not in the bottom nav).
 
 ### Incomplete check-ins
 
@@ -318,7 +324,7 @@ Period filters (Today, This week, Last 30 days, This month, This year, Custom) c
 | **Average collected value** | Average final price across collected plants with a price. |
 | **Avg time in Surgery** | Average time plants spent in **In Surgery** for stints that **ended** in the period (moved to Outpatient or Dead). **App data only** — Zoho historic imports are excluded. **Lower is better.** |
 | **Median turnaround** | Middle check-in → collection time among plants collected in the period (**lower is better**). |
-| **Plants checked in** | Plants on visits checked in during the period. |
+| **Plants checked in** | Plants on drop-offs checked in during the period. |
 | **Plants collected** | Plants whose collection completed in the period. |
 
 Info (**i**) icons explain each metric and chart. Charts compare current vs previous period (fainter lines = previous).
@@ -367,7 +373,7 @@ Distinct people who checked in during the period. New + Returning should add up 
 Live check-in requires pests Yes/No. Blank pests on old Zoho history were treated as **No**. Analytics no longer emphasises “unassessed.”
 
 **Does Analytics include historic Zoho plants?**
-Yes for most Performance metrics (as collected history; synthetic collection date = check-in + 14 days). They are hidden from the day-to-day ops board. **Avg time in Surgery** is an exception: it uses status history from **app** visits only and excludes Zoho imports.
+Yes for most Performance metrics (as collected history; synthetic collection date = check-in + 14 days). They are hidden from the day-to-day ops board. **Avg time in Surgery** is an exception: it uses status history from **app** drop-offs only and excludes Zoho imports.
 
 **Who sees Analytics?**  
 Admins only.

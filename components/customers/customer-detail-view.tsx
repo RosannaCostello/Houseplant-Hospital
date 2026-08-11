@@ -2,6 +2,7 @@ import Link from "next/link";
 import { OpenPlantDetailLink } from "@/components/plants/open-plant-detail-link";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import { plantStatusLabel } from "@/lib/plant-status";
+import { formatPlantSizeLabel } from "@/lib/plant-size";
 import type {
   CustomerDetail,
   CustomerDetailPlant,
@@ -35,7 +36,7 @@ function PlantHistoryRow({ plant }: { plant: CustomerDetailPlant }) {
           </span>
         ) : null}
         <span className="rounded-hilda-sm bg-hilda-surface px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-text ring-1 ring-hilda-border/15">
-          {plant.size}
+          {formatPlantSizeLabel(plant.size)}
         </span>
       </div>
     </OpenPlantDetailLink>
@@ -59,7 +60,7 @@ function VisitHistoryCard({ visit }: { visit: CustomerDetailVisit }) {
           href={`/app/visits/${visit.id}`}
           className="rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-1.5 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
         >
-          View visit
+          View drop-off
         </Link>
       </div>
 
@@ -76,7 +77,7 @@ function VisitHistoryCard({ visit }: { visit: CustomerDetailVisit }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm text-hilda-text-muted">No plants on this visit.</p>
+        <p className="mt-4 text-sm text-hilda-text-muted">No plants on this drop-off.</p>
       )}
     </article>
   );
@@ -111,7 +112,7 @@ export function CustomerDetailView({ customer }: CustomerDetailViewProps) {
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Visits</dt>
+            <dt className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Drop-offs</dt>
             <dd className="mt-1 text-sm font-medium text-hilda-heading">{visitCount}</dd>
           </div>
           <div>
@@ -121,7 +122,7 @@ export function CustomerDetailView({ customer }: CustomerDetailViewProps) {
         </dl>
 
         <section className="space-y-3 border-t border-hilda-border/10 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-hilda-text-muted">Visit history</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-hilda-text-muted">Drop-off history</h2>
           {customer.visits.length > 0 ? (
             <div className="space-y-3">
               {customer.visits.map((visit) => (
@@ -130,7 +131,7 @@ export function CustomerDetailView({ customer }: CustomerDetailViewProps) {
             </div>
           ) : (
             <p className="rounded-hilda border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
-              No visits recorded for this customer yet.
+              No drop-offs recorded for this customer yet.
             </p>
           )}
         </section>

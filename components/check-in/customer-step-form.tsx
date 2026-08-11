@@ -28,7 +28,7 @@ const defaultValues: CheckInCustomerInput = {
   lastName: "",
   email: "",
   phone: "",
-  marketingConsent: false,
+  marketingConsent: true,
 };
 
 function toFormValues(customer: CheckInCustomer): CheckInCustomerInput {
@@ -284,7 +284,7 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
             <span className="font-medium text-hilda-heading">Marketing emails.</span> Customer agrees to
             offers, Hilda newsletter, and plant care tips. Hospital treatment updates are always sent
             regardless of this box.{" "}
-            <span className="text-hilda-text-muted">Leave unchecked to opt out.</span>
+            <span className="text-hilda-text-muted">Uncheck to opt out.</span>
           </span>
         </label>
       </form>

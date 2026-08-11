@@ -1,5 +1,5 @@
 import type { PlantSize } from "@/lib/plant-size";
-import { PLANT_SIZES, isPlantSize } from "@/lib/plant-size";
+import { PLANT_SIZES, coercePlantSize } from "@/lib/plant-size";
 import { DEFAULT_BASE_PRICES } from "@/lib/pricing/defaults";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -22,8 +22,9 @@ export async function getBasePriceRules(): Promise<BasePriceRules> {
   const rules: BasePriceRules = { ...DEFAULT_BASE_PRICES };
 
   for (const row of data ?? []) {
-    if (row.size && isPlantSize(row.size)) {
-      rules[row.size] = Number(row.amount);
+    const size = row.size ? coercePlantSize(row.size) : null;
+    if (size) {
+      rules[size] = Number(row.amount);
     }
   }
 

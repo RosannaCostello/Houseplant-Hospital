@@ -1,0 +1,77 @@
+Houseplant Hospital — Label design (with Hilda logo) on Mini
+===========================================================
+
+MacBook preview is updated with the real Hilda gold wordmark.
+
+To print on the Mini you must copy BOTH:
+  - print-bridge/src/label.ts
+  - print-bridge/assets/   (whole folder — contains the logo)
+
+
+----------------------------------------
+STEP 1 — On MacBook: copy these onto the Mini
+----------------------------------------
+
+From:
+
+  /Users/jackchalkley/Documents/Cursor Projects/Hilda_Houseplant-Hospital/print-bridge/src/label.ts
+  /Users/jackchalkley/Documents/Cursor Projects/Hilda_Houseplant-Hospital/print-bridge/assets/
+
+Onto Mini:
+
+  ~/Hilda/Houseplant-Hospital/print-bridge/src/label.ts
+  ~/Hilda/Houseplant-Hospital/print-bridge/assets/
+
+
+----------------------------------------
+STEP 2 — On Mini: confirm logo file exists
+----------------------------------------
+
+ls ~/Hilda/Houseplant-Hospital/print-bridge/assets/hilda-logo-gold-800.png
+
+
+----------------------------------------
+STEP 3 — Restart bridge
+----------------------------------------
+
+bash ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+
+curl -s http://127.0.0.1:8787/health
+
+
+----------------------------------------
+STEP 4 — Print samples
+----------------------------------------
+
+cd ~/Hilda/Houseplant-Hospital/print-bridge
+grep PRINT_BRIDGE_SECRET .env
+
+Replace YOUR_SECRET:
+
+curl -s -X POST http://127.0.0.1:8787/print \
+  -H "authorization: Bearer YOUR_SECRET" \
+  -H "content-type: application/json" \
+  -d '{
+    "plantId": "11111111-1111-4111-8111-111111111111",
+    "caseUrl": "https://houseplanthospital.hildaedinburgh.workers.dev/hh/case/11111111-1111-4111-8111-111111111111",
+    "customerSurname": "Smith",
+    "plantName": "Monstera deliciosa",
+    "size": "Medium",
+    "pestsFound": true,
+    "checkedInAt": "2026-07-24T10:00:00.000Z"
+  }'
+
+curl -s -X POST http://127.0.0.1:8787/print \
+  -H "authorization: Bearer YOUR_SECRET" \
+  -H "content-type: application/json" \
+  -d '{
+    "plantId": "22222222-2222-4222-8222-222222222222",
+    "caseUrl": "https://houseplanthospital.hildaedinburgh.workers.dev/hh/case/22222222-2222-4222-8222-222222222222",
+    "customerSurname": "MacLeod",
+    "plantName": "Fiddle-leaf fig",
+    "size": "Large",
+    "pestsFound": false,
+    "checkedInAt": "2026-08-01T09:00:00.000Z"
+  }'
+
+Photo the labels if gold prints too light on the Brother — we can switch to a darker mark.

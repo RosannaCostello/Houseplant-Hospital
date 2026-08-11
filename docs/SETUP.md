@@ -21,6 +21,19 @@ cp .env.example .env.local
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (server only)
 
+## Phase 4 — Label printing (HIL-83 / HIL-85)
+
+| Variable | Purpose |
+|----------|---------|
+| `APP_BASE_URL` | Public app origin (optional `caseUrl` in print payload) |
+| `PRINT_BRIDGE_SECRET` | Shared Bearer secret (Mini `.env` + Worker). Also authorizes tunnel URL registration. |
+| `PRINT_BRIDGE_URL` | Optional fallback URL. Prefer runtime registration from the Mini. |
+
+**Flow:** Plant detail → **Print label** → `print_jobs` → POST to the Mini bridge.  
+**Reachability:** Mini LaunchAgent runs `cloudflared` and POSTs its public URL to `/api/print-bridge/register` (stored in `print_bridge_runtime`). Survives reboot without a Terminal window. Permanent hostname on a Cloudflare zone is optional later.
+
+Apply migrations `0026_print_jobs_delivery.sql` (optional columns) and **`0027_print_bridge_runtime.sql`** (required for permanent tunnel).
+
 ## Install + run
 
 ```bash
@@ -95,11 +108,11 @@ If **Bugs found** reports a missing surcharge rule, also run `supabase/migration
 
 For **collection workflow** (final price + collected timestamp), run `supabase/migrations/0006_plant_collection_hil49.sql`.
 
-For **Shopify pricing sync** (HIL-52), run `supabase/migrations/0009_shopify_pricing_hil52.sql`.
+For **per-plant internal notes** (check-in notes on each plant), run `supabase/migrations/0029_plant_internal_notes.sql` (or `node scripts/apply-migration-0029.mjs`).
 
 ## Shopify pricing (HIL-52)
 
-Shopify is the source of truth for **standard** and **pests** treatment prices. The app size **XS** maps to Shopify option **Mini** on both products.
+Shopify is the source of truth for **standard** and **pests** treatment prices. App size **Mini** matches Shopify option **Mini** on both products.
 
 ### Env vars (server only)
 
@@ -224,6 +237,7 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 | Check-in (per plant) | `plant_checked_in` | Existing HH App — keep; finalize email copy |
 | Move to Quarantine | `plant_quarantined` | **Build** new flow + email |
 | Move to In surgery | `plant_in_surgery` | **Build** new flow + email |
+| Propagate plant | `plant_propagated` | **Build** HH App - Propagated |
 | Move to Outpatient (visit fully ready) | `plant_outpatient` | **Build** HH App - Outpatient |
 | Move to Outpatient (multi-plant, not last) | `plant_outpatient_partial` | **Build** HH App - Outpatient (partial) |
 | Collect plant | `plant_collected` | **Build** new flow + email |
@@ -232,22 +246,24 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 
 **Audience:** always **Hilda** (`c34fa4ecc8`). **Tags** on contacts: `houseplant_hospital`, `repeat_hospital_customer`, `bugs_treatment`, `newsletter` (if consented), `Zoho` (legacy Creator import — HIL-99).
 
-#### Zoho legacy import (HIL-99)
+#### Zoho legacy import (HIL-99 baseline + HIL-100 delta)
 
-One-shot scripts (not used by the live app). Source CSV: Zoho **Hospital Dashboard** export.
+One-shot scripts (not used by the live app). Source CSV: Zoho **Hospital Dashboard** export (not Plant Directory).
 
 ```bash
 # Part 1 — Mailchimp contacts (transactional + Zoho tag; no plant_* events)
+# When zoho-import plants already exist, only delta emails are upserted (use --all to force full CSV)
 npm run import:zoho-mailchimp -- --dry-run "/path/to/Hospital Dashboard.csv"
 npm run import:zoho-mailchimp -- "/path/to/Hospital Dashboard.csv"
 
 # Part 2 — Supabase historic plants (all collected, check-in+14d, Zoho logo photo)
 # Direct DB writes only — must not create mailchimp_events
+# Delta-aware: skips rows already present (natural key + fingerprint); new visits use notes=zoho-import-final
 npm run import:zoho-plants -- --dry-run "/path/to/Hospital Dashboard.csv"
 npm run import:zoho-plants -- "/path/to/Hospital Dashboard.csv"
 ```
 
-Part 2 marks visits with `notes = zoho-import`. Zoho `collected_at` is synthetic (check-in + 14 days). Re-run aborts if those visits already exist. Blank Zoho prices are filled from active Shopify `pricing_rules` (standard / pests by size + `bugs_found`). Blank Zoho pests → `bugs_found = false`. To repair existing nulls:
+Baseline (HIL-99) visits use `notes = zoho-import`; delta-only visits (HIL-100) use `zoho-import-final`. Zoho `collected_at` is synthetic (check-in + 14 days). Blank Zoho prices are filled from active Shopify `pricing_rules` (standard / pests by size + `bugs_found`). Blank Zoho pests → `bugs_found = false`. To repair existing nulls:
 
 ```bash
 npm run backfill:zoho-prices -- --dry-run
@@ -284,6 +300,7 @@ Suggested journey names (HIL-96):
 | `plant_checked_in` | HH App - Check-in (existing; rename if needed) |
 | `plant_quarantined` | HH App - Quarantine |
 | `plant_in_surgery` | HH App - Surgery |
+| `plant_propagated` | HH App - Propagated |
 | `plant_outpatient` | HH App - Outpatient |
 | `plant_outpatient_partial` | HH App - Outpatient (partial) |
 | `plant_collected` | HH App - Collected |
@@ -314,6 +331,7 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 | Schedule | Cron | Route |
 |----------|------|-------|
 | Mailchimp outbox | `*/5 * * * *` | `/api/cron/mailchimp-outbox` |
+| Print jobs drain | `*/5 * * * *` | `/api/cron/print-jobs` |
 | Shopify pricing | `0 6 * * *` (06:00 UTC daily) | `/api/cron/shopify-pricing` |
 
 Requires `CRON_SECRET` and `APP_BASE_URL` on the worker. After deploy, check **Cloudflare → houseplanthospital → Settings → Triggers → Cron Triggers**.
@@ -403,7 +421,7 @@ When all boxes are ticked, mark **HIL-39** Done in Linear — Phase 2 is complet
 - [x] Care tips: add and persist
 - [x] Bugs found toggle: saves, shows warning on card + detail, adjusts price estimate
 - [x] Pricing summary on plant detail matches size band + bugs adjustment
-- [x] Admin settings: edit XS–XL base prices
+- [x] Admin settings: edit Mini–XL base prices
 - [x] Collection: enter final price, mark collected; form hidden when collected
 - [x] Full lifecycle: check-in → surgery → outpatient → collected (audit trail intact)
 - [x] Post–HIL-51 smoke: collection £0 blocked, check-in photos survive refresh, kanban inline errors

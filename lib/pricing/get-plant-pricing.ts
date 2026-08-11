@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isPlantSize } from "@/lib/plant-size";
+import { coercePlantSize } from "@/lib/plant-size";
 import { calculatePlantPrice } from "@/lib/pricing/calculate-plant-price";
 import { getBasePriceForSize, getBasePriceRules } from "@/lib/pricing/get-base-price-rules";
 import {
@@ -57,15 +57,16 @@ export async function getPlantPricingWithClient(
   }
 
   const plant = plantResult.data;
-  if (!plant?.size || !isPlantSize(plant.size)) {
+  const size = plant?.size ? coercePlantSize(plant.size) : null;
+  if (!plant || !size) {
     return null;
   }
 
-  const baseAmount = getBasePriceForSize(rules, plant.size);
+  const baseAmount = getBasePriceForSize(rules, size);
   if (plant.plant_category === "propagation") {
     return calculatePlantPrice({
-      size: plant.size,
-      baseAmount: propagationRules[plant.size] ?? baseAmount,
+      size,
+      baseAmount: propagationRules[size] ?? baseAmount,
     });
   }
 
@@ -73,14 +74,14 @@ export async function getPlantPricingWithClient(
   const hasBugsAdjustment = adjustments.some(
     (adjustment) => adjustment.adjustmentType === "bugs_surcharge",
   );
-  const pestsAmount = pestsRules[plant.size];
+  const pestsAmount = pestsRules[size];
   const shopifyPricing = isShopifyPricingConfigured();
 
   if (hasBugsAdjustment && pestsAmount != null) {
     const pestsLineAmount = roundMoney(pestsAmount - baseAmount);
 
     return {
-      size: plant.size,
+      size,
       baseAmount,
       lines: [
         {
@@ -100,7 +101,7 @@ export async function getPlantPricingWithClient(
 
     if (bugsAdjustment?.amount != null) {
       return calculatePlantPrice({
-        size: plant.size,
+        size,
         baseAmount,
         adjustments: [bugsAdjustment],
       });
@@ -115,7 +116,7 @@ export async function getPlantPricingWithClient(
     : adjustments;
 
   return calculatePlantPrice({
-    size: plant.size,
+    size,
     baseAmount,
     pricingModifier: Number(plant.pricing_modifier),
     adjustments: adjustmentsForCalc,

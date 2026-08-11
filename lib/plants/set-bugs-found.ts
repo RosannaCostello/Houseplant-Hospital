@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emitBugsFoundEvent } from "@/lib/mailchimp/emit-plant-event";
-import { isPlantSize } from "@/lib/plant-size";
+import { coercePlantSize } from "@/lib/plant-size";
 import { getBugsSurchargeRule } from "@/lib/pricing/get-bugs-surcharge-rule";
 import { getBasePriceForSize, getBasePriceRules } from "@/lib/pricing/get-base-price-rules";
 import { roundMoney } from "@/lib/pricing/round-money";
@@ -82,13 +82,16 @@ export async function setBugsFoundWithClient(
   let surchargePercent = 0;
   let pestsLineAmount: number | null = null;
 
-  if (plant.size && isPlantSize(plant.size)) {
-    const [baseRules, pestsRules] = await Promise.all([getBasePriceRules(), getPestsPriceRules()]);
-    const pestsAmount = pestsRules[plant.size];
+  if (plant.size) {
+    const size = coercePlantSize(plant.size);
+    if (size) {
+      const [baseRules, pestsRules] = await Promise.all([getBasePriceRules(), getPestsPriceRules()]);
+      const pestsAmount = pestsRules[size];
 
-    if (pestsAmount != null) {
-      const baseAmount = getBasePriceForSize(baseRules, plant.size);
-      pestsLineAmount = roundMoney(pestsAmount - baseAmount);
+      if (pestsAmount != null) {
+        const baseAmount = getBasePriceForSize(baseRules, size);
+        pestsLineAmount = roundMoney(pestsAmount - baseAmount);
+      }
     }
   }
 

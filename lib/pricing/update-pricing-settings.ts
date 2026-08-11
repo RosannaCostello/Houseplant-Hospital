@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PlantSize } from "@/lib/plant-size";
-import { PLANT_SIZES } from "@/lib/plant-size";
+import { PLANT_SIZES, coercePlantSize } from "@/lib/plant-size";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { roundMoney } from "@/lib/pricing/round-money";
 import { isShopifyPricingConfigured } from "@/lib/shopify/env";
@@ -64,8 +64,9 @@ export async function updatePricingSettingsWithClient(
   let bugsRuleId: string | null = null;
 
   for (const rule of rules ?? []) {
-    if (rule.rule_type === "base_price" && rule.size && PLANT_SIZES.includes(rule.size as PlantSize)) {
-      baseRuleIds.set(rule.size as PlantSize, rule.id);
+    const size = rule.rule_type === "base_price" && rule.size ? coercePlantSize(rule.size) : null;
+    if (rule.rule_type === "base_price" && size) {
+      baseRuleIds.set(size, rule.id);
     }
     if (rule.rule_type === "bugs_surcharge") {
       bugsRuleId = rule.id;

@@ -2,7 +2,7 @@ import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
 import type { CheckInPlant } from "@/lib/check-in/plant-schema";
 import { checkInPlantsStepSchema } from "@/lib/check-in/plant-schema";
 import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
-import { isPlantSize, type PlantSize } from "@/lib/plant-size";
+import { coercePlantSize, type PlantSize } from "@/lib/plant-size";
 import { SHOPIFY_VARIANT_IDS } from "@/lib/shopify/config";
 import type { PosCheckoutPayload, PosLineItem } from "@/lib/shopify/pos-checkout-types";
 
@@ -155,12 +155,13 @@ export function buildPosCartFromVisitPlants(input: {
   const plants: PosCartPlantInput[] = [];
 
   for (const plant of input.plants) {
-    if (!isPlantSize(plant.size)) {
+    const size = coercePlantSize(plant.size);
+    if (!size) {
       return { success: false, error: "One or more plants has an invalid size." };
     }
 
     plants.push({
-      size: plant.size,
+      size,
       bugsFound: plant.bugsFound,
       plantCategory: isPlantCategory(plant.plantCategory) ? plant.plantCategory : "standard",
     });

@@ -25,7 +25,7 @@ function formatSyncedAt(value: string | null): string {
 }
 
 function sizeLabel(size: PlantSize, shopifySizeLabel: string): string {
-  if (size === "XS") {
+  if (size !== shopifySizeLabel) {
     return `${size} (Shopify: ${shopifySizeLabel})`;
   }
 
@@ -108,8 +108,8 @@ export function PricingSettingsForm({ settings }: PricingSettingsFormProps) {
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wide text-hilda-text-muted">Shopify pricing</h2>
               <p className="mt-1 text-sm text-hilda-text">
-                Standard, pests treatment and propagation prices sync from Shopify daily. XS in the app
-                maps to <strong>Mini</strong> in Shopify.
+                Standard, pests treatment and propagation prices sync from Shopify daily. App size{" "}
+                <strong>Mini</strong> matches Shopify <strong>Mini</strong>.
               </p>
               <p className="mt-1 text-xs text-hilda-text-muted">
                 Last synced: {formatSyncedAt(settings.shopifySyncedAt)}

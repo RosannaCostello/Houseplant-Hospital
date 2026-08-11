@@ -1,21 +1,24 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
 import { BugsFoundToggle } from "@/components/plants/bugs-found-toggle";
 import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
 import { PestTreatmentsSection } from "@/components/plants/pest-treatments-section";
+import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { PlantPhotoGallery } from "@/components/plants/plant-photo-gallery";
 import { PricingSummarySection } from "@/components/plants/pricing-summary-section";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
 import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
+import { PrintPlantLabelButton } from "@/components/plants/print-plant-label-button";
 import { Button } from "@/components/ui/button";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import type { PlantDetail } from "@/lib/plants/get-plant-detail";
 import { formatMinutesInSurgery } from "@/lib/plants/get-minutes-in-surgery";
 import { plantStatusLabel } from "@/lib/plant-status";
+import { formatPlantSizeLabel } from "@/lib/plant-size";
 import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
 import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
@@ -49,6 +52,8 @@ export function PlantDetailView({
   treatmentNotesPlaceholder,
   embeddedInModal = false,
 }: PlantDetailViewProps) {
+  const router = useRouter();
+  const plantDetailModal = useOptionalPlantDetailModal();
   const isCollected = plant.status === "collected";
   const subtitle = plantSubtitle(plant);
   const isPropagation = plant.plantCategory === "propagation";
@@ -60,6 +65,11 @@ export function PlantDetailView({
     : plant.bugsFound !== false
       ? "Plants with pests cannot be propagated."
       : undefined;
+
+  function onViewDropOff() {
+    plantDetailModal?.closePlantDetail();
+    router.push(`/app/visits/${plant.visitId}`);
+  }
 
   return (
     <div
@@ -90,7 +100,7 @@ export function PlantDetailView({
               <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
                 {isPropagation ? "Plant propagation size" : "Size"}
               </dt>
-              <dd className="mt-0.5 font-medium text-hilda-heading">{plant.size}</dd>
+              <dd className="mt-0.5 font-medium text-hilda-heading">{formatPlantSizeLabel(plant.size)}</dd>
             </div>
             {isPropagation ? (
               <div>
@@ -142,15 +152,9 @@ export function PlantDetailView({
                 ) : null}
               </dd>
             </div>
-            {plant.visitNotes ? (
-              <div className="sm:col-span-2">
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Notes</dt>
-                <dd className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-hilda-heading">{plant.visitNotes}</dd>
-              </div>
-            ) : null}
             <div className="sm:col-span-2">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
-                Plants in visit
+                Plants in drop-off
               </dt>
               <dd className="mt-0.5 font-medium tabular-nums text-hilda-heading">
                 {plant.visitPlantTotal}
@@ -174,8 +178,8 @@ export function PlantDetailView({
             ) : null}
           </dl>
 
-          <Button asChild variant="outline" className="mt-3 w-full">
-            <Link href={`/app/visits/${plant.visitId}`}>View visit</Link>
+          <Button type="button" variant="outline" className="mt-3 w-full" onClick={onViewDropOff}>
+            View drop-off
           </Button>
           {!isCollected ? (
             <PlantCardStatusMenu
@@ -194,6 +198,15 @@ export function PlantDetailView({
           ) : null}
         </div>
       </div>
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
+          Internal notes
+        </h2>
+        <p className="whitespace-pre-wrap text-sm text-hilda-heading">
+          {plant.internalNotes?.trim() ? plant.internalNotes : "none"}
+        </p>
+      </section>
 
       {showPropagate ? (
         <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
@@ -247,6 +260,13 @@ export function PlantDetailView({
         finalPrice={plant.finalPrice}
         compact
       />
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
+          Print
+        </h2>
+        <PrintPlantLabelButton plantId={plant.id} disabled={isCollected} />
+      </section>
 
       <div className="flex items-center justify-between gap-3">
         <PlantCaseLink

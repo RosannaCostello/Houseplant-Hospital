@@ -4,7 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatPlantAge } from "@/lib/format-plant-age";
 import { plantStatusLabel } from "@/lib/plant-status";
+import { formatPlantSizeLabel } from "@/lib/plant-size";
 import type { VisitDetail, VisitDetailPlant } from "@/lib/visits/get-visit-detail";
+import { isVisitImportMarker } from "@/lib/plants/internal-notes";
 
 type VisitDetailViewProps = {
   visit: VisitDetail;
@@ -52,9 +54,12 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
       <div className="min-w-0 flex-1 space-y-1">
         <p className="truncate text-sm font-semibold text-hilda-heading">{plantTitle(plant)}</p>
         {subtitle ? <p className="truncate text-xs text-hilda-text-muted">{subtitle}</p> : null}
+        {plant.notes?.trim() ? (
+          <p className="line-clamp-2 whitespace-pre-wrap text-xs text-hilda-text">{plant.notes.trim()}</p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
           <span className="rounded-hilda-sm bg-hilda-bg px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-hilda-text">
-            {plant.size}
+            {formatPlantSizeLabel(plant.size)}
           </span>
           <span className="text-xs text-hilda-text">{plantStatusLabel(plant.status)}</span>
         </div>
@@ -65,6 +70,10 @@ function VisitPlantRow({ plant }: { plant: VisitDetailPlant }) {
 
 export function VisitDetailView({ visit }: VisitDetailViewProps) {
   const plantCount = visit.plants.length;
+  const showCombinedVisitNotes =
+    Boolean(visit.notes?.trim()) &&
+    !isVisitImportMarker(visit.notes) &&
+    !visit.plants.some((plant) => Boolean(plant.notes?.trim()));
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -115,9 +124,9 @@ export function VisitDetailView({ visit }: VisitDetailViewProps) {
             ) : null}
           </dd>
         </div>
-        {visit.notes ? (
+        {showCombinedVisitNotes ? (
           <div className="sm:col-span-2">
-            <dt className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Notes</dt>
+            <dt className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">Internal notes</dt>
             <dd className="mt-1 whitespace-pre-wrap text-sm text-hilda-heading">{visit.notes}</dd>
           </div>
         ) : null}
@@ -125,7 +134,7 @@ export function VisitDetailView({ visit }: VisitDetailViewProps) {
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-hilda-text-muted">
-          Plants on this visit
+          Plants on this drop-off
         </h2>
         {visit.plants.length > 0 ? (
           <ul className="space-y-3">
@@ -137,7 +146,7 @@ export function VisitDetailView({ visit }: VisitDetailViewProps) {
           </ul>
         ) : (
           <p className="rounded-hilda border border-dashed border-hilda-border/15 bg-hilda-bg px-4 py-8 text-center text-sm text-hilda-text-muted">
-            No plants linked to this visit.
+            No plants linked to this drop-off.
           </p>
         )}
       </section>

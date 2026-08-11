@@ -53,6 +53,8 @@ function payloadToEventProperties(payload: MailchimpEventPayload): Record<string
   if (payload.awaitingPlantCount !== undefined) {
     properties.awaiting_plant_count = String(payload.awaitingPlantCount);
   }
+  if (payload.childPlantId) properties.child_plant_id = payload.childPlantId;
+  if (payload.size) properties.size = truncateEventProperty(payload.size);
   if (payload.plantName) properties.plant_name = truncateEventProperty(payload.plantName);
   if (payload.treatmentNotes) {
     Object.assign(properties, chunkTreatmentNotes(payload.treatmentNotes));

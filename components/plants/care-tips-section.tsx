@@ -1,7 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { saveCareTipAction } from "@/app/actions/save-care-tip";
+import { AnchoredPortal } from "@/components/ui/anchored-portal";
 import {
   CARE_TIP_CATEGORIES,
   CARE_TIP_CATEGORY_LABELS,
@@ -45,6 +54,127 @@ function optionsForSelect(
     },
     ...options,
   ];
+}
+
+type CareTipPickerProps = {
+  category: CareTipCategory;
+  value: string;
+  options: CareTipOption[];
+  disabled?: boolean;
+  onChange: (value: string) => void;
+};
+
+/** Custom full-width picker — native iPadOS `<select>` menus stay too narrow for long tip copy. */
+function CareTipPicker({ category, value, options, disabled, onChange }: CareTipPickerProps) {
+  const listId = useId();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const label = CARE_TIP_CATEGORY_LABELS[category];
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      const portal = document.getElementById(listId);
+      if (portal?.contains(target)) return;
+      setOpen(false);
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [listId, open]);
+
+  function choose(next: string) {
+    onChange(next);
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <label className={hildaLabelClassName}>
+        {label}
+        <button
+          ref={buttonRef}
+          type="button"
+          disabled={disabled}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={open ? listId : undefined}
+          aria-label={label}
+          className={cn(
+            hildaInputClassName,
+            "flex w-full min-h-11 items-center justify-between gap-2 text-left",
+            !value && "text-hilda-text-muted",
+            disabled && "cursor-default bg-hilda-bg",
+          )}
+          onClick={() => {
+            if (!disabled) setOpen((current) => !current);
+          }}
+        >
+          <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">
+            {value || "Select…"}
+          </span>
+          <span aria-hidden className="shrink-0 text-hilda-text-muted">
+            ▾
+          </span>
+        </button>
+      </label>
+
+      <AnchoredPortal
+        open={open}
+        anchorRef={buttonRef}
+        maxHeightPx={320}
+        className="overflow-hidden rounded-hilda border border-hilda-border/25 bg-hilda-surface shadow-lg"
+      >
+        <ul
+          id={listId}
+          role="listbox"
+          aria-label={label}
+          className="max-h-[inherit] overflow-y-auto overscroll-contain py-1"
+        >
+          <li role="option" aria-selected={!value}>
+            <button
+              type="button"
+              className={cn(
+                "w-full px-3 py-2.5 text-left text-sm leading-snug text-hilda-text-muted hover:bg-hilda-bg",
+                !value && "bg-hilda-bg font-medium text-hilda-heading",
+              )}
+              onClick={() => choose("")}
+            >
+              Select…
+            </button>
+          </li>
+          {options.map((option) => {
+            const selected = option.label === value;
+            return (
+              <li key={option.id} role="option" aria-selected={selected}>
+                <button
+                  type="button"
+                  className={cn(
+                    "w-full px-3 py-2.5 text-left text-sm leading-snug text-hilda-heading hover:bg-hilda-bg",
+                    selected && "bg-hilda-bg font-medium",
+                  )}
+                  onClick={() => choose(option.label)}
+                >
+                  {option.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </AnchoredPortal>
+    </div>
+  );
 }
 
 export function CareTipsSection({
@@ -133,23 +263,14 @@ export function CareTipsSection({
         );
 
         return (
-          <label key={category} className={hildaLabelClassName}>
-            {CARE_TIP_CATEGORY_LABELS[category]}
-            <select
-              className={cn(hildaInputClassName, "w-full", readOnly && "cursor-default bg-hilda-bg")}
-              aria-label={CARE_TIP_CATEGORY_LABELS[category]}
-              value={selections[category]}
-              disabled={readOnly || isPending}
-              onChange={(event) => handleChange(category, event.target.value)}
-            >
-              <option value="">Select…</option>
-              {options.map((option) => (
-                <option key={option.id} value={option.label}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CareTipPicker
+            key={category}
+            category={category}
+            value={selections[category]}
+            options={options}
+            disabled={readOnly || isPending}
+            onChange={(value) => handleChange(category, value)}
+          />
         );
       })}
 

@@ -7,7 +7,7 @@ export const SHOPIFY_PROPAGATION_PRODUCT_ID = "15972533600637";
 
 /**
  * Shopify variant IDs per app size band.
- * Shopify labels the XS band as "Mini" on both standard and pests products.
+ * App size Mini matches Shopify option "Mini" on standard / pests / propagation.
  */
 export const SHOPIFY_VARIANT_IDS: Record<
   PlantSize,
@@ -18,7 +18,7 @@ export const SHOPIFY_VARIANT_IDS: Record<
     shopifySizeLabel: string;
   }
 > = {
-  XS: {
+  Mini: {
     shopifySizeLabel: "Mini",
     standardVariantId: "57808365977981",
     pestsVariantId: "57895455293821",

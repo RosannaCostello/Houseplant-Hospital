@@ -10,6 +10,7 @@ import {
   type MailchimpEventName,
 } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
+import { shouldEmitPlantInSurgeryEvent } from "@/lib/mailchimp/surgery-event-gate";
 import { addMemberTags } from "@/lib/mailchimp/update-member-tags";
 import { PLANT_STATUSES, type PlantStatus } from "@/lib/plant-status";
 
@@ -99,6 +100,8 @@ async function queuePlantEvent(
     newStatus?: PlantStatus;
     bugsFound?: boolean;
     awaitingPlantCount?: number;
+    childPlantId?: string;
+    size?: string;
   },
 ): Promise<void> {
   const adapter = getMailchimpAdapter();
@@ -126,6 +129,7 @@ async function queuePlantEvent(
 /**
  * Best-effort Mailchimp event after a plant status change. Never throws.
  * Skips `plant_checked_in` — that is emitted at check-in only (HIL-55).
+ * In Surgery: `plant_in_surgery` only for the first plant on the visit.
  * Outpatient: `plant_outpatient` when the visit is fully ready;
  * `plant_outpatient_partial` when siblings still block collection notice.
  */
@@ -152,7 +156,7 @@ export async function emitPlantStatusChangeEvent(
 
     let awaitingPlantCount: number | undefined;
 
-    if (newStatus === "outpatient") {
+    if (newStatus === "in_surgery" || newStatus === "outpatient") {
       const { data: siblings, error: siblingsError } = await supabase
         .from("plants")
         .select("id, status")
@@ -169,7 +173,11 @@ export async function emitPlantStatusChangeEvent(
         )
         .map((row) => ({ id: row.id, status: row.status }));
 
-      if (isFinalOutpatientPlantForVisit(plantId, visitPlants)) {
+      if (newStatus === "in_surgery") {
+        if (!shouldEmitPlantInSurgeryEvent(plantId, visitPlants)) {
+          return;
+        }
+      } else if (isFinalOutpatientPlantForVisit(plantId, visitPlants)) {
         eventName = MAILCHIMP_EVENT_NAMES.plantOutpatient;
       } else {
         eventName = MAILCHIMP_EVENT_NAMES.plantOutpatientPartial;
@@ -207,5 +215,32 @@ export async function emitBugsFoundEvent(supabase: SupabaseClient, plantId: stri
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     console.error("[mailchimp] bugs_found event failed:", message);
+  }
+}
+
+/**
+ * Best-effort `plant_propagated` after staff propagates a source plant.
+ * Queued against the source plant (parent); includes child plant id + size.
+ * Never throws.
+ */
+export async function emitPlantPropagatedEvent(
+  supabase: SupabaseClient,
+  sourcePlantId: string,
+  childPlantId: string,
+  size: string,
+): Promise<void> {
+  try {
+    const context = await resolvePlantCustomerContext(supabase, sourcePlantId);
+    if (!context) {
+      return;
+    }
+
+    await queuePlantEvent(context, MAILCHIMP_EVENT_NAMES.plantPropagated, {
+      childPlantId,
+      size,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error("[mailchimp] plant_propagated event failed:", message);
   }
 }

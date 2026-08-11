@@ -1,0 +1,47 @@
+Houseplant Hospital — Fix always-on install (Mac Mini)
+=====================================================
+
+What went wrong
+---------------
+install-launchd.sh IS on the Mini now.
+It failed because the launchd/ folder was missing.
+
+Fix: re-copy ONE updated script from the MacBook (self-contained now).
+You do NOT need the launchd/ folder anymore.
+
+
+----------------------------------------
+STEP 1 — On the MacBook
+----------------------------------------
+
+Copy this file to the Mini (AirDrop / USB / Messages):
+
+  /Users/jackchalkley/Documents/Cursor Projects/Hilda_Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+
+Put it here on the Mini (replace the old one):
+
+  ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+
+
+----------------------------------------
+STEP 2 — On the Mini (Terminal)
+----------------------------------------
+
+Paste these one at a time:
+
+ls ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+
+bash ~/Hilda/Houseplant-Hospital/print-bridge/scripts/install-launchd.sh
+
+curl -s http://127.0.0.1:8787/health
+
+Expect "Installed LaunchAgent" then a short JSON from health.
+
+
+----------------------------------------
+If health says Connection refused
+----------------------------------------
+
+tail -50 ~/Hilda/Houseplant-Hospital/print-bridge/logs/print-bridge.stderr.log
+
+Photo that output.

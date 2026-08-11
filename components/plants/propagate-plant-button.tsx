@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { propagatePlantAction } from "@/app/actions/propagate-plant";
 import { Button } from "@/components/ui/button";
-import { PLANT_SIZES, isPlantSize, type PlantSize } from "@/lib/plant-size";
+import { PLANT_SIZES, coercePlantSize, type PlantSize } from "@/lib/plant-size";
 import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
 import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
 import { cn } from "@/lib/utils";
@@ -18,10 +18,6 @@ type PropagatePlantButtonProps = {
   onSuccess?: () => void;
 };
 
-function sizeLabel(size: PlantSize): string {
-  return size === "XS" ? "MINI" : size;
-}
-
 export function PropagatePlantButton({
   plantId,
   initialSize,
@@ -33,7 +29,7 @@ export function PropagatePlantButton({
   const titleId = useId();
   const descriptionId = useId();
   const [open, setOpen] = useState(false);
-  const [size, setSize] = useState<PlantSize>(isPlantSize(initialSize) ? initialSize : "M");
+  const [size, setSize] = useState<PlantSize>(coercePlantSize(initialSize) ?? "M");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -130,7 +126,7 @@ export function PropagatePlantButton({
                             onChange={() => setSize(option)}
                           />
                           <span className="flex min-h-11 items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-surface px-1 text-xs font-semibold text-hilda-heading peer-checked:border-hilda-bugs peer-checked:bg-hilda-bugs peer-checked:text-hilda-inverse">
-                            {sizeLabel(option)}
+                            {option}
                           </span>
                         </label>
                       ))}

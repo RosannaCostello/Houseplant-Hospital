@@ -106,14 +106,16 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 ## Phase 4 — Label printing
 
 **Milestone:** Phase 4 — Label printing  
-**Exit:** Tap print → branded label with scannable QR.
+**Exit:** Tap print → branded 60×86mm label (no QR).
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
 | 4.1 | HIL-79 | Decide production domain; set `APP_BASE_URL` | `phase-4`, `infra` | — |
 | 4.2 | HIL-80 | `print-bridge` Node service on Mac Mini (auth + health) | `phase-4`, `printing` | HIL-12 |
-| 4.3 | HIL-81 | Branded label template (HTML/PDF): logo, fields, QR URL | `phase-4`, `printing`, `brand` | HIL-79, HIL-10 |
-| 4.4 | HIL-82 | macOS silent print integration (print queue) | `phase-4`, `printing` | HIL-80, HIL-81 |
+| 4.3 | HIL-81 | ~~Branded label + QR~~ **Canceled** (no QR) | — | — |
+| 4.3b | HIL-111 | Label visual design (no QR), 60×86mm | `phase-4`, `printing`, `brand` | HIL-82 |
+| 4.4 | HIL-82 | macOS silent print integration (print queue) | `phase-4`, `printing` | HIL-80 |
+| 4.4b | HIL-112 | Print-bridge always-on (launchd) + offline queue | `phase-4`, `printing`, `infra` | HIL-82, HIL-83 |
 | 4.5 | HIL-83 | App: enqueue `print_jobs` + server action → bridge | `phase-4`, `printing` | HIL-82 |
 | 4.6 | HIL-84 | Print + reprint from plant detail and QR page | `phase-4`, `printing` | HIL-83 |
 | 4.7 | HIL-85 | Secure bridge access (tunnel / allowlist — document in SETUP) | `phase-4`, `printing`, `infra` | HIL-83 |

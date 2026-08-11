@@ -144,12 +144,12 @@ function splitName(fullName) {
 
 function mapSize(raw) {
   const s = (raw || "").toLowerCase();
-  if (s.includes("mini")) return "XS";
+  if (s.includes("mini")) return "Mini";
   if (s.includes("extra large") || s.startsWith("xl")) return "XL";
   if (s.includes("large") || s.startsWith("l ")) return "L";
   if (s.includes("medium") || s.startsWith("m ")) return "M";
   if (s.includes("small") || s.startsWith("s ")) return "S";
-  if (s.includes("[xs]") || s.startsWith("xs")) return "XS";
+  if (s.includes("[xs]") || s.startsWith("xs")) return "Mini";
   return "M";
 }
 

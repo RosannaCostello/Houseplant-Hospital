@@ -1,5 +1,5 @@
 import type { PlantSize } from "@/lib/plant-size";
-import { PLANT_SIZES, isPlantSize } from "@/lib/plant-size";
+import { PLANT_SIZES, coercePlantSize } from "@/lib/plant-size";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { DEFAULT_BASE_PRICES, DEFAULT_BUGS_SURCHARGE_PERCENT } from "@/lib/pricing/defaults";
 import { isShopifyPricingConfigured } from "@/lib/shopify/env";
@@ -69,14 +69,15 @@ export async function getPricingSettings(): Promise<PricingSettings> {
   let shopifySyncedAt: string | null = null;
 
   for (const row of data ?? []) {
-    if (row.rule_type === "base_price" && row.size && isPlantSize(row.size)) {
-      basePrices[row.size] = {
+    const size = row.rule_type === "base_price" && row.size ? coercePlantSize(row.size) : null;
+    if (row.rule_type === "base_price" && size) {
+      basePrices[size] = {
         ruleId: row.id,
         amount: Number(row.amount),
       };
 
-      pestsPrices[row.size] = row.pests_amount != null ? Number(row.pests_amount) : null;
-      propagationPrices[row.size] =
+      pestsPrices[size] = row.pests_amount != null ? Number(row.pests_amount) : null;
+      propagationPrices[size] =
         row.propagation_amount != null ? Number(row.propagation_amount) : null;
 
       if (row.shopify_synced_at) {

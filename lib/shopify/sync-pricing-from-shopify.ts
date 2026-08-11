@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { PlantSize } from "@/lib/plant-size";
-import { PLANT_SIZES, isPlantSize } from "@/lib/plant-size";
+import { PLANT_SIZES, coercePlantSize } from "@/lib/plant-size";
 import { DEFAULT_BASE_PRICES } from "@/lib/pricing/defaults";
 import { fetchShopifyVariantPrices } from "@/lib/shopify/fetch-variant-prices";
 import {
@@ -179,14 +179,15 @@ export async function getPestsPriceRules(): Promise<PestsPriceRules> {
   const rules = Object.fromEntries(PLANT_SIZES.map((size) => [size, null])) as PestsPriceRules;
 
   for (const row of data ?? []) {
-    if (!row.size || !isPlantSize(row.size) || row.pests_amount == null) continue;
+    const size = row.size ? coercePlantSize(row.size) : null;
+    if (!size || row.pests_amount == null) continue;
 
     const amount = Number(row.pests_amount);
-    const existing = rules[row.size];
+    const existing = rules[size];
 
     // If duplicates exist, prefer the highest pests amount (canonical row after sync).
     if (existing == null || amount > existing) {
-      rules[row.size] = amount;
+      rules[size] = amount;
     }
   }
 
@@ -210,8 +211,9 @@ export async function getPropagationPriceRules(): Promise<PropagationPriceRules>
   const rules = Object.fromEntries(PLANT_SIZES.map((size) => [size, null])) as PropagationPriceRules;
 
   for (const row of data ?? []) {
-    if (!row.size || !isPlantSize(row.size) || row.propagation_amount == null) continue;
-    rules[row.size] = Number(row.propagation_amount);
+    const size = row.size ? coercePlantSize(row.size) : null;
+    if (!size || row.propagation_amount == null) continue;
+    rules[size] = Number(row.propagation_amount);
   }
 
   return rules;
