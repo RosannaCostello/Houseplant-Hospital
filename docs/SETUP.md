@@ -110,6 +110,10 @@ For **collection workflow** (final price + collected timestamp), run `supabase/m
 
 For **per-plant internal notes** (check-in notes on each plant), run `supabase/migrations/0029_plant_internal_notes.sql` (or `node scripts/apply-migration-0029.mjs`).
 
+For **stacking cards Settings toggle**, run `supabase/migrations/0030_stacking_cards_setting.sql` (or `node scripts/apply-migration-0030.mjs`).
+
+For **staff Care tips Other** (optional RLS; app also uses service role), run `supabase/migrations/0031_care_tip_options_staff_write.sql`.
+
 ## Shopify pricing (HIL-52)
 
 Shopify is the source of truth for **standard** and **pests** treatment prices. App size **Mini** matches Shopify option **Mini** on both products.
@@ -332,6 +336,7 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 |----------|------|-------|
 | Mailchimp outbox | `*/5 * * * *` | `/api/cron/mailchimp-outbox` |
 | Print jobs drain | `*/5 * * * *` | `/api/cron/print-jobs` |
+| POS checkout expiry (24h unpaid queue) | `*/5 * * * *` | `/api/cron/pos-checkout-expiry` |
 | Shopify pricing | `0 6 * * *` (06:00 UTC daily) | `/api/cron/shopify-pricing` |
 
 Requires `CRON_SECRET` and `APP_BASE_URL` on the worker. After deploy, check **Cloudflare → houseplanthospital → Settings → Triggers → Cron Triggers**.

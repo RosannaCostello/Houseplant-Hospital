@@ -178,14 +178,14 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
           {draftId ? (
             <button
               type="button"
-              className="mx-auto min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
+              className="hh-check-in-discard mx-auto min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
               disabled={submitting}
               onClick={() => void onDiscard()}
             >
               Discard draft
             </button>
           ) : (
-            <Button asChild variant="ghost" className="w-full text-hilda-text-muted">
+            <Button asChild variant="ghost" className="hh-check-in-discard w-full text-hilda-text-muted">
               <Link href="/app">Cancel</Link>
             </Button>
           )}
@@ -194,7 +194,7 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
     >
       <form
         id="check-in-customer-form"
-        className="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]"
+        className="flex min-h-0 flex-1 flex-col justify-start gap-3 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] landscape:gap-2 landscape:justify-start"
         onSubmit={(event) => void onSubmit(event)}
         noValidate
       >

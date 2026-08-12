@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, parseLpOptions, type BridgeConfig } from "./config.js";
-import { cupsPrintPdf, htmlFileToPdf } from "./cups.js";
+import { assertCupsPrinterReady, cupsPrintPdf, htmlFileToPdf } from "./cups.js";
 import { renderLabelHtml } from "./label.js";
 import type { PrintJobPayload } from "./payload.js";
 
@@ -42,6 +42,9 @@ export async function handlePrintJob(
   if (!config.PRINTER_NAME.trim()) {
     throw new Error("PRINT_MODE=print requires PRINTER_NAME (from lpstat -p -d)");
   }
+
+  // Refuse while CUPS queue is disabled — otherwise jobs backlog and all fire at once (HIL-118).
+  await assertCupsPrinterReady(config.PRINTER_NAME);
 
   await htmlFileToPdf({
     htmlPath,

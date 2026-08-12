@@ -290,6 +290,7 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
 
     plants.push({
       id: row.id,
+      visitId: row.visit_id,
       status: row.status,
       customerName: `${row.visits.customers.first_name} ${row.visits.customers.last_name}`,
       customerEmail: row.visits.customers.email,

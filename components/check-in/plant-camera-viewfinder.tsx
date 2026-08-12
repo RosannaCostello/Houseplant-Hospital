@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PlantPotGuide } from "@/components/check-in/plant-pot-guide";
 import { Button } from "@/components/ui/button";
+import { acquireSharedCameraStream } from "@/lib/photos/shared-camera-stream";
 import { cn } from "@/lib/utils";
 
 type PlantCameraViewfinderProps = {
@@ -12,13 +13,8 @@ type PlantCameraViewfinderProps = {
   onCapture: (file: File) => void | Promise<void>;
 };
 
-function stopStream(stream: MediaStream | null) {
-  stream?.getTracks().forEach((track) => track.stop());
-}
-
 export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraViewfinderProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -27,46 +23,23 @@ export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraV
     if (!open) return;
 
     let cancelled = false;
-    const videoElement = videoRef.current;
 
     async function startCamera() {
       setReady(false);
       setError(null);
 
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setError("Camera is not available in this browser. Use Library instead.");
-        return;
-      }
-
       try {
-        let stream: MediaStream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: {
-              facingMode: { ideal: "environment" },
-              width: { ideal: 1600 },
-              height: { ideal: 1200 },
-            },
-          });
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: true,
-          });
-        }
+        const stream = await acquireSharedCameraStream();
+        if (cancelled) return;
 
-        if (cancelled) {
-          stopStream(stream);
+        const video = videoRef.current;
+        if (!video) {
+          setError("Could not open the camera. Try again.");
           return;
         }
-
-        streamRef.current = stream;
-        if (videoElement) {
-          videoElement.srcObject = stream;
-          await videoElement.play();
-          if (!cancelled) setReady(true);
-        }
+        video.srcObject = stream;
+        await video.play();
+        if (!cancelled) setReady(true);
       } catch {
         if (!cancelled) {
           setError("Could not open the camera. Check permission, or use Library.");
@@ -78,10 +51,9 @@ export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraV
 
     return () => {
       cancelled = true;
-      stopStream(streamRef.current);
-      streamRef.current = null;
-      if (videoElement) {
-        videoElement.srcObject = null;
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = null;
       }
     };
   }, [open]);

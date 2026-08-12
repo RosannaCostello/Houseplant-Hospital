@@ -20,6 +20,7 @@ import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
 import {
   checkInPlantsStepSchema,
   createEmptyPlant,
+  isBugsFoundAnswered,
   type CheckInPlantInput,
 } from "@/lib/check-in/plant-schema";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
@@ -39,7 +40,7 @@ type PlantsStepFormProps = {
 function plantsReadyForCheckout(plants: CheckInPlantInput[]): boolean {
   const parsed = checkInPlantsStepSchema.safeParse({ plants });
   if (!parsed.success) return false;
-  return parsed.data.plants.every((plant) => plant.bugsFound !== null);
+  return parsed.data.plants.every((plant) => isBugsFoundAnswered(plant.bugsFound));
 }
 
 function checkoutStatusLabel(status: PosPaymentStatus): string {
@@ -77,7 +78,7 @@ export function PlantsStepForm({
 
   const plants = editedPlants ?? (initialPlants.length ? initialPlants : [createEmptyPlant()]);
   const readyForCheckout = plantsReadyForCheckout(plants);
-  const missingBugsCount = plants.filter((plant) => plant.bugsFound === null).length;
+  const missingBugsCount = plants.filter((plant) => !isBugsFoundAnswered(plant.bugsFound)).length;
   const canContinueToPhotos = canProceedToPhotosStep(checkout.status, posCheckoutRequired);
   const awaitingPosPayment =
     posCheckoutRequired && (checkout.status === "queued" || checkout.status === "loaded");
@@ -255,7 +256,7 @@ export function PlantsStepForm({
     if (!validPlants) return;
 
     if (!readyForCheckout) {
-      setFormError("Select whether pests were found for each plant before checkout.");
+      setFormError("Select Yes, No, or Not sure for pests on each plant before checkout.");
       return;
     }
 
@@ -364,7 +365,7 @@ export function PlantsStepForm({
 
           {posCheckoutRequired && !readyForCheckout ? (
             <p className="rounded-hilda border border-hilda-warning-border bg-hilda-warning-bg p-3 text-sm text-hilda-warning-text">
-              Answer whether pests were found for {missingBugsCount === 1 ? "the remaining plant" : `all ${missingBugsCount} remaining plants`} before checkout. Pests change the Shopify price.
+              Choose Yes, No, or Not sure for {missingBugsCount === 1 ? "the remaining plant" : `all ${missingBugsCount} remaining plants`} before checkout. Yes uses the pests price; No and Not sure use the standard price.
             </p>
           ) : null}
 
@@ -417,12 +418,12 @@ export function PlantsStepForm({
               )}
             </div>
             <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-center sm:gap-4">
-              <Button asChild variant="ghost" className="w-full text-hilda-text-muted sm:w-auto">
+              <Button asChild variant="ghost" className="hh-check-in-discard w-full text-hilda-text-muted sm:w-auto">
                 <Link href={`/app/check-in?draft=${draftId}`}>Back to customer</Link>
               </Button>
               <button
                 type="button"
-                className="min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
+                className="hh-check-in-discard min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
                 disabled={submitting}
                 onClick={() => void onDiscard()}
               >
@@ -449,7 +450,7 @@ export function PlantsStepForm({
                 ref={(element) => setPlantSectionRef(plant.clientId, element)}
                 className={cn(
                   "shrink-0 rounded-hilda border bg-hilda-surface p-3",
-                  posCheckoutRequired && plant.bugsFound === null
+                  posCheckoutRequired && !isBugsFoundAnswered(plant.bugsFound)
                     ? "border-hilda-warning-border"
                     : "border-hilda-border/15",
                 )}
@@ -498,13 +499,20 @@ export function PlantsStepForm({
                     question="Any pests visible on this plant?"
                     ariaLabel="Any pests visible on this plant"
                   />
-                  {posCheckoutRequired && plant.bugsFound === null ? (
+                  {posCheckoutRequired && !isBugsFoundAnswered(plant.bugsFound) ? (
                     <p className="text-sm text-hilda-warning-text">
-                      Required before checkout because pests change the treatment price.
+                      Required before checkout — Yes uses the pests price; No and Not sure use the
+                      standard price.
                     </p>
                   ) : null}
 
                   <div className="grid gap-3 sm:grid-cols-2">
+                    <SpeciesField
+                      value={plant.species}
+                      error={errors.species}
+                      onChange={(species) => updatePlant(plant.clientId, { species })}
+                    />
+
                     <label className={hildaLabelClassName}>
                       Plant name
                       <input
@@ -515,12 +523,6 @@ export function PlantsStepForm({
                         placeholder="e.g. Monty"
                       />
                     </label>
-
-                    <SpeciesField
-                      value={plant.species}
-                      error={errors.species}
-                      onChange={(species) => updatePlant(plant.clientId, { species })}
-                    />
                   </div>
 
                   <label className={hildaLabelClassName}>

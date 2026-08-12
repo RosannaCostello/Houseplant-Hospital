@@ -93,5 +93,7 @@ Edit `src/label.ts`, dry-run to preview HTML in `.tmp/`, then print a real label
 
 - Queue name at Hilda: **`HH_Airprint`** (`lpstat -p -d` to confirm).
 - Prefer **AirPrint** queue over Brother CUPS — AirPrint prints reliably; CUPS hit Wrong Roll Type on site.
+- If the queue is **disabled**, the bridge refuses new jobs (HTTP 503) so CUPS does not silently backlog and dump everything when re-enabled (HIL-118). `/health` includes `printerReady`.
+- After re-enabling a disabled queue, clear any leftover CUPS jobs before reprinting: `cancel -a HH_Airprint` then `cupsenable HH_Airprint`.
 - If `Custom.60x86mm` is rejected, run `lpoptions -p "$QUEUE" -l | grep -i media` and set `LP_OPTIONS` to the matching token.
 - Production reachability from Cloudflare is [HIL-85](https://linear.app/hilda-houseplant-hospital/issue/HIL-85) (tunnel / allowlist).

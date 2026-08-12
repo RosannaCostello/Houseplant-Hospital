@@ -9,6 +9,7 @@ import { checkInPlantsStepSchema } from "@/lib/check-in/plant-schema";
 import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
 import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
 import { copyDraftPhotoToPlant } from "@/lib/photos/upload-draft-photo";
+import { requestPlantLabelPrint } from "@/lib/printing/request-plant-label-print";
 import type { PosCheckoutPayload } from "@/lib/shopify/pos-checkout-types";
 
 export type FinalizeCheckInDraftResult =
@@ -159,6 +160,22 @@ export async function finalizeCheckInDraftWithClient(
     for (const plant of records.plants) {
       if (plant.status === "quarantine") {
         await emitPlantStatusChangeEvent(supabase, plant.plantId, "check_in", "quarantine");
+      }
+    }
+
+    // Auto-print one label per plant (HIL-116). Never fail check-in if the Mini is down —
+    // jobs stay pending and cron / Reprint drains them.
+    for (const plant of records.plants) {
+      try {
+        const printResult = await requestPlantLabelPrint(supabase, plant.plantId);
+        if (!printResult.success) {
+          console.error(
+            `[print] check-in label failed for plant ${plant.plantId}: ${printResult.error}`,
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "print failed";
+        console.error(`[print] check-in label threw for plant ${plant.plantId}: ${message}`);
       }
     }
 

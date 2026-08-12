@@ -1,11 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlantCameraViewfinder } from "@/components/check-in/plant-camera-viewfinder";
 import { Button } from "@/components/ui/button";
 import type { CheckInDraftPhotoView, CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import { photoPreviewSrc } from "@/lib/check-in/photo-schema";
 import { compressImageFile, formatImageByteSize } from "@/lib/photos/compress-image";
+import {
+  releaseSharedCameraStream,
+  retainSharedCameraStream,
+} from "@/lib/photos/shared-camera-stream";
 import { cn } from "@/lib/utils";
 
 type PlantPhotoCaptureProps = {
@@ -27,6 +31,11 @@ export function PlantPhotoCapture({
   const [cameraOpen, setCameraOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    retainSharedCameraStream();
+    return () => releaseSharedCameraStream();
+  }, []);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;

@@ -5,7 +5,8 @@ import { default as handler } from "./.open-next/worker.js";
 type CronRoute =
   | "/api/cron/mailchimp-outbox"
   | "/api/cron/shopify-pricing"
-  | "/api/cron/print-jobs";
+  | "/api/cron/print-jobs"
+  | "/api/cron/pos-checkout-expiry";
 
 interface CloudflareEnv {
   CRON_SECRET?: string;
@@ -26,7 +27,11 @@ function cronBaseUrl(env: CloudflareEnv): string {
 
 function routesForCron(cron: string): CronRoute[] {
   if (cron === MAILCHIMP_OUTBOX_CRON) {
-    return ["/api/cron/mailchimp-outbox", "/api/cron/print-jobs"];
+    return [
+      "/api/cron/mailchimp-outbox",
+      "/api/cron/print-jobs",
+      "/api/cron/pos-checkout-expiry",
+    ];
   }
 
   if (cron === SHOPIFY_PRICING_CRON) {

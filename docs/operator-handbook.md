@@ -37,7 +37,7 @@ Houseplant Hospital is Hilda’s **in-store plant treatment ops app**. Staff che
 | **Shopify** | Retail catalogue + source of treatment prices; POS for Hospital checkout |
 | **Mailchimp** | Customer emails (app sends events; journeys are built in Mailchimp) |
 | **Acuity** | Booking (can create incomplete check-ins when wired) |
-| **Brother labels** | Label printing (hardware / print-bridge — not required for core board use) |
+| **Brother labels** | Physical plant labels from the Brother printer (via Mac Mini print-bridge). Layout: **customer name** large, **plant name** smaller underneath. One label prints automatically when check-in is completed; use **Reprint label** on Update plant if needed. If the printer/queue was offline, labels stay queued in the Hospital app (not dumped all at once when the printer comes back). |
 
 **Zoho Creator** is replaced for day-to-day Hospital ops. Historic Zoho plants may appear in Analytics as collected history.
 
@@ -67,22 +67,23 @@ Use these words when talking about the app.
 | **Plant** | One plant on a drop-off. The board is organised by **plants**, not drop-offs. |
 | **Check-in** (flow) | Creating a new drop-off: customer → plants → photos. |
 | **Incomplete check-in** | A draft drop-off not finished yet (still on plants or photos step). Shown in the Incomplete lane. |
-| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. When search has text, tap **Cancel search** to clear it and show the full board again. On iPad, **tap the photo or customer name** to **Update plant**; use the **⋯** menu for lane moves (drag between lanes also works, but tap is the reliable path). |
-| **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. Treatment notes autosave on pause and when you tap **Close** — wait for “Saving…” if you just typed. From Update plant, **View drop-off** closes the overlay and opens the drop-off page. |
+| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name** or **email**. When search has text, tap **Cancel search** to clear it and show the full board again. From any plant’s **⋯** menu, **Search customer** fills the search box with that customer’s email and closes the menu. On iPad, **tap the photo or customer name** to **Update plant**; use the **⋯** menu for lane moves (drag between lanes also works, but tap is the reliable path). When **Stacking cards** is on (Settings), plants from the same drop-off in the same lane appear as a swipeable stack — swipe left/right like iMessage photos. |
+| **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. **Plant name** and **species** can be edited (rare corrections; save on blur). Treatment notes autosave on pause and when you tap **Close** — wait for “Saving…” if you just typed. On **Outpatient** plants, **Treatment notes** appear first (highlighted) above the photo. From Update plant, **View drop-off** closes the overlay and opens the drop-off page. |
+| **Stacking cards** | Admin Settings toggle (default on). Same drop-off, same lane → swipeable fan stack on the Dashboard. |
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
-| **Pests / Bugs found** | Whether pests were found. At **check-in**: **Any pests visible on this plant?** On **Update plant**: **Pests found during treatment?** (Yes / No / Clear answer). Affects price, starting lane, and Outpatient readiness. |
-| **Pest treatments** | Three slots on plant detail (Treatment 1 / 2 / 3). Each picks a treatment type from Settings, then **Record** locks it with date/time. Required before Outpatient if pests were **ever** found. |
-| **Internal notes** | Staff notes taken at check-in for **that plant** (optional). Shown read-only on **Update plant** for that plant, and on the plant’s row on the drop-off page. Not the same as **Treatment notes**. |
+| **Pests / Bugs found** | Whether pests were found. At **check-in** and **Update plant**: **Yes / No / Not sure**. **Yes** → Quarantine + pests price + pests badge. **No** → Check-in lane + standard price + no badge. **Not sure** → Quarantine + standard price + no badge. Outpatient requires Yes or No (Not sure must be resolved). Changing to **Yes** later (from No or Not sure) fires Mailchimp **`bugs_found`**. |
+| **Pest treatments** | Three slots on plant detail (Treatment 1 / 2 / 3). Shown when pests are **Yes** (or were ever Yes and not currently No). **Never** shown when pests are currently **No**. Required before Outpatient only when that rule applies — never when pests are No. |
+| **Internal notes** | Staff notes for **that plant** (optional). Editable on **Update plant** until **Collected**. Also shown on the drop-off page. Not the same as **Treatment notes**. |
 | **Treatment notes** | Notes on the plant (required before Outpatient). Max **750 characters** so the full note can reach customer emails via Mailchimp (see below). |
-| **Care tips** | Aftercare advice for the customer, chosen as **Water / Leaves / Light** dropdowns on plant detail (required before Outpatient). Saved as one composed string. |
+| **Care tips** | Aftercare advice for the customer as **Water / Leaves / Light** on plant detail. **At least one** tip is required before Outpatient; the others may be left blank. Each dropdown has **Other…** for a custom tip (added to the list for future plants). Blank tips send nothing to Mailchimp for that field. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
 | **Treatment revenue** | Sum of final prices on plants collected in a period. **Revenue, not profit.** |
 | **Propagation** | Creating a child plant from a healthy (pests-free) plant in Surgery. Also a **lane** and a plant **category**. |
 | **Size** | Plant size band: **Mini**, S, M, L, XL (never “XS” — use Mini). Matches Shopify Mini for the smallest band. |
-| **Pay at collection** | Customer pays when collecting, not at check-in. |
-| **POS / Shopify POS** | Shop till extension used to take Hospital payment. |
+| **Pay at collection** | Customer pays when collecting, not at check-in. These visits **do** appear in Shopify POS **Pending check-ins** (with the customer name) so staff can load the cart on the till. Propagation visits also appear here. |
+| **POS / Shopify POS** | Shop till extension used to take Hospital payment. Open **Pending check-ins** for queued carts **and** Pay at collection / propagation visits. The list refreshes itself every few seconds. Queued/loaded POS carts that stay unpaid for **24 hours** drop off the list (marked cancelled/unpaid). **Pay at collection** is not auto-cleared by that timer. |
 | **Outpatient** | Plant is ready for collection. |
-| **Outpatient ready** | This plant has pests answered (if standard), treatment notes, all three care tip dropdowns (Water, Leaves, Light), and — if pests were ever found — all three pest treatments — so it can move to Outpatient. |
+| **Outpatient ready** | This plant has pests answered Yes or No (if standard), treatment notes, **at least one** care tip, and — if pests currently require it — all three pest treatments — so it can move to Outpatient. |
 | **Outpatient partial** | On a multi-plant drop-off, one plant is in Outpatient but siblings are not yet ready. Staff still move plants one by one; the app emails Mailchimp a “partial” event until the last sibling is ready (then a full ready-to-collect event). Staff do not manage this as a separate screen. |
 | **Collected** | Plant has gone home. Terminal status — **view only** (notes, tips, pests, treatments, photo retake, **Reprint label**, and actions locked). |
 | **Dead** | Plant did not survive treatment. Terminal status. |
@@ -123,21 +124,21 @@ Board order (left → right):
 
 ### Check in a customer (new drop-off)
 
-**iPad tip:** Hand the iPad to the customer for this flow. Primary buttons are large; **Continue** sits above **Discard**. Staff chrome (Dashboard / Account) is de-emphasised so customers are less likely to leave mid-flow. Test with the software keyboard open — fields and Continue should stay usable.
+**iPad tip:** Hand the iPad to the customer for this flow. Primary buttons are large; **Continue** sits above **Discard**. Staff chrome (Dashboard / Account) is de-emphasised so customers are less likely to leave mid-flow. The iPad software keyboard cannot be made smaller by the app — in landscape it is large. While typing, the form sits in the remaining space above the keyboard (nav/header hide). To make the keyboard itself smaller, **pinch the keyboard** to undock/float it.
 
 1. Bottom nav → **Check-in**.  
 2. Enter **customer** details → continue (creates an incomplete draft). **Marketing emails** starts **checked** (customer is opted in unless they uncheck — **Uncheck to opt out**).  
-3. **Plants** step: add each plant (name optional, **species** optional with typeahead from species used before, **size**, **Any pests visible on this plant?**, optional **Internal notes**). Use **Add another plant** (above **Go to checkout**) for multi-plant drop-offs.  
+3. **Plants** step: add each plant (**species** optional with typeahead from species used before, name optional, **size**, **Any pests visible on this plant?** — **Yes / No / Not sure**, optional **Internal notes**). Use **Add another plant** (above **Go to checkout**) for multi-plant drop-offs.  
 4. If Shopify pricing is on: choose **Go to checkout** (queue for POS) or **Pay at collection**. After **POS paid** or **Pay at collection**, the app returns you to the **Dashboard**. Finish photos later from the **Incomplete check-ins** lane if needed.  
-5. **Photos** step (when you continue or resume): one photo per plant → **Complete check-in**.  
-6. Plants appear on the **Dashboard**. Plants marked **pests Yes** land in **Quarantine** (not Check-in).
+5. **Photos** step (when you continue or resume): one photo per plant → **Complete check-in**. The first **Take photo** may ask for camera access — tap **Allow**. After that, further photos in the same check-in should not ask again. If Safari keeps asking: **aA** (or **Website Settings**) → **Camera** → **Allow** for the Hospital site.  
+6. Plants appear on the **Dashboard**. Each plant’s label prints automatically when check-in completes (if the Mini/printer is online; otherwise it queues and can be reprinted). Plants marked **pests Yes** or **Not sure** land in **Quarantine** (not Check-in).
 
 You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Complete check-in**) or discard the draft (**Discard** — irreversible).
 
 ### Update plant (esp. Surgery / dirty hands)
 
-1. On the Dashboard, tap the plant **photo** or **customer name** (or **Update plant** from **⋯**).  
-2. Edit pests, notes, care tips, treatments as needed. Notes save automatically; **Close** waits for a pending save. **Internal notes** (from check-in for this plant only) appear in their own box — read-only. Use **Reprint label** to print again (greyed out once the plant is **Collected**).  
+1. On the Dashboard, tap the plant **photo** or **customer name** (or **Update plant** from **⋯**). From **⋯** you can also **Search customer** to filter the board to that email.  
+2. Edit plant name, species, pests (Yes / No / Not sure), **internal notes**, treatment notes, care tips, treatments as needed. Name, species, and internal notes save on blur / autosave. Treatment notes save automatically; **Close** waits for a pending save. On **Outpatient**, **Treatment notes** are at the top in a yellow highlight so collection handoff is obvious. Use **Reprint label** to print again (greyed out once the plant is **Collected**).  
 3. Use **⋯** (or drag) to move lanes — not the photo tap.  
 4. **View drop-off** opens the shared drop-off page (closes the Update plant overlay first).
 
@@ -149,10 +150,11 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 
 ### Find a plant on the Dashboard
 
-1. Use the **Search by name or email** box above the lanes.  
+1. Use the **Search by name or email** box above the lanes, or **Search customer** from a plant’s **⋯** menu.  
 2. As you type, plant cards and incomplete drafts that do not match are hidden.  
 3. Tap **Cancel search** to clear the filter and show the full board.  
-4. Each lane has a **Newest / Oldest** toggle. Most lanes sort by check-in date. The **Collected** lane sorts by **collection date** (newest = collected most recently).
+4. Each lane has a **Newest / Oldest** toggle. Most lanes sort by check-in date. The **Collected** lane sorts by **collection date** (newest = collected most recently).  
+5. If **Stacking cards** is on (Settings), swipe through a stack when several plants from one drop-off share a lane.
 
 ### Move a plant on the board
 
@@ -165,10 +167,10 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 
 The app blocks Outpatient until the plant is **Outpatient ready**:
 
-- **Pests** answered (Yes or No)  
+- **Pests** answered **Yes or No** (Not sure is not enough)  
 - **Treatment notes** filled (max 750 characters — counter on plant detail)  
-- **Care tips** — choose all three: Water, Leaves, and Light  
-- If pests were **ever** found on this plant: all three **pest treatments** recorded (type + date/time; locked once recorded)
+- **Care tips** — choose **at least one** of Water, Leaves, or Light (others may be blank; each may use **Other…**)  
+- If pests are currently **Yes** (or were ever Yes and not currently No): all three **pest treatments** recorded. If pests are currently **No**, treatments are hidden and not required.
 
 Propagation plants skip the pests requirement for this gate. Plants that never had pests do not need pest treatments.
 
@@ -244,8 +246,8 @@ Properties are only included when the app has a value. Empty / unused properties
 
 **Care tips:**
 
-1. Sent as three separate properties (option text only).  
-2. In email builders: include **all three** (`care_tips_water`, `care_tips_leaves`, `care_tips_light`) **each on its own line**. Do not use the old single `care_tips` tag.
+1. Sent as separate properties (option text only). Blank tips are **omitted** (no property / no characters).  
+2. In email builders: include `care_tips_water`, `care_tips_leaves`, `care_tips_light` **each on its own line**. Do not use the old single `care_tips` tag.
 
 #### Audience merge fields (contact profile)
 
@@ -335,10 +337,11 @@ Also on Analytics: customers / pests / propagations summaries, live **Current op
 
 - View / manage size-band pricing.  
 - **Sync from Shopify** refreshes standard, pests, and propagation prices from Shopify products.  
+- **Dashboard → Stacking cards** — turn swipeable same-drop-off stacks on or off (default on).  
 - **Care tips options** — add, edit, or delete Water / Leaves / Light choices used on plant detail.  
 - **Treatment notes placeholder** — edit the hint text shown in the treatment notes box.
 
-On plant detail, care tips save automatically once all three dropdowns are chosen, as:
+On plant detail, care tips save automatically once **at least one** tip is chosen (others may stay Select… / blank), as:
 
 ```
 Water: …
@@ -346,7 +349,9 @@ Leaves: …
 Light: …
 ```
 
-Older free-text care tips that do not match this format show as a read-only note until staff re-select all three and save.
+Blank lines still appear in storage with an empty value after the label. Mailchimp only receives properties for tips that have text.
+
+Older free-text care tips that do not match this format show as a read-only note until staff re-select tips and save.
 
 ---
 

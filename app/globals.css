@@ -89,6 +89,29 @@ h4 {
   padding-bottom: var(--bottom-nav-inset);
 }
 
+/* Keyboard open (check-in): reclaim the strip above the iPad keyboard.
+   We cannot shrink the OS keyboard from the web app. */
+html.hh-keyboard-open header {
+  display: none !important;
+}
+
+html.hh-keyboard-open .bottom-nav-glass-host {
+  display: none !important;
+}
+
+html.hh-keyboard-open .hh-check-in-header h1 {
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+html.hh-keyboard-open .hh-check-in-header p.text-xs {
+  display: none;
+}
+
+html.hh-keyboard-open .hh-check-in-discard {
+  display: none;
+}
+
 /* Soft, wide cast — left, right, and below */
 .hilda-card-shadow {
   box-shadow:

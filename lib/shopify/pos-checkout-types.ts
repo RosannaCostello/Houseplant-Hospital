@@ -20,6 +20,15 @@ export type PosLineItem = {
   properties: PosLineItemProperty[];
 };
 
+/** Replace same-named properties; keep the rest (e.g. Size when adding `_hh_visit_id`). */
+export function mergePosLineProperties(
+  existing: PosLineItemProperty[] | undefined,
+  next: PosLineItemProperty[],
+): PosLineItemProperty[] {
+  const replace = new Set(next.map((property) => property.name));
+  return [...(existing ?? []).filter((property) => !replace.has(property.name)), ...next];
+}
+
 export type PosCheckoutPayload = {
   draftId?: string;
   visitId?: string;

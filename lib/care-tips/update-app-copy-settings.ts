@@ -34,3 +34,24 @@ export async function updateTreatmentNotesPlaceholderWithClient(
 
   return { success: true };
 }
+
+export async function updateStackingCardsEnabledWithClient(
+  supabase: SupabaseClient,
+  enabled: boolean,
+): Promise<UpdateAppCopySettingsResult> {
+  const admin = await requireAdmin(supabase);
+  if (!admin.ok) {
+    return { success: false, error: admin.error };
+  }
+
+  const { error } = await supabase
+    .from("app_copy_settings")
+    .update({ stacking_cards_enabled: enabled })
+    .eq("id", 1);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}

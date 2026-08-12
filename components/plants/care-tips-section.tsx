@@ -9,20 +9,25 @@ import {
   useState,
   useTransition,
 } from "react";
+import { useRouter } from "next/navigation";
+import { ensureCareTipOptionFromPlantAction } from "@/app/actions/care-tip-settings";
 import { saveCareTipAction } from "@/app/actions/save-care-tip";
 import { AnchoredPortal } from "@/components/ui/anchored-portal";
 import {
   CARE_TIP_CATEGORIES,
   CARE_TIP_CATEGORY_LABELS,
   composeCareTip,
-  isCompleteCareTipSelections,
+  hasMinimumCareTipSelections,
   parseCareTip,
   type CareTipCategory,
   type CareTipSelections,
 } from "@/lib/care-tips/compose-parse";
 import type { CareTipOption, CareTipOptionsByCategory } from "@/lib/care-tips/types";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
+import { scrollFocusedFieldAboveKeyboard } from "@/lib/ui/keyboard-avoidance";
 import { cn } from "@/lib/utils";
+
+const OTHER_SENTINEL = "__other__";
 
 type CareTipsSectionProps = {
   plantId: string;
@@ -37,12 +42,16 @@ function emptySelections(): CareTipSelections {
   return { water: "", leaves: "", light: "" };
 }
 
+function emptyOtherDrafts(): CareTipSelections {
+  return { water: "", leaves: "", light: "" };
+}
+
 function optionsForSelect(
   category: CareTipCategory,
   options: CareTipOption[],
   selected: string,
 ): CareTipOption[] {
-  if (!selected) return options;
+  if (!selected || selected === OTHER_SENTINEL) return options;
   if (options.some((option) => option.label === selected)) return options;
   return [
     {
@@ -59,17 +68,31 @@ function optionsForSelect(
 type CareTipPickerProps = {
   category: CareTipCategory;
   value: string;
+  otherDraft: string;
   options: CareTipOption[];
   disabled?: boolean;
   onChange: (value: string) => void;
+  onOtherDraftChange: (value: string) => void;
+  onOtherCommit: () => void;
 };
 
 /** Custom full-width picker — native iPadOS `<select>` menus stay too narrow for long tip copy. */
-function CareTipPicker({ category, value, options, disabled, onChange }: CareTipPickerProps) {
+function CareTipPicker({
+  category,
+  value,
+  otherDraft,
+  options,
+  disabled,
+  onChange,
+  onOtherDraftChange,
+  onOtherCommit,
+}: CareTipPickerProps) {
   const listId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const label = CARE_TIP_CATEGORY_LABELS[category];
+  const showingOther = value === OTHER_SENTINEL;
+  const displayValue = showingOther ? "Other…" : value;
 
   useEffect(() => {
     if (!open) return;
@@ -100,7 +123,7 @@ function CareTipPicker({ category, value, options, disabled, onChange }: CareTip
   }
 
   return (
-    <div className="relative">
+    <div className="relative space-y-2">
       <label className={hildaLabelClassName}>
         {label}
         <button
@@ -114,7 +137,7 @@ function CareTipPicker({ category, value, options, disabled, onChange }: CareTip
           className={cn(
             hildaInputClassName,
             "flex w-full min-h-11 items-center justify-between gap-2 text-left",
-            !value && "text-hilda-text-muted",
+            !displayValue && "text-hilda-text-muted",
             disabled && "cursor-default bg-hilda-bg",
           )}
           onClick={() => {
@@ -122,13 +145,32 @@ function CareTipPicker({ category, value, options, disabled, onChange }: CareTip
           }}
         >
           <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">
-            {value || "Select…"}
+            {displayValue || "Select…"}
           </span>
           <span aria-hidden className="shrink-0 text-hilda-text-muted">
             ▾
           </span>
         </button>
       </label>
+
+      {showingOther && !disabled ? (
+        <input
+          type="text"
+          className={cn(hildaInputClassName, "min-h-11")}
+          value={otherDraft}
+          placeholder={`Custom ${label.toLowerCase()} tip`}
+          autoComplete="off"
+          onChange={(event) => onOtherDraftChange(event.target.value)}
+          onFocus={(event) => scrollFocusedFieldAboveKeyboard(event.currentTarget)}
+          onBlur={() => onOtherCommit()}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              (event.target as HTMLInputElement).blur();
+            }
+          }}
+        />
+      ) : null}
 
       <AnchoredPortal
         open={open}
@@ -171,6 +213,18 @@ function CareTipPicker({ category, value, options, disabled, onChange }: CareTip
               </li>
             );
           })}
+          <li role="option" aria-selected={showingOther}>
+            <button
+              type="button"
+              className={cn(
+                "w-full px-3 py-2.5 text-left text-sm leading-snug text-hilda-heading hover:bg-hilda-bg",
+                showingOther && "bg-hilda-bg font-medium",
+              )}
+              onClick={() => choose(OTHER_SENTINEL)}
+            >
+              Other…
+            </button>
+          </li>
         </ul>
       </AnchoredPortal>
     </div>
@@ -185,10 +239,12 @@ export function CareTipsSection({
   compact = false,
   readOnly = false,
 }: CareTipsSectionProps) {
+  const router = useRouter();
   const parsed = useMemo(() => parseCareTip(careTip), [careTip]);
   const [selections, setSelections] = useState<CareTipSelections>(() =>
     parsed.kind === "structured" ? parsed.selections : emptySelections(),
   );
+  const [otherDrafts, setOtherDrafts] = useState<CareTipSelections>(emptyOtherDrafts);
   const [legacyNote, setLegacyNote] = useState<string | null>(() =>
     parsed.kind === "legacy" ? parsed.content : null,
   );
@@ -220,7 +276,10 @@ export function CareTipsSection({
 
   const saveSelections = useCallback(
     (next: CareTipSelections) => {
-      if (!isCompleteCareTipSelections(next)) {
+      if (!hasMinimumCareTipSelections(next)) {
+        return;
+      }
+      if (CARE_TIP_CATEGORIES.some((category) => next[category] === OTHER_SENTINEL)) {
         return;
       }
 
@@ -250,7 +309,49 @@ export function CareTipsSection({
       setStatus("idle");
       setError(null);
     }
+    if (value === OTHER_SENTINEL) {
+      setOtherDrafts((current) => ({ ...current, [category]: "" }));
+      return;
+    }
     saveSelections(next);
+  }
+
+  function commitOther(category: CareTipCategory) {
+    if (readOnly) return;
+    const label = otherDrafts[category].trim();
+    if (!label) return;
+
+    setStatus("saving");
+    setError(null);
+
+    startTransition(async () => {
+      const ensured = await ensureCareTipOptionFromPlantAction({ category, label });
+      if (!ensured.success) {
+        setStatus("error");
+        setError(ensured.error);
+        return;
+      }
+
+      const next = { ...selections, [category]: label };
+      setSelections(next);
+      setOtherDrafts((current) => ({ ...current, [category]: "" }));
+      router.refresh();
+
+      if (!hasMinimumCareTipSelections(next)) {
+        setStatus("idle");
+        return;
+      }
+
+      const composed = composeCareTip(next);
+      const result = await saveCareTipAction(plantId, composed);
+      if (!result.success) {
+        setStatus("error");
+        setError(result.error);
+        return;
+      }
+      setLegacyNote(null);
+      setStatus("saved");
+    });
   }
 
   const body = (
@@ -267,9 +368,14 @@ export function CareTipsSection({
             key={category}
             category={category}
             value={selections[category]}
+            otherDraft={otherDrafts[category]}
             options={options}
             disabled={readOnly || isPending}
             onChange={(value) => handleChange(category, value)}
+            onOtherDraftChange={(value) =>
+              setOtherDrafts((current) => ({ ...current, [category]: value }))
+            }
+            onOtherCommit={() => commitOther(category)}
           />
         );
       })}
@@ -293,8 +399,8 @@ export function CareTipsSection({
         {!readOnly && status === "error" && error ? (
           <span className="text-hilda-error-text">{error}</span>
         ) : null}
-        {!readOnly && status === "idle" && !isCompleteCareTipSelections(selections) ? (
-          <span>Select all three to save care tips.</span>
+        {!readOnly && status === "idle" && !hasMinimumCareTipSelections(selections) ? (
+          <span>Choose at least one tip (Water, Leaves, or Light). Others may be left blank.</span>
         ) : null}
       </div>
     </div>
@@ -316,8 +422,9 @@ export function CareTipsSection({
         </h2>
         {!compact && !readOnly ? (
           <p className={cn("mt-1 text-sm text-hilda-text")}>
-            Advice for the customer when they collect their plant. Saves automatically when all
-            three are chosen.
+            Advice for the customer when they collect their plant. Choose at least one tip;
+            the others may stay blank. Saves automatically. Other adds a custom tip to the list
+            for next time.
           </p>
         ) : null}
       </div>

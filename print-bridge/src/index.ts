@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { extractBearerToken, secretsMatch } from "./auth.js";
 import { loadConfig } from "./config.js";
+import { getCupsPrinterStatus } from "./cups.js";
 import { printJobPayloadSchema } from "./payload.js";
 import { handlePrintJob } from "./print.js";
 
@@ -37,11 +38,25 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
     if (req.method === "GET" && url.pathname === "/health") {
+      const printerName = config.PRINTER_NAME.trim();
+      const printer =
+        config.PRINT_MODE === "print" && printerName
+          ? await getCupsPrinterStatus(printerName)
+          : null;
       sendJson(res, 200, {
         ok: true,
         service: "houseplant-hospital-print-bridge",
         mode: config.PRINT_MODE,
-        printerConfigured: Boolean(config.PRINTER_NAME),
+        printerConfigured: Boolean(printerName),
+        printerReady: printer ? printer.ready : config.PRINT_MODE !== "print",
+        printer: printer
+          ? {
+              name: printer.name,
+              enabled: printer.enabled,
+              accepting: printer.accepting,
+              detail: printer.detail,
+            }
+          : null,
       });
       return;
     }
@@ -73,7 +88,14 @@ const server = createServer(async (req, res) => {
     sendJson(res, 404, { ok: false, error: "not_found" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "internal_error";
-    sendJson(res, 500, { ok: false, error: message });
+    const statusCode =
+      typeof err === "object" &&
+      err &&
+      "statusCode" in err &&
+      typeof (err as { statusCode?: unknown }).statusCode === "number"
+        ? ((err as { statusCode: number }).statusCode)
+        : 500;
+    sendJson(res, statusCode, { ok: false, error: message });
   }
 });
 

@@ -7,7 +7,7 @@ type CheckInStepHeaderProps = {
 
 export function CheckInStepHeader({ step, totalSteps, title, description }: CheckInStepHeaderProps) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5 landscape:space-y-0">
       <p className="text-xs font-medium uppercase tracking-wide text-hilda-text-muted">
         Step {step} of {totalSteps}
       </p>

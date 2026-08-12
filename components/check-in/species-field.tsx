@@ -12,9 +12,19 @@ type SpeciesFieldProps = {
   value: string;
   error?: string;
   onChange: (species: string) => void;
+  onBlur?: () => void;
+  disabled?: boolean;
+  compact?: boolean;
 };
 
-export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
+export function SpeciesField({
+  value,
+  error,
+  onChange,
+  onBlur,
+  disabled = false,
+  compact = false,
+}: SpeciesFieldProps) {
   const listboxId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +108,8 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
     setSuggestions([]);
     setSuggestionsOpen(false);
     onChange(species);
+    // Defer so parent state includes the selection before save-on-blur.
+    window.setTimeout(() => onBlur?.(), 0);
   }
 
   const trimmed = value.trim();
@@ -108,20 +120,32 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
 
   return (
     <div ref={containerRef} className="relative">
-      <label className={hildaLabelClassName}>
-        Species <span className="font-normal text-hilda-text-muted">(optional)</span>
+      <label className={compact ? "block text-xs font-semibold uppercase tracking-wide text-hilda-text-muted" : hildaLabelClassName}>
+        {compact ? (
+          "Species"
+        ) : (
+          <>
+            Species <span className="font-normal text-hilda-text-muted">(optional)</span>
+          </>
+        )}
         <input
           ref={inputRef}
-          className={cn(hildaInputClassName, "min-h-11 py-2.5")}
+          className={cn(
+            compact
+              ? "mt-1 w-full rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm text-hilda-heading outline-none focus:border-hilda-text/50 disabled:opacity-60"
+              : cn(hildaInputClassName, "min-h-11 py-2.5"),
+          )}
           type="text"
           autoComplete="off"
           value={value}
+          disabled={disabled}
           role="combobox"
           aria-expanded={suggestionsOpen}
           aria-controls={suggestionsOpen ? listboxId : undefined}
           aria-autocomplete="list"
           placeholder="e.g. Monstera deliciosa"
           onChange={(event) => handleChange(event.target.value)}
+          onBlur={() => onBlur?.()}
           onFocus={(event) => {
             scrollFocusedFieldAboveKeyboard(event.currentTarget);
             if (
@@ -133,17 +157,17 @@ export function SpeciesField({ value, error, onChange }: SpeciesFieldProps) {
           }}
         />
         {error ? <span className="mt-1 block text-sm text-hilda-error-text">{error}</span> : null}
-        {showHint ? (
+        {showHint && !compact ? (
           <span className="mt-1 block text-sm text-hilda-text-muted">
             Keep typing to see known species.
           </span>
         ) : null}
-        {isSearching ? (
+        {isSearching && !compact ? (
           <span className="mt-1 block text-sm text-hilda-text-muted">Searching…</span>
         ) : null}
       </label>
 
-      <AnchoredPortal open={suggestionsOpen && suggestions.length > 0} anchorRef={inputRef}>
+      <AnchoredPortal open={suggestionsOpen && suggestions.length > 0 && !disabled} anchorRef={inputRef}>
         <ul
           id={listboxId}
           role="listbox"

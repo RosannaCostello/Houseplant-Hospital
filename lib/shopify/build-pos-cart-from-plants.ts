@@ -28,7 +28,14 @@ function lineItemForPlant(
       : plant.bugsFound === true
         ? mapping.pestsVariantId
         : mapping.standardVariantId;
-  const properties: PosLineItem["properties"] = [];
+  const properties: PosLineItem["properties"] = [
+    { name: "Size", value: mapping.shopifySizeLabel },
+    {
+      name: "Treatment",
+      value:
+        category === "propagation" ? "Propagation" : plant.bugsFound === true ? "Pests" : "Standard",
+    },
+  ];
 
   if (context.draftId) {
     properties.push({ name: "_hh_draft_id", value: context.draftId });
@@ -107,7 +114,7 @@ export function buildPosCartFromPlants(input: {
   draftId?: string;
   visitId?: string;
   shopifyCustomerId?: string | null;
-  /** When true, unanswered pests map to the standard (non-pests) variant. */
+  /** @deprecated Not sure (null) is a valid answer and uses the standard variant. */
   allowUnresolvedBugs?: boolean;
   cartNotePrefix?: string;
 }): BuildPosCartResult {
@@ -118,14 +125,7 @@ export function buildPosCartFromPlants(input: {
   }
 
   const plants = plantsParsed.data.plants;
-  const missingBugs = plants.filter((plant) => plant.bugsFound === null);
-
-  if (!input.allowUnresolvedBugs && missingBugs.length > 0) {
-    return {
-      success: false,
-      error: `Select whether pests were found for each plant (${missingBugs.length} remaining).`,
-    };
-  }
+  // Yes → pests variant; No and Not sure (null) → standard variant.
 
   return buildPayload({
     plants: plants.map((plant) => ({

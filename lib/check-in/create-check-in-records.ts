@@ -84,7 +84,9 @@ export async function createCheckInRecordsWithClient(
     visitId = visitRow.id;
 
     const plantRows = plants.map((plant) => {
-      const initialStatus: PlantStatus = plant.bugsFound === true ? "quarantine" : "check_in";
+      // Yes or Not sure → Quarantine; No → Check-in.
+      const initialStatus: PlantStatus =
+        plant.bugsFound === false ? "check_in" : "quarantine";
       const notes = plant.notes.trim() || null;
       return {
         clientId: plant.clientId,

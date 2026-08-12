@@ -14,8 +14,8 @@ describe("formatOutpatientReadinessMessage", () => {
       "treatment_notes",
       "care_tips",
     ]);
-    expect(message).toContain("answer whether pests were found");
+    expect(message).toContain("resolve pests to Yes or No");
     expect(message).toContain("add treatment notes");
-    expect(message).toContain("choose Water, Leaves, and Light care tips");
+    expect(message).toContain("choose at least one care tip");
   });
 });

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CareTipsSettingsForm } from "@/components/settings/care-tips-settings-form";
+import { DashboardSettingsForm } from "@/components/settings/dashboard-settings-form";
 import { PestTreatmentOptionsSettingsForm } from "@/components/settings/pest-treatment-options-settings-form";
 import { PricingSettingsForm } from "@/components/settings/pricing-settings-form";
 import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
@@ -51,6 +52,10 @@ export default async function SettingsPage() {
           Automatic Shopify sync failed: {autoSyncError}
         </p>
       ) : null}
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+        <DashboardSettingsForm stackingCardsEnabled={appCopy.stackingCardsEnabled} />
+      </section>
 
       <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <PricingSettingsForm settings={settings} />

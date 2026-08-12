@@ -19,7 +19,7 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>HH ${escapeHtml(payload.plantName)}</title>
+  <title>HH ${escapeHtml(payload.customerSurname)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -59,7 +59,7 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
       color: #315f5f;
       margin: 0;
     }
-    .plant {
+    .name-primary {
       font-family: "DM Serif Display", Georgia, serif;
       font-weight: 400;
       font-size: 20pt;
@@ -67,7 +67,7 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
       margin: 0 0 2mm;
       word-wrap: break-word;
     }
-    .customer {
+    .name-secondary {
       font-size: 13pt;
       font-weight: 600;
       letter-spacing: 0.01em;
@@ -118,8 +118,8 @@ export function renderLabelHtml(payload: PrintJobPayload): string {
     <img class="logo" src="${HILDA_LOGO_DATA_URI}" alt="Hilda" width="500" height="149" />
     <p class="product">Houseplant Hospital</p>
   </header>
-  <h1 class="plant">${escapeHtml(payload.plantName)}</h1>
-  <p class="customer">${escapeHtml(payload.customerSurname)}${
+  <h1 class="name-primary">${escapeHtml(payload.customerSurname)}</h1>
+  <p class="name-secondary">${escapeHtml(payload.plantName)}${
     payload.visitPosition
       ? ` <span class="visit">${escapeHtml(payload.visitPosition)}</span>`
       : ""

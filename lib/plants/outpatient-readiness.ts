@@ -27,13 +27,13 @@ export function formatOutpatientReadinessMessage(
   const labels: string[] = [];
 
   if (missing.includes("pests")) {
-    labels.push("answer whether pests were found");
+    labels.push("resolve pests to Yes or No (Not sure is not enough)");
   }
   if (missing.includes("treatment_notes")) {
     labels.push("add treatment notes");
   }
   if (missing.includes("care_tips")) {
-    labels.push("choose Water, Leaves, and Light care tips");
+    labels.push("choose at least one care tip (Water, Leaves, or Light)");
   }
   if (missing.includes("pest_treatments")) {
     labels.push("complete all three pest treatments");
@@ -105,7 +105,12 @@ export async function checkOutpatientReadinessWithClient(
     missing.push("care_tips");
   }
 
-  if (plant.bugs_found_ever === true && treatmentCount < 3) {
+  // Current No → never require treatments. Not sure still blocks via "pests" above.
+  if (
+    plant.bugs_found !== false &&
+    plant.bugs_found_ever === true &&
+    treatmentCount < 3
+  ) {
     missing.push("pest_treatments");
   }
 

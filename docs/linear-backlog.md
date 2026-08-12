@@ -187,6 +187,8 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 6.x | HIL-107 | Pest treatment options (Settings catalog + locked dropdowns) | `phase-6`, `dashboard` | HIL-104 |
 | 6.x | HIL-109 | Dashboard UX: nav contrast, account menu, plant modal, drag-drop | `phase-6`, `dashboard` | — |
 | 6.x | HIL-110 | iPad UX: check-in handoff + surgery Update plant (keyboard, targets, overlays) | `phase-6`, `check-in`, `dashboard` | HIL-109 |
+| 6.x | HIL-114 | Dashboard stacks, Search customer, outpatient notes, POS refresh + 24h timeout | `phase-6`, `dashboard` | — |
+| 6.x | HIL-124 | Pests Not sure, POS pay-at-collection list, stack swipe, care tips Other, editable internal notes | `phase-6`, `dashboard`, `check-in` | HIL-114 |
 
 ---
 

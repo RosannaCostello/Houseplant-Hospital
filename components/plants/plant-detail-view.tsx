@@ -5,9 +5,11 @@ import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-me
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
 import { BugsFoundToggle } from "@/components/plants/bugs-found-toggle";
 import { CareTipsSection } from "@/components/plants/care-tips-section";
+import { InternalNotesSection } from "@/components/plants/internal-notes-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
 import { PestTreatmentsSection } from "@/components/plants/pest-treatments-section";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
+import { PlantIdentityFields } from "@/components/plants/plant-identity-fields";
 import { PlantPhotoGallery } from "@/components/plants/plant-photo-gallery";
 import { PricingSummarySection } from "@/components/plants/pricing-summary-section";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
@@ -55,11 +57,14 @@ export function PlantDetailView({
   const router = useRouter();
   const plantDetailModal = useOptionalPlantDetailModal();
   const isCollected = plant.status === "collected";
-  const subtitle = plantSubtitle(plant);
+  const subtitle = isCollected ? plantSubtitle(plant) : null;
   const isPropagation = plant.plantCategory === "propagation";
+  const isOutpatient = plant.status === "outpatient";
   const showPropagate = plant.status === "in_surgery" && !isPropagation;
   const showPestTreatments =
-    plant.status === "quarantine" || plant.bugsFoundEver || plant.pestTreatments.length > 0;
+    plant.bugsFound === true ||
+    (plant.bugsFoundEver && plant.bugsFound !== false) ||
+    (plant.pestTreatments.length > 0 && plant.bugsFound !== false);
   const propagateDisabledReason = plant.hasPropagation
     ? "This plant has already been propagated."
     : plant.bugsFound !== false
@@ -71,6 +76,30 @@ export function PlantDetailView({
     router.push(`/app/visits/${plant.visitId}`);
   }
 
+  const treatmentNotes = isOutpatient ? (
+    <section className="space-y-3 rounded-hilda border border-hilda-warning-border bg-hilda-warning-bg p-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-warning-text">
+        Treatment notes
+      </h2>
+      <TreatmentNotesSection
+        plantId={plant.id}
+        treatmentNote={plant.treatmentNote}
+        placeholder={treatmentNotesPlaceholder}
+        compact
+        embedded
+        readOnly={isCollected}
+      />
+    </section>
+  ) : (
+    <TreatmentNotesSection
+      plantId={plant.id}
+      treatmentNote={plant.treatmentNote}
+      placeholder={treatmentNotesPlaceholder}
+      compact
+      readOnly={isCollected}
+    />
+  );
+
   return (
     <div
       className={
@@ -80,6 +109,16 @@ export function PlantDetailView({
       }
     >
       {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
+
+      {!isCollected ? (
+        <PlantIdentityFields
+          plantId={plant.id}
+          initialName={plant.name}
+          initialSpecies={plant.species}
+        />
+      ) : null}
+
+      {isOutpatient ? treatmentNotes : null}
 
       <div className="grid gap-3 sm:grid-cols-[minmax(0,42%)_minmax(0,1fr)]">
         <PlantPhotoGallery
@@ -199,14 +238,11 @@ export function PlantDetailView({
         </div>
       </div>
 
-      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
-          Internal notes
-        </h2>
-        <p className="whitespace-pre-wrap text-sm text-hilda-heading">
-          {plant.internalNotes?.trim() ? plant.internalNotes : "none"}
-        </p>
-      </section>
+      <InternalNotesSection
+        plantId={plant.id}
+        internalNotes={plant.internalNotes}
+        readOnly={isCollected}
+      />
 
       {showPropagate ? (
         <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
@@ -237,13 +273,7 @@ export function PlantDetailView({
         </section>
       ) : null}
 
-      <TreatmentNotesSection
-        plantId={plant.id}
-        treatmentNote={plant.treatmentNote}
-        placeholder={treatmentNotesPlaceholder}
-        compact
-        readOnly={isCollected}
-      />
+      {!isOutpatient ? treatmentNotes : null}
 
       <CareTipsSection
         plantId={plant.id}

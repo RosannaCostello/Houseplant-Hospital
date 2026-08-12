@@ -199,12 +199,12 @@ export function PhotosStepForm({ draftId, customer, plants, initialPhotos }: Pho
             {buttonLabel}
           </Button>
           <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-center sm:gap-4">
-            <Button asChild variant="ghost" className="w-full text-hilda-text-muted sm:w-auto">
+            <Button asChild variant="ghost" className="hh-check-in-discard w-full text-hilda-text-muted sm:w-auto">
               <Link href={`/app/check-in/plants?draft=${draftId}`}>Back to plants</Link>
             </Button>
             <button
               type="button"
-              className="min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
+              className="hh-check-in-discard min-h-11 px-3 text-sm font-medium text-hilda-text-muted underline-offset-2 hover:text-hilda-heading hover:underline disabled:opacity-50"
               disabled={submitting}
               onClick={() => void onDiscard()}
             >

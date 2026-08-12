@@ -28,10 +28,32 @@ type PlantCardProps = {
   plant: DashboardPlant;
   className?: string;
   draggableCard?: boolean;
+  onSearchCustomer?: (email: string) => void;
 };
 
 const imageOverlayBadgeClass =
   "inline-flex h-5 shrink-0 items-center justify-center rounded-hilda-sm px-1.5 shadow-sm";
+
+const badgeBaseClass =
+  "inline-flex items-center rounded-hilda-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide";
+
+const footerStatusClass = "text-[11px] text-hilda-text";
+
+function OutpatientCollectionBadge({ label }: { label: string }) {
+  const ready = label === "Ready to collect";
+  return (
+    <span
+      className={cn(
+        badgeBaseClass,
+        ready
+          ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
+          : "bg-hilda-warning-bg text-hilda-warning-text ring-1 ring-hilda-warning-border",
+      )}
+    >
+      {label}
+    </span>
+  );
+}
 
 function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
   if (thumbnailUrl?.startsWith("data:")) {
@@ -85,9 +107,12 @@ function PlantThumbnail({ thumbnailUrl }: { thumbnailUrl?: string | null }) {
 
 const CARD_IMAGE_ASPECT_CLASS = "aspect-[4/3]";
 
-const footerStatusClass = "text-[11px] text-hilda-text";
-
-export function PlantCard({ plant, className, draggableCard = true }: PlantCardProps) {
+export function PlantCard({
+  plant,
+  className,
+  draggableCard = true,
+  onSearchCustomer,
+}: PlantCardProps) {
   const router = useRouter();
   const plantDetailModal = useOptionalPlantDetailModal();
   const showQuarantineBadge = plant.status === "quarantine" && plant.quarantineSince;
@@ -199,7 +224,7 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
                       {formatPlantAge(plant.checkedInAt)} in propagation
                     </span>
                   ) : showOutpatientBadge ? (
-                    <span className={footerStatusClass}>{plant.outpatientCollectionBadge}</span>
+                    <OutpatientCollectionBadge label={plant.outpatientCollectionBadge!} />
                   ) : showCollectedBadge ? (
                     <span className={footerStatusClass}>
                       {plant.collectedAt ? formatCollectedBadgeLabel(plant.collectedAt) : "Collected"}
@@ -221,8 +246,10 @@ export function PlantCard({ plant, className, draggableCard = true }: PlantCardP
                 plantCategory={plant.plantCategory}
                 hasPropagation={plant.hasPropagation}
                 customerName={plant.customerName}
+                customerEmail={plant.customerEmail}
                 paymentStatus={plant.paymentStatus}
                 variant="chip"
+                onSearchCustomer={onSearchCustomer}
               />
             </div>
           </div>

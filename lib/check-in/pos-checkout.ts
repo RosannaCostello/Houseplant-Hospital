@@ -8,6 +8,8 @@ import {
 import { isShopifyPricingConfigured } from "@/lib/shopify/env";
 import type { PosCheckoutPayload, PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 import { isPosPaymentStatus, isVisitUnpaid } from "@/lib/shopify/pos-checkout-types";
+import { isPosCheckoutQueueExpired } from "@/lib/shopify/pos-checkout-ttl";
+import { expireStalePosCheckoutsWithClient } from "@/lib/check-in/expire-stale-pos-checkouts";
 import {
   saveShopifyCustomerIdOnRecord,
   upsertShopifyCustomerByEmail,
@@ -415,7 +417,11 @@ function posLineItemsForCheckout(
 export async function listPendingPosCheckoutsWithClient(
   supabase: SupabaseClient,
 ): Promise<PendingPosCheckout[]> {
+  // Drop 24h+ unpaid POS queues before building the till list (HIL-114).
+  await expireStalePosCheckoutsWithClient(supabase);
+
   const results: PendingPosCheckout[] = [];
+  const nowMs = Date.now();
 
   const { data: drafts } = await supabase
     .from("check_in_drafts")
@@ -428,6 +434,7 @@ export async function listPendingPosCheckoutsWithClient(
   for (const draft of drafts ?? []) {
     const payload = draft.pos_line_items as PosCheckoutPayload | null;
     if (!payload?.lineItems?.length || !draft.pos_checkout_queued_at) continue;
+    if (isPosCheckoutQueueExpired(draft.pos_checkout_queued_at, nowMs)) continue;
 
     results.push({
       id: draft.id,
@@ -444,7 +451,7 @@ export async function listPendingPosCheckoutsWithClient(
   const { data: visits } = await supabase
     .from("visits")
     .select(
-      "id, pos_line_items, checkin_date, customers ( first_name, last_name, email, shopify_customer_id )",
+      "id, pos_line_items, checkin_date, payment_status, customers ( first_name, last_name, email, shopify_customer_id )",
     )
     .in("payment_status", ["queued", "loaded", "pay_at_collection"])
     .order("checkin_date", { ascending: true });
@@ -453,12 +460,29 @@ export async function listPendingPosCheckoutsWithClient(
     const payload = visit.pos_line_items as PosCheckoutPayload | null;
     if (!payload?.lineItems?.length) continue;
 
+    // pay_at_collection never auto-expires; queued/loaded use check-in age.
+    if (
+      visit.payment_status !== "pay_at_collection" &&
+      isPosCheckoutQueueExpired(visit.checkin_date, nowMs)
+    ) {
+      continue;
+    }
+
+    const customer = Array.isArray(visit.customers) ? visit.customers[0] : visit.customers;
+    const joinedName = customer
+      ? `${customer.first_name ?? ""} ${customer.last_name ?? ""}`.trim()
+      : "";
+    const customerName = payload.customerName?.trim() || joinedName || "Customer";
+    const customerEmail = payload.customerEmail?.trim() || customer?.email || "";
+    const shopifyCustomerId =
+      payload.shopifyCustomerId ?? customer?.shopify_customer_id ?? null;
+
     results.push({
       id: visit.id,
       type: "visit",
-      customerName: payload.customerName,
-      customerEmail: payload.customerEmail,
-      shopifyCustomerId: payload.shopifyCustomerId,
+      customerName,
+      customerEmail,
+      shopifyCustomerId,
       cartNote: payload.cartNote,
       lineItems: posLineItemsForCheckout(payload, { type: "visit", id: visit.id }),
       queuedAt: visit.checkin_date,

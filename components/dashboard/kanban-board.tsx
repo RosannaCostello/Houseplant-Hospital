@@ -6,6 +6,10 @@ import { IncompleteCheckInsLane } from "@/components/dashboard/incomplete-check-
 import { KanbanLane } from "@/components/dashboard/kanban-lane";
 import { PlantCard } from "@/components/dashboard/plant-card";
 import {
+  groupLanePlantsForStacking,
+  PlantCardStack,
+} from "@/components/dashboard/plant-card-stack";
+import {
   PlantStatusMoveDialog,
   type PendingPlantStatusMove,
 } from "@/components/dashboard/plant-status-move-dialog";
@@ -22,6 +26,7 @@ import { canTransitionPlantStatus, PLANT_STATUS_LANES, type PlantStatus } from "
 type KanbanBoardProps = {
   plants?: DashboardPlant[];
   incompleteDrafts?: IncompleteCheckInDraft[];
+  stackingCardsEnabled?: boolean;
 };
 
 const DEFAULT_SORT_ORDER: DashboardLaneSortOrder = "newest";
@@ -55,7 +60,11 @@ function initialSortByLane(): Record<PlantStatus, DashboardLaneSortOrder> {
   ) as Record<PlantStatus, DashboardLaneSortOrder>;
 }
 
-export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardProps) {
+export function KanbanBoard({
+  plants = [],
+  incompleteDrafts = [],
+  stackingCardsEnabled = true,
+}: KanbanBoardProps) {
   const [sortByLane, setSortByLane] = useState(initialSortByLane);
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingMove, setPendingMove] = useState<PendingPlantStatusMove | null>(null);
@@ -107,6 +116,13 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
     [plantsById],
   );
 
+  const searchCustomer = useCallback((email: string) => {
+    setSearchQuery(email);
+    requestAnimationFrame(() => {
+      document.getElementById("dashboard-search")?.focus();
+    });
+  }, []);
+
   return (
     <div className="relative flex min-h-0 flex-1 basis-0 flex-col gap-3">
       <div className="flex shrink-0 items-center gap-2 px-1">
@@ -155,20 +171,34 @@ export function KanbanBoard({ plants = [], incompleteDrafts = [] }: KanbanBoardP
             sortByLane[lane.status] ?? DEFAULT_SORT_ORDER,
           );
           const sortOrder = sortByLane[lane.status] ?? DEFAULT_SORT_ORDER;
+          const stackedGroups = groupLanePlantsForStacking(lanePlants, stackingCardsEnabled);
+          const displayCount = lanePlants.length;
 
           return (
             <KanbanLane
               key={lane.status}
               lane={lane}
-              count={lanePlants.length}
+              count={displayCount}
               sortOrder={sortOrder}
               onToggleSort={() => toggleLaneSort(lane.status)}
               dropEnabled
               onPlantDrop={handlePlantDrop}
             >
-              {lanePlants.map((plant) => (
-                <PlantCard key={plant.id} plant={plant} />
-              ))}
+              {stackedGroups.map((group) =>
+                group.plants.length > 1 ? (
+                  <PlantCardStack
+                    key={group.key}
+                    plants={group.plants}
+                    onSearchCustomer={searchCustomer}
+                  />
+                ) : (
+                  <PlantCard
+                    key={group.key}
+                    plant={group.plants[0]!}
+                    onSearchCustomer={searchCustomer}
+                  />
+                ),
+              )}
             </KanbanLane>
           );
         })}

@@ -104,3 +104,80 @@ export async function cupsPrintPdf(options: {
     throw new Error(`lp failed: ${detail}`);
   }
 }
+
+export type CupsPrinterStatus = {
+  name: string;
+  /** Raw `lpstat -p` line(s) for this queue. */
+  printerLine: string;
+  accepting: boolean | null;
+  enabled: boolean;
+  ready: boolean;
+  detail: string;
+};
+
+/**
+ * CUPS will happily accept `lp` jobs while a queue is disabled — then dump them
+ * all when re-enabled (HIL-118). Refuse to enqueue unless the printer is enabled.
+ */
+export async function getCupsPrinterStatus(printerName: string): Promise<CupsPrinterStatus> {
+  const name = printerName.trim();
+  if (!name) {
+    return {
+      name: "",
+      printerLine: "",
+      accepting: null,
+      enabled: false,
+      ready: false,
+      detail: "PRINTER_NAME empty",
+    };
+  }
+
+  let printerLine = "";
+  try {
+    const { stdout } = await execFileAsync("lpstat", ["-p", name], { timeout: 10_000 });
+    printerLine = stdout.trim();
+  } catch (error) {
+    const err = error as { stderr?: string; message?: string };
+    const detail = err.stderr?.trim() || err.message || String(error);
+    return {
+      name,
+      printerLine: "",
+      accepting: null,
+      enabled: false,
+      ready: false,
+      detail: `lpstat -p failed: ${detail}`,
+    };
+  }
+
+  const lower = printerLine.toLowerCase();
+  const enabled = !lower.includes("disabled") && !lower.includes("paused");
+
+  let accepting: boolean | null = null;
+  try {
+    const { stdout } = await execFileAsync("lpstat", ["-a", name], { timeout: 10_000 });
+    const aLine = stdout.trim().toLowerCase();
+    if (aLine.includes("not accepting")) accepting = false;
+    else if (aLine.includes("accepting")) accepting = true;
+  } catch {
+    accepting = null;
+  }
+
+  const ready = enabled && accepting !== false;
+  let detail = printerLine || `No lpstat output for ${name}`;
+  if (!enabled) {
+    detail = `${name} is disabled/paused — refusing to queue (would backlog and dump later)`;
+  } else if (accepting === false) {
+    detail = `${name} is not accepting jobs`;
+  }
+
+  return { name, printerLine, accepting, enabled, ready, detail };
+}
+
+export async function assertCupsPrinterReady(printerName: string): Promise<void> {
+  const status = await getCupsPrinterStatus(printerName);
+  if (!status.ready) {
+    const error = new Error(status.detail) as Error & { statusCode?: number };
+    error.statusCode = 503;
+    throw error;
+  }
+}

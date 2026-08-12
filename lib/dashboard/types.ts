@@ -5,6 +5,7 @@ import type { PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 /** Display shape for a plant on the dashboard kanban. */
 export type DashboardPlant = {
   id: string;
+  visitId: string;
   status: PlantStatus;
   customerName: string;
   customerEmail: string;

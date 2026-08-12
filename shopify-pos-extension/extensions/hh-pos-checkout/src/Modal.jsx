@@ -1,11 +1,13 @@
 import "@shopify/ui-extensions/preact";
 import { render } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { API_BASE, API_SECRET } from "./config.js";
 
 export default async () => {
   render(<Extension />, document.body);
 };
+
+const POLL_MS = 3000;
 
 async function fetchPending() {
   const response = await fetch(`${API_BASE}/api/shopify/pos/pending`, {
@@ -20,37 +22,66 @@ async function fetchPending() {
   return json.pending ?? [];
 }
 
+function networkErrorMessage(err) {
+  const message = err instanceof Error ? err.message : "Failed to load";
+  if (message === "Load failed" || message.toLowerCase().includes("failed to fetch")) {
+    return "Could not reach Houseplant Hospital API (network/CORS). Check deploy + API_SECRET.";
+  }
+  return message;
+}
+
 function Extension() {
   const [pending, setPending] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingId, setLoadingId] = useState(null);
 
-  useEffect(() => {
-    void fetchPending()
-      .then((items) => {
-        setPending(items);
+  const refreshPending = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+    }
+
+    try {
+      const items = await fetchPending();
+      setPending(items);
+      setError(null);
+    } catch (err) {
+      if (!silent) {
+        setError(networkErrorMessage(err));
+      }
+    } finally {
+      if (!silent) {
         setLoading(false);
-      })
-      .catch((err) => {
-        const message = err instanceof Error ? err.message : "Failed to load";
-        // Safari/POS reports CORS/network failures as "Load failed"
-        setError(
-          message === "Load failed" || message.toLowerCase().includes("failed to fetch")
-            ? "Could not reach Houseplant Hospital API (network/CORS). Check deploy + API_SECRET."
-            : message,
-        );
-        setLoading(false);
-      });
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    void refreshPending({ silent: false });
+
+    const interval = window.setInterval(() => {
+      void refreshPending({ silent: true });
+    }, POLL_MS);
+
+    function onVisibility() {
+      if (document.visibilityState === "visible") {
+        void refreshPending({ silent: true });
+      }
+    }
+
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [refreshPending]);
 
   async function loadCheckout(item) {
     setLoadingId(item.id);
     setError(null);
 
     try {
-      // bulkCartUpdate is unreliable on current POS (GuardError: Invalid prop).
-      // Use sequential cart APIs instead.
       await shopify.cart.clearCart();
 
       for (const line of item.lineItems ?? []) {
@@ -85,7 +116,7 @@ function Extension() {
     }
   }
 
-  if (loading) {
+  if (loading && pending.length === 0 && !error) {
     return (
       <s-page heading="Houseplant Hospital">
         <s-scroll-box>
@@ -97,12 +128,15 @@ function Extension() {
     );
   }
 
-  if (error) {
+  if (error && pending.length === 0) {
     return (
       <s-page heading="Houseplant Hospital">
         <s-scroll-box>
           <s-box padding="small">
             <s-text>{error}</s-text>
+          </s-box>
+          <s-box padding="small">
+            <s-button onClick={() => void refreshPending({ silent: false })}>Refresh</s-button>
           </s-box>
         </s-scroll-box>
       </s-page>
@@ -116,8 +150,11 @@ function Extension() {
           <s-box padding="small">
             <s-text>
               No pending payments. Queue a check-in cart or wait for an unpaid collection visit to
-              appear.
+              appear. This list refreshes automatically.
             </s-text>
+          </s-box>
+          <s-box padding="small">
+            <s-button onClick={() => void refreshPending({ silent: false })}>Refresh</s-button>
           </s-box>
         </s-scroll-box>
       </s-page>
@@ -127,6 +164,14 @@ function Extension() {
   return (
     <s-page heading="Pending payments">
       <s-scroll-box>
+        {error ? (
+          <s-box padding="small">
+            <s-text>{error}</s-text>
+          </s-box>
+        ) : null}
+        <s-box padding="small">
+          <s-button onClick={() => void refreshPending({ silent: false })}>Refresh</s-button>
+        </s-box>
         {pending.map((item) => (
           <s-box key={`${item.type}-${item.id}`} padding="small">
             <s-button onClick={() => void loadCheckout(item)} loading={loadingId === item.id}>

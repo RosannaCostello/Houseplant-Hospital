@@ -28,11 +28,13 @@ type PlantCardStatusMenuProps = {
   plantCategory: PlantCategory;
   hasPropagation: boolean;
   customerName: string;
+  customerEmail?: string;
   paymentStatus: PosPaymentStatus | null;
   /** Card corner control vs full-page button. Overlay kept for back-compat alias of chip. */
   variant?: "overlay" | "button" | "chip";
   /** Hide "Update plant" when already on the plant detail page. */
   hideUpdatePlantLink?: boolean;
+  onSearchCustomer?: (email: string) => void;
   className?: string;
 };
 
@@ -60,9 +62,11 @@ export function PlantCardStatusMenu({
   plantCategory,
   hasPropagation,
   customerName,
+  customerEmail,
   paymentStatus,
   variant = "overlay",
   hideUpdatePlantLink = false,
+  onSearchCustomer,
   className,
 }: PlantCardStatusMenuProps) {
   const router = useRouter();
@@ -144,6 +148,13 @@ export function PlantCardStatusMenu({
       return;
     }
     router.push(`/app/plants/${plantId}`);
+  }
+
+  function searchCustomer() {
+    const email = customerEmail?.trim();
+    if (!email || !onSearchCustomer) return;
+    closeAll();
+    onSearchCustomer(email);
   }
 
   function selectStatus(newStatus: PlantStatus) {
@@ -304,6 +315,15 @@ export function PlantCardStatusMenu({
                           disabledReason={propagateDisabledReason}
                           onSuccess={() => closeAll()}
                         />
+                      ) : null}
+                      {onSearchCustomer && customerEmail?.trim() ? (
+                        <button
+                          type="button"
+                          className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-surface px-4 py-2.5 text-sm font-semibold text-hilda-heading hover:bg-hilda-bg"
+                          onClick={searchCustomer}
+                        >
+                          Search customer
+                        </button>
                       ) : null}
                       {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
                     </div>

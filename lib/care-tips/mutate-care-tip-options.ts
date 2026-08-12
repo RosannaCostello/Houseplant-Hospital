@@ -22,6 +22,71 @@ export async function createCareTipOptionWithClient(
     return { success: false, error: admin.error };
   }
 
+  return insertCareTipOption(supabase, input);
+}
+
+/** Staff (any signed-in) may add an option from Update plant "Other". */
+export async function ensureCareTipOptionForStaffWithClient(
+  supabase: SupabaseClient,
+  input: { category: string; label: string },
+): Promise<CareTipOptionMutationResult> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "You must be signed in to add a care tip." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile?.role || (profile.role !== "staff" && profile.role !== "admin")) {
+    return { success: false, error: "Only Hospital staff can add care tips." };
+  }
+
+  if (!isCareTipCategory(input.category)) {
+    return { success: false, error: "Invalid care tip category." };
+  }
+
+  const label = input.label.trim();
+  if (!label) {
+    return { success: false, error: "Option label is required." };
+  }
+
+  // Use service role so insert works before/without staff write RLS (migration 0031).
+  const { createSupabaseAdminClient } = await import("@/lib/supabase/admin");
+  let writer: SupabaseClient = supabase;
+  try {
+    writer = createSupabaseAdminClient();
+  } catch {
+    // Fall back to user client (works after migration 0031).
+  }
+
+  const { data: existing } = await writer
+    .from("care_tip_options")
+    .select("id")
+    .eq("category", input.category)
+    .ilike("label", label)
+    .maybeSingle();
+
+  if (existing?.id) {
+    await writer
+      .from("care_tip_options")
+      .update({ active: true, label })
+      .eq("id", existing.id);
+    return { success: true, id: existing.id };
+  }
+
+  return insertCareTipOption(writer, { category: input.category, label });
+}
+
+async function insertCareTipOption(
+  supabase: SupabaseClient,
+  input: { category: string; label: string },
+): Promise<CareTipOptionMutationResult> {
   if (!isCareTipCategory(input.category)) {
     return { success: false, error: "Invalid care tip category." };
   }

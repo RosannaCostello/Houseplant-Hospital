@@ -15,10 +15,11 @@ export type ParsedCareTip =
   | { kind: "legacy"; content: string }
   | { kind: "empty" };
 
+/** Allow empty tip text after the label (blank categories). */
 const LINE_PATTERN: Record<CareTipCategory, RegExp> = {
-  water: /^Water:\s*(.+)$/i,
-  leaves: /^Leaves:\s*(.+)$/i,
-  light: /^Light:\s*(.+)$/i,
+  water: /^Water:\s*(.*)$/i,
+  leaves: /^Leaves:\s*(.*)$/i,
+  light: /^Light:\s*(.*)$/i,
 };
 
 export function composeCareTip(selections: CareTipSelections): string {
@@ -29,13 +30,21 @@ export function composeCareTip(selections: CareTipSelections): string {
   ].join("\n");
 }
 
-export function isCompleteCareTipSelections(
+/** At least one of Water / Leaves / Light has a tip. Blanks are allowed for the rest. */
+export function hasMinimumCareTipSelections(
   selections: Partial<CareTipSelections> | CareTipSelections,
-): selections is CareTipSelections {
-  return CARE_TIP_CATEGORIES.every((category) => {
+): boolean {
+  return CARE_TIP_CATEGORIES.some((category) => {
     const value = selections[category];
     return Boolean(value && value.trim().length > 0);
   });
+}
+
+/** @deprecated Use hasMinimumCareTipSelections — blanks are allowed. */
+export function isCompleteCareTipSelections(
+  selections: Partial<CareTipSelections> | CareTipSelections,
+): selections is CareTipSelections {
+  return hasMinimumCareTipSelections(selections);
 }
 
 export function parseCareTip(content: string | null | undefined): ParsedCareTip {
@@ -57,21 +66,32 @@ export function parseCareTip(content: string | null | undefined): ParsedCareTip 
       return { kind: "legacy", content: trimmed };
     }
     const match = line.match(LINE_PATTERN[category]);
-    const value = match?.[1]?.trim() ?? "";
-    if (!value) {
-      return { kind: "legacy", content: trimmed };
-    }
-    selections[category] = value;
+    selections[category] = match?.[1]?.trim() ?? "";
   }
 
-  if (!isCompleteCareTipSelections(selections)) {
+  if (
+    selections.water === undefined ||
+    selections.leaves === undefined ||
+    selections.light === undefined
+  ) {
     return { kind: "legacy", content: trimmed };
   }
 
-  return { kind: "structured", selections };
+  const structured: CareTipSelections = {
+    water: selections.water,
+    leaves: selections.leaves,
+    light: selections.light,
+  };
+
+  if (!hasMinimumCareTipSelections(structured)) {
+    return { kind: "empty" };
+  }
+
+  return { kind: "structured", selections: structured };
 }
 
+/** True when structured care tips have at least one tip filled (Outpatient gate). */
 export function isStructuredCareTipComplete(content: string | null | undefined): boolean {
   const parsed = parseCareTip(content);
-  return parsed.kind === "structured";
+  return parsed.kind === "structured" && hasMinimumCareTipSelections(parsed.selections);
 }

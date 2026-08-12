@@ -6,9 +6,10 @@ import { CARE_TIP_CATEGORIES } from "@/lib/care-tips/compose-parse";
 import {
   createCareTipOptionWithClient,
   deleteCareTipOptionWithClient,
+  ensureCareTipOptionForStaffWithClient,
   updateCareTipOptionWithClient,
 } from "@/lib/care-tips/mutate-care-tip-options";
-import { updateTreatmentNotesPlaceholderWithClient } from "@/lib/care-tips/update-app-copy-settings";
+import { updateTreatmentNotesPlaceholderWithClient, updateStackingCardsEnabledWithClient } from "@/lib/care-tips/update-app-copy-settings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const categorySchema = z.enum(CARE_TIP_CATEGORIES);
@@ -51,6 +52,22 @@ export async function createCareTipOptionAction(input: {
   return result;
 }
 
+/** Used from Update plant when staff choose Care tips → Other. */
+export async function ensureCareTipOptionFromPlantAction(input: {
+  category: string;
+  label: string;
+}) {
+  const parsed = createSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false as const, error: "Enter a care tip before saving." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const result = await ensureCareTipOptionForStaffWithClient(supabase, parsed.data);
+  if (result.success) revalidateCareTipPaths();
+  return result;
+}
+
 export async function updateCareTipOptionAction(input: { id: string; label: string }) {
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) {
@@ -88,6 +105,13 @@ export async function updateTreatmentNotesPlaceholderAction(input: {
     supabase,
     parsed.data.placeholder,
   );
+  if (result.success) revalidateCareTipPaths();
+  return result;
+}
+
+export async function updateStackingCardsEnabledAction(input: { enabled: boolean }) {
+  const supabase = await createSupabaseServerClient();
+  const result = await updateStackingCardsEnabledWithClient(supabase, Boolean(input.enabled));
   if (result.success) revalidateCareTipPaths();
   return result;
 }

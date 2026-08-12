@@ -7,7 +7,8 @@ export const checkInPlantSchema = z.object({
   name: z.string().trim(),
   species: z.string().trim(),
   notes: z.string().trim(),
-  bugsFound: z.union([z.literal(true), z.literal(false), z.null()]).default(null),
+  /** true = Yes, false = No, null = Not sure. Unanswered uses undefined on the form input. */
+  bugsFound: z.union([z.literal(true), z.literal(false), z.null()]),
 });
 
 export const checkInPlantsStepSchema = z.object({
@@ -15,7 +16,9 @@ export const checkInPlantsStepSchema = z.object({
 });
 
 export type CheckInPlant = z.infer<typeof checkInPlantSchema>;
-export type CheckInPlantInput = z.input<typeof checkInPlantSchema>;
+export type CheckInPlantInput = Omit<z.input<typeof checkInPlantSchema>, "bugsFound"> & {
+  bugsFound: boolean | null | undefined;
+};
 
 export function createEmptyPlant(): CheckInPlantInput {
   return {
@@ -24,6 +27,11 @@ export function createEmptyPlant(): CheckInPlantInput {
     name: "",
     species: "",
     notes: "",
-    bugsFound: null,
+    bugsFound: undefined,
   };
+}
+
+/** Staff has chosen Yes, No, or Not sure (null). */
+export function isBugsFoundAnswered(bugsFound: boolean | null | undefined): boolean {
+  return bugsFound === true || bugsFound === false || bugsFound === null;
 }
