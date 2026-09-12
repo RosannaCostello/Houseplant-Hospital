@@ -197,7 +197,7 @@ Server code lives under `lib/mailchimp/`:
 
 Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (useful locally). When Mailchimp env vars are missing, outbox-only is automatic. The worker (HIL-57) processes pending rows when live delivery is enabled.
 
-**Check-in sync (HIL-55):** on successful check-in, the app queues `plant_checked_in` per plant. When Mailchimp is configured and not outbox-only, it also upserts the contact, applies tags (`houseplant_hospital`, `repeat_hospital_customer`, `newsletter` when consented), and saves `mailchimp_contact_id` on the customer. Mailchimp failures do not block check-in.
+**Check-in sync (HIL-55 / HIL-126):** on successful check-in, the app queues `plant_checked_in` per plant. When Mailchimp is configured and not outbox-only, it also upserts the contact, applies tags (`houseplant_hospital`, `repeat_hospital_customer`, `newsletter` when consented), and saves `mailchimp_contact_id` on the customer. If marketing consent is on and the existing contact is `unsubscribed` or `transactional`, the upsert attempts `subscribed` (skips cleaned / compliance-blocked). Mailchimp failures do not block check-in.
 
 **Status and bugs events (HIL-56):** kanban status moves, collection, and enabling **bugs found** queue the matching event to `mailchimp_events` (`plant_in_surgery`, `plant_outpatient`, `plant_collected`, etc.). Enabling bugs found also applies the `bugs_treatment` tag when live Mailchimp is enabled.
 

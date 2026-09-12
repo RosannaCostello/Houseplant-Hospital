@@ -172,6 +172,7 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
+| 5.x | HIL-126 | Repair Mailchimp subscribe on check-in when marketing consent is on | `phase-5`, `mailchimp`, `check-in` | HIL-55 |
 | 5.x | HIL-96 | Mailchimp stage journeys: quarantine, surgery, outpatient, collected (+ dead shell, no bugs_found) | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-97 | Outpatient partial Mailchimp event (`plant_outpatient_partial`) — Done | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-98 | Enrich Mailchimp event payload (plant name, treatment notes, care tips) | `phase-5`, `mailchimp` | — | Done |

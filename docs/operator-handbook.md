@@ -272,6 +272,13 @@ Email address is the contact identity (not a merge field the app sets).
 | `newsletter` | Marketing consent checked at check-in |
 | `bugs_treatment` | `bugs_found` event (pests Yes on plant detail) |
 
+#### Marketing consent → Mailchimp status (HIL-126)
+
+- **Marketing emails** checkbox at check-in (default on) adds the `newsletter` tag when checked.
+- If the customer is already on the Hilda audience as **unsubscribed** or **transactional** and they leave marketing consent **checked**, the app tries to move them back to **subscribed** so hospital Journey emails can send again.
+- Contacts Mailchimp has marked **cleaned**, or that Mailchimp blocks for compliance (hard bounce / forced unsubscribe review), stay as they are — check-in still completes; they may not get Journey mail until fixed in Mailchimp.
+- Leaving the checkbox **unchecked** does **not** unsubscribe an already-subscribed contact (status is left alone). Hospital treatment updates are still *intended* to send via Journeys when Mailchimp allows the contact to receive them.
+
 #### Quarantine email delay (Mailchimp journey)
 
 When pests are **Yes** at check-in, the plant goes straight into **Quarantine**, so the app fires both the check-in event and `plant_quarantined` at the same time. The Mailchimp **quarantine** journey intentionally **delays** that email so the customer is not hit with two messages at once. Quarantine is not time-sensitive for the customer, so the delay is expected — do not treat a late quarantine email as a bug, and do not remove the delay without a product decision.
