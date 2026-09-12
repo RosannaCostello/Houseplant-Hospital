@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { updatePlantIdentityAction } from "@/app/actions/update-plant-identity";
 import { SpeciesField } from "@/components/check-in/species-field";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
+import { cn } from "@/lib/utils";
 import { registerAutosaveFlusher } from "@/lib/ui/autosave-flush-registry";
 import { scrollFocusedFieldAboveKeyboard } from "@/lib/ui/keyboard-avoidance";
 
@@ -95,12 +97,15 @@ export function PlantIdentityFields({
 
   return (
     <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
+        Plant identity
+      </h2>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
+        <label className={hildaLabelClassName}>
           Plant name
           <input
             type="text"
-            className="mt-1 w-full rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm text-hilda-heading outline-none focus:border-hilda-text/50 disabled:opacity-60"
+            className={cn(hildaInputClassName, "min-h-11 py-2.5")}
             value={name}
             disabled={disabled || isPending}
             placeholder="Optional"

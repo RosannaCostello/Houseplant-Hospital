@@ -169,11 +169,12 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
           <Button
             type="submit"
             form="check-in-customer-form"
+            variant="outline"
             className="w-full"
             size="lg"
             disabled={submitting}
           >
-            {submitting ? "Saving…" : "Continue to plants"}
+            {submitting ? "Saving…" : "Return ipad to staff member"}
           </Button>
           {draftId ? (
             <button
@@ -240,7 +241,7 @@ export function CustomerStepForm({ draftId, initialCustomer }: CustomerStepFormP
         </div>
 
         <label className={hildaLabelClassName}>
-          Phone <span className="font-normal text-hilda-text-muted">(optional)</span>
+          Phone
           <input
             className={cn(hildaInputClassName, "min-h-11 py-2.5")}
             type="tel"

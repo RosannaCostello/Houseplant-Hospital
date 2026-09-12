@@ -8,6 +8,9 @@ import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
 import { getPlantDetail, type PlantDetail } from "@/lib/plants/get-plant-detail";
 import { getPlantPricing } from "@/lib/pricing/get-plant-pricing";
 import type { PlantPriceBreakdown } from "@/lib/pricing/types";
+import { getHospitalStaffWithClient } from "@/lib/staff/get-hospital-staff";
+import type { HospitalStaff } from "@/lib/staff/types";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isValidRouteId } from "@/lib/validation/parse-route-id";
 
 export type PlantDetailModalPayload = {
@@ -16,6 +19,7 @@ export type PlantDetailModalPayload = {
   careTipOptions: CareTipOptionsByCategory;
   pestTreatmentOptions: PestTreatmentOption[];
   treatmentNotesPlaceholder: string;
+  hospitalStaff: HospitalStaff[];
 };
 
 export async function getPlantDetailModalAction(
@@ -30,11 +34,13 @@ export async function getPlantDetailModalAction(
     return { success: false, error: "Plant not found." };
   }
 
-  const [pricing, careTipOptions, pestTreatmentOptions, appCopy] = await Promise.all([
+  const supabase = await createSupabaseServerClient();
+  const [pricing, careTipOptions, pestTreatmentOptions, appCopy, hospitalStaff] = await Promise.all([
     getPlantPricing(plantId).catch(() => null),
     getCareTipOptions(),
     getPestTreatmentOptions().catch(() => []),
     getAppCopySettings(),
+    getHospitalStaffWithClient(supabase).catch(() => []),
   ]);
 
   return {
@@ -45,6 +51,7 @@ export async function getPlantDetailModalAction(
       careTipOptions,
       pestTreatmentOptions,
       treatmentNotesPlaceholder: appCopy.treatmentNotesPlaceholder,
+      hospitalStaff,
     },
   };
 }

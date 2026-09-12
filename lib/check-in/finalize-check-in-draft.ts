@@ -5,7 +5,7 @@ import {
   getDraftPaymentSnapshotWithClient,
   visitPaymentStatusFromDraft,
 } from "@/lib/check-in/pos-checkout";
-import { checkInPlantsStepSchema } from "@/lib/check-in/plant-schema";
+import { checkInPlantsPhotosStepSchema } from "@/lib/check-in/plant-schema";
 import { emitPlantStatusChangeEvent } from "@/lib/mailchimp/emit-plant-event";
 import { syncCheckInToMailchimp } from "@/lib/mailchimp/sync-check-in";
 import { copyDraftPhotoToPlant } from "@/lib/photos/upload-draft-photo";
@@ -45,10 +45,13 @@ export async function finalizeCheckInDraftWithClient(
     return { success: false, error: "Draft check-in not found." };
   }
 
-  const plantsParsed = checkInPlantsStepSchema.safeParse({ plants: draft.plants });
+  const plantsParsed = checkInPlantsPhotosStepSchema.safeParse({ plants: draft.plants });
 
   if (!plantsParsed.success) {
-    return { success: false, error: "Plant details are incomplete. Return to the plants step." };
+    return {
+      success: false,
+      error: "Internal notes are required for each plant (at least 12 characters). Return to the photos step.",
+    };
   }
 
   const plants = plantsParsed.data.plants;

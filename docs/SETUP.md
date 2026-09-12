@@ -201,7 +201,7 @@ Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (usef
 
 **Status and bugs events (HIL-56):** kanban status moves, collection, and enabling **bugs found** queue the matching event to `mailchimp_events` (`plant_in_surgery`, `plant_outpatient`, `plant_collected`, etc.). Enabling bugs found also applies the `bugs_treatment` tag when live Mailchimp is enabled.
 
-**Outbox worker (HIL-57):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50), POSTs each event to Mailchimp’s member Events API, and sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
+**Outbox worker (HIL-57):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50), POSTs each event to Mailchimp’s member Events API, and sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Rows left in `processing` for more than **15 minutes** (Worker timeout/deploy mid-send) are reset to `pending` at the start of each run. Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
 
 ```bash
 curl -s -H "Authorization: Bearer $CRON_SECRET" \
@@ -320,7 +320,7 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 - `awaiting_plant_count` (outpatient partial only)
 - `plant_name` (when present; truncated to 255 if longer)
 - `care_tips_water`, `care_tips_leaves`, `care_tips_light` — option text only (no `Water:` / `Leaves:` / `Light:` prefix). Put each on its own line in the template. Do not use the old single `care_tips` property.
-- `treatment_notes_1`, `treatment_notes_2`, `treatment_notes_3` — treatment notes are capped at **750** chars in the app and split into three 250-char chunks (trailing empty chunks omitted). **Do not** use the old single `treatment_notes` property.
+- `treatment_notes_1`, `treatment_notes_2`, `treatment_notes_3` — only the **first 750** chars of treatment notes are sent, split into three 250-char chunks (trailing empty chunks omitted). The app stores longer notes. **Do not** use the old single `treatment_notes` property.
 
 **Journey emails that include treatment notes must insert all three** (`treatment_notes_1` + `_2` + `_3`) so longer notes are not cut off. Empty chunks render blank.
 

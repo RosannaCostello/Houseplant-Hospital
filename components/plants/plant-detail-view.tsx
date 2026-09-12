@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
@@ -14,6 +15,7 @@ import { PlantPhotoGallery } from "@/components/plants/plant-photo-gallery";
 import { PricingSummarySection } from "@/components/plants/pricing-summary-section";
 import { TreatmentNotesSection } from "@/components/plants/treatment-notes-section";
 import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
+import { SurgerySignOffField } from "@/components/plants/surgery-sign-off-field";
 import { PrintPlantLabelButton } from "@/components/plants/print-plant-label-button";
 import { Button } from "@/components/ui/button";
 import { formatPlantAge } from "@/lib/format-plant-age";
@@ -25,6 +27,8 @@ import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
 import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
 import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
+import { formatPlantMilestoneDate } from "@/lib/plants/get-plant-milestone-dates";
+import type { HospitalStaff } from "@/lib/staff/types";
 
 type PlantDetailViewProps = {
   plant: PlantDetail;
@@ -32,9 +36,19 @@ type PlantDetailViewProps = {
   careTipOptions: CareTipOptionsByCategory;
   pestTreatmentOptions: PestTreatmentOption[];
   treatmentNotesPlaceholder: string;
+  hospitalStaff?: HospitalStaff[];
   /** When true, omit page bottom-nav padding (modal overlay). */
   embeddedInModal?: boolean;
 };
+
+function formatMilestoneRow(at: string) {
+  return (
+    <>
+      {formatPlantMilestoneDate(at)}{" "}
+      <span className="text-hilda-text-muted">({formatPlantAge(at)})</span>
+    </>
+  );
+}
 
 function plantSubtitle(plant: PlantDetail): string | null {
   const name = plant.name?.trim();
@@ -52,24 +66,36 @@ export function PlantDetailView({
   careTipOptions,
   pestTreatmentOptions,
   treatmentNotesPlaceholder,
+  hospitalStaff = [],
   embeddedInModal = false,
 }: PlantDetailViewProps) {
   const router = useRouter();
   const plantDetailModal = useOptionalPlantDetailModal();
+  const [bugsFound, setBugsFound] = useState(plant.bugsFound);
+  const [bugsFoundEver, setBugsFoundEver] = useState(plant.bugsFoundEver);
   const isCollected = plant.status === "collected";
   const subtitle = isCollected ? plantSubtitle(plant) : null;
   const isPropagation = plant.plantCategory === "propagation";
   const isOutpatient = plant.status === "outpatient";
   const showPropagate = plant.status === "in_surgery" && !isPropagation;
+  const showSurgerySignOffEdit = plant.status === "in_surgery" && !isCollected;
+  const showSurgerySignOffReadOnly =
+    (plant.status === "outpatient" || plant.status === "collected") &&
+    plant.surgeryCompletedBy != null;
   const showPestTreatments =
-    plant.bugsFound === true ||
-    (plant.bugsFoundEver && plant.bugsFound !== false) ||
-    (plant.pestTreatments.length > 0 && plant.bugsFound !== false);
+    bugsFound === true ||
+    (bugsFoundEver && bugsFound !== false) ||
+    (plant.pestTreatments.length > 0 && bugsFound !== false);
   const propagateDisabledReason = plant.hasPropagation
     ? "This plant has already been propagated."
-    : plant.bugsFound !== false
+    : bugsFound !== false
       ? "Plants with pests cannot be propagated."
       : undefined;
+
+  useEffect(() => {
+    setBugsFound(plant.bugsFound);
+    setBugsFoundEver(plant.bugsFoundEver);
+  }, [plant.bugsFound, plant.bugsFoundEver]);
 
   function onViewDropOff() {
     plantDetailModal?.closePlantDetail();
@@ -124,7 +150,7 @@ export function PlantDetailView({
         <PlantPhotoGallery
           plantId={plant.id}
           photos={plant.photos}
-          bugsFound={plant.bugsFound}
+          bugsFound={bugsFound}
           isPropagation={isPropagation}
           canRetake={!isCollected}
         />
@@ -166,12 +192,64 @@ export function PlantDetailView({
             </div>
             <div>
               <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Check-in</dt>
-              <dd className="mt-0.5 text-hilda-heading">
-                {new Date(plant.checkedInAt).toLocaleString("en-GB", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}{" "}
-                <span className="text-hilda-text-muted">({formatPlantAge(plant.checkedInAt)})</span>
+              <dd className="mt-0.5 text-hilda-heading">{formatMilestoneRow(plant.checkedInAt)}</dd>
+            </div>
+            {plant.milestoneDates.quarantinedAt ? (
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                  Date quarantined
+                </dt>
+                <dd className="mt-0.5 text-hilda-heading">
+                  {formatMilestoneRow(plant.milestoneDates.quarantinedAt)}
+                </dd>
+              </div>
+            ) : null}
+            {plant.milestoneDates.surgeryAt ? (
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                  Surgery date
+                </dt>
+                <dd className="mt-0.5 text-hilda-heading">
+                  {formatMilestoneRow(plant.milestoneDates.surgeryAt)}
+                </dd>
+              </div>
+            ) : null}
+            {plant.milestoneDates.propagatedAt ? (
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                  Date propagated
+                </dt>
+                <dd className="mt-0.5 text-hilda-heading">
+                  {formatMilestoneRow(plant.milestoneDates.propagatedAt)}
+                </dd>
+              </div>
+            ) : null}
+            {plant.milestoneDates.outpatientAt ? (
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                  Date moved to outpatient
+                </dt>
+                <dd className="mt-0.5 text-hilda-heading">
+                  {formatMilestoneRow(plant.milestoneDates.outpatientAt)}
+                </dd>
+              </div>
+            ) : null}
+            {plant.milestoneDates.collectedAt ? (
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                  Collection date
+                </dt>
+                <dd className="mt-0.5 text-hilda-heading">
+                  {formatMilestoneRow(plant.milestoneDates.collectedAt)}
+                </dd>
+              </div>
+            ) : null}
+            <div>
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
+                Pot size change agreed
+              </dt>
+              <dd className="mt-0.5 font-medium text-hilda-heading">
+                {plant.potSizeChangeConsent ? "Yes" : "No"}
               </dd>
             </div>
             <div className="sm:col-span-2">
@@ -225,7 +303,7 @@ export function PlantDetailView({
               plantId={plant.id}
               currentStatus={plant.status}
               size={plant.size}
-              bugsFound={plant.bugsFound}
+              bugsFound={bugsFound}
               plantCategory={plant.plantCategory}
               hasPropagation={plant.hasPropagation}
               customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
@@ -243,6 +321,23 @@ export function PlantDetailView({
         internalNotes={plant.internalNotes}
         readOnly={isCollected}
       />
+
+      {showSurgerySignOffEdit ? (
+        <SurgerySignOffField
+          plantId={plant.id}
+          staffOptions={hospitalStaff}
+          initialStaff={plant.surgeryCompletedBy}
+        />
+      ) : null}
+
+      {showSurgerySignOffReadOnly ? (
+        <SurgerySignOffField
+          plantId={plant.id}
+          staffOptions={hospitalStaff}
+          initialStaff={plant.surgeryCompletedBy}
+          readOnly
+        />
+      ) : null}
 
       {showPropagate ? (
         <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
@@ -267,8 +362,12 @@ export function PlantDetailView({
         <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
           <BugsFoundToggle
             plantId={plant.id}
-            bugsFound={plant.bugsFound}
+            bugsFound={bugsFound}
             disabled={isCollected}
+            onBugsFoundChange={(next) => {
+              setBugsFound(next);
+              if (next === true) setBugsFoundEver(true);
+            }}
           />
         </section>
       ) : null}
@@ -285,7 +384,7 @@ export function PlantDetailView({
 
       <PricingSummarySection
         pricing={pricing}
-        bugsFound={plant.bugsFound}
+        bugsFound={bugsFound}
         isCollected={isCollected}
         finalPrice={plant.finalPrice}
         compact
@@ -308,7 +407,7 @@ export function PlantDetailView({
             plantId={plant.id}
             currentStatus={plant.status}
             size={plant.size}
-            bugsFound={plant.bugsFound}
+            bugsFound={bugsFound}
             plantCategory={plant.plantCategory}
             hasPropagation={plant.hasPropagation}
             customerName={`${plant.customer.firstName} ${plant.customer.lastName}`.trim()}
