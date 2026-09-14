@@ -104,7 +104,7 @@ export async function getCheckInDraftWithClient(
   supabase: SupabaseClient,
   draftId: string,
 ): Promise<CheckInDraftDetail | null> {
-  let { data: row, error } = await supabase
+  const { data: row, error } = await supabase
     .from("check_in_drafts")
     .select(
       "id, customer_id, plants, draft_step, created_at, updated_at, customers ( first_name, last_name, email, phone, marketing_consent )",
