@@ -49,6 +49,8 @@ export type MailchimpEventPayload = {
   /** Set by outbox worker (HIL-57) when delivery fails. */
   _deliveryError?: string;
   _failedAt?: string;
+  /** Set when a pending row is claimed (`processing`). Used to reclaim stale locks. */
+  _claimedAt?: string;
 };
 
 /** Map kanban plant status to a Mailchimp event (not used for initial check-in). */

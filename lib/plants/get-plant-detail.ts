@@ -8,6 +8,11 @@ import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
 import type { PestTreatmentNumber, PlantPestTreatment } from "@/lib/plants/pest-treatments";
 import { getMinutesInSurgeryWithClient } from "@/lib/plants/get-minutes-in-surgery";
 import { resolvePlantInternalNotes } from "@/lib/plants/internal-notes";
+import {
+  buildPlantMilestoneDatesFromHistory,
+  type PlantMilestoneDates,
+} from "@/lib/plants/get-plant-milestone-dates";
+import type { HospitalStaff } from "@/lib/staff/types";
 
 export type PlantDetailPhoto = {
   id: string;
@@ -34,6 +39,9 @@ export type PlantDetail = {
   minutesInSurgery: number | null;
   checkedInAt: string;
   visitId: string;
+  potSizeChangeConsent: boolean;
+  milestoneDates: PlantMilestoneDates;
+  surgeryCompletedBy: HospitalStaff | null;
   paymentStatus: PosPaymentStatus | null;
   shopifyOrderId: string | null;
   visitPlantIndex: number;
@@ -76,6 +84,7 @@ const PLANT_DETAIL_RELATIONS_BASE = `
         id,
         checkin_date,
         notes,
+        pot_size_change_consent,
         payment_status,
         shopify_order_id,
         customers!inner (
@@ -132,6 +141,8 @@ const PLANT_DETAIL_SELECT = `
       final_price,
       collected_at,
       notes,
+      pot_size_change_consent,
+      surgery_completed_by,
       created_at,
       ${PLANT_DETAIL_RELATIONS}
 `;
@@ -149,6 +160,8 @@ const PLANT_DETAIL_SELECT_PRE_OPTIONS = `
       final_price,
       collected_at,
       notes,
+      pot_size_change_consent,
+      surgery_completed_by,
       created_at,
       ${PLANT_DETAIL_RELATIONS_PRE_OPTIONS}
 `;
@@ -178,9 +191,19 @@ const PLANT_DETAIL_SELECT_WITHOUT_PLANT_NOTES = `
       source_plant_id,
       final_price,
       collected_at,
+      surgery_completed_by,
+      pot_size_change_consent,
       created_at,
       ${PLANT_DETAIL_RELATIONS}
 `;
+
+function isMissingSurgerySignOffColumnError(message: string): boolean {
+  return message.includes("surgery_completed_by");
+}
+
+function isMissingPotConsentColumnError(message: string): boolean {
+  return message.includes("pot_size_change_consent");
+}
 
 function isMissingCollectionColumnsError(message: string): boolean {
   return message.includes("final_price") || message.includes("collected_at");
@@ -257,6 +280,22 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
       .maybeSingle());
   }
 
+  if (error && isMissingSurgerySignOffColumnError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT_WITHOUT_PLANT_NOTES.replace("surgery_completed_by,", ""))
+      .eq("id", plantId)
+      .maybeSingle());
+  }
+
+  if (error && isMissingPotConsentColumnError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT.replace("pot_size_change_consent,\n      ", ""))
+      .eq("id", plantId)
+      .maybeSingle());
+  }
+
   if (error && isMissingPestTreatmentOptionColumnsError(error.message)) {
     ({ data, error } = await supabase
       .from("plants")
@@ -298,6 +337,9 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     final_price?: number | null;
     collected_at?: string | null;
     notes?: string | null;
+    pot_size_change_consent?: boolean;
+    surgery_completed_by?: string | null;
+    created_at?: string;
     plant_pest_treatments?: Array<{
       treatment_number?: number;
       treated_at?: string;
@@ -309,6 +351,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
           id: string;
           checkin_date: string;
           notes: string | null;
+          pot_size_change_consent?: boolean;
           payment_status?: string | null;
           shopify_order_id?: string | null;
           customers:
@@ -329,6 +372,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
           id: string;
           checkin_date: string;
           notes: string | null;
+          pot_size_change_consent?: boolean;
           payment_status?: string | null;
           shopify_order_id?: string | null;
           customers:
@@ -439,6 +483,49 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
       ? await getMinutesInSurgeryWithClient(supabase, row.id)
       : null;
 
+  const { data: historyRows, error: historyError } = await supabase
+    .from("status_history")
+    .select("new_status, created_at")
+    .eq("plant_id", row.id)
+    .order("created_at", { ascending: true });
+
+  if (historyError) {
+    throw new Error(`Failed to load plant history: ${historyError.message}`);
+  }
+
+  const milestoneDates = buildPlantMilestoneDatesFromHistory(historyRows ?? []);
+  if (!milestoneDates.collectedAt && row.collected_at) {
+    milestoneDates.collectedAt = row.collected_at;
+  }
+
+  const plantCategory = isPlantCategory(row.plant_category) ? row.plant_category : "standard";
+  if (!milestoneDates.propagatedAt && plantCategory === "propagation" && row.created_at) {
+    milestoneDates.propagatedAt = row.created_at;
+  }
+
+  let surgeryCompletedBy: HospitalStaff | null = null;
+  if (row.surgery_completed_by) {
+    const { data: staffRow, error: staffError } = await supabase
+      .from("hospital_staff")
+      .select("id, first_name, last_name, active, sort_order")
+      .eq("id", row.surgery_completed_by)
+      .maybeSingle();
+
+    if (staffError && !staffError.message.includes("hospital_staff")) {
+      throw new Error(`Failed to load surgery sign-off: ${staffError.message}`);
+    }
+
+    if (staffRow) {
+      surgeryCompletedBy = {
+        id: staffRow.id,
+        firstName: staffRow.first_name,
+        lastName: staffRow.last_name,
+        active: staffRow.active,
+        sortOrder: staffRow.sort_order,
+      };
+    }
+  }
+
   return {
     id: row.id,
     name: row.name ?? null,
@@ -448,7 +535,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     bugsFound: row.bugs_found ?? null,
     bugsFoundEver: row.bugs_found_ever === true || row.bugs_found === true,
     pestTreatments: parsePestTreatments(row.plant_pest_treatments),
-    plantCategory: isPlantCategory(row.plant_category) ? row.plant_category : "standard",
+    plantCategory,
     sourcePlantId: row.source_plant_id ?? null,
     hasPropagation: Boolean(propagationChild),
     finalPrice: row.final_price != null ? Number(row.final_price) : null,
@@ -456,6 +543,9 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     minutesInSurgery,
     checkedInAt: visit.checkin_date,
     visitId: visit.id,
+    potSizeChangeConsent: row.pot_size_change_consent ?? visit.pot_size_change_consent ?? true,
+    milestoneDates,
+    surgeryCompletedBy,
     paymentStatus,
     shopifyOrderId: visit.shopify_order_id ?? null,
     visitPlantIndex: visitPlantPosition.index,

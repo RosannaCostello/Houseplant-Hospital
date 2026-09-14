@@ -172,6 +172,7 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 
 | # | Linear ID | Title | Labels | Blocked by |
 |---|-----------|-------|--------|------------|
+| 5.x | HIL-126 | Repair Mailchimp subscribe on check-in when marketing consent is on | `phase-5`, `mailchimp`, `check-in` | HIL-55 |
 | 5.x | HIL-96 | Mailchimp stage journeys: quarantine, surgery, outpatient, collected (+ dead shell, no bugs_found) | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-97 | Outpatient partial Mailchimp event (`plant_outpatient_partial`) — Done | `phase-5`, `mailchimp` | — |
 | 5.x | HIL-98 | Enrich Mailchimp event payload (plant name, treatment notes, care tips) | `phase-5`, `mailchimp` | — | Done |
@@ -189,6 +190,7 @@ After creating issues in Linear, add the **`HIL-*` ID** in the `Linear ID` colum
 | 6.x | HIL-110 | iPad UX: check-in handoff + surgery Update plant (keyboard, targets, overlays) | `phase-6`, `check-in`, `dashboard` | HIL-109 |
 | 6.x | HIL-114 | Dashboard stacks, Search customer, outpatient notes, POS refresh + 24h timeout | `phase-6`, `dashboard` | — |
 | 6.x | HIL-124 | Pests Not sure, POS pay-at-collection list, stack swipe, care tips Other, editable internal notes | `phase-6`, `dashboard`, `check-in` | HIL-114 |
+| 6.x | HIL-125 | Check-in Go to checkout opens Shopify POS app modal | `phase-6`, `check-in` | — |
 
 ---
 
