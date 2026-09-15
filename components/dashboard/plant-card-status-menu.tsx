@@ -58,7 +58,7 @@ export function PlantCardStatusMenu({
   plantId,
   currentStatus,
   size,
-  bugsFound,
+  bugsFound: _bugsFound,
   plantCategory,
   hasPropagation,
   customerName,
@@ -86,9 +86,7 @@ export function PlantCardStatusMenu({
   const showPropagate = currentStatus === "in_surgery" && plantCategory === "standard";
   const propagateDisabledReason = hasPropagation
     ? "This plant has already been propagated."
-    : bugsFound !== false
-      ? "Plants with pests cannot be propagated."
-      : undefined;
+    : undefined;
 
   useEffect(() => {
     if (!open) return;

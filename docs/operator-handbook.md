@@ -80,7 +80,7 @@ Use these words when talking about the app.
 | **Surgery sign-off** | While a plant is **In Surgery**, choose who completed surgery from the staff dropdown. Required before **Outpatient**. Initials show on Outpatient and Collected cards. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
 | **Treatment revenue** | Sum of final prices on plants collected in a period. **Revenue, not profit.** |
-| **Propagation** | Creating a child plant from a healthy (pests-free) plant in Surgery. Also a **lane** and a plant **category**. |
+| **Propagation** | Creating a child plant from a plant in Surgery (pests allowed). Also a **lane** and a plant **category**. |
 | **Size** | Plant size band: **Mini**, S, M, L, XL (never “XS” — use Mini). Matches Shopify Mini for the smallest band. |
 | **Pay at collection** | Customer pays when collecting, not at check-in. These visits **do** appear in Shopify POS **Pending check-ins** (with the customer name) so staff can load the cart on the till. Propagation visits also appear here. |
 | **POS / Shopify POS** | Shop till extension used to take Hospital payment. Open **Pending check-ins** for queued carts **and** Pay at collection / propagation visits. The list refreshes itself every few seconds. Queued/loaded POS carts that stay unpaid for **24 hours** drop off the list (marked cancelled/unpaid). **Pay at collection** is not auto-cleared by that timer. |
@@ -287,14 +287,14 @@ When pests are **Yes** at check-in, the plant goes straight into **Quarantine**,
 
 - Set at check-in (Yes / No). **Yes** places the plant in **Quarantine** when check-in completes (which also queues a quarantine Mailchimp event — see **Quarantine email delay** above).  
 - Can be changed on plant detail until **Collected** (Clear answer exists in UI). Clearing Yes does **not** remove the “ever had pests” flag used for treatments / Outpatient.  
-- **Propagation plants** do not show the pests control (always no pests).  
+- **Propagation plants** do not show the pests control. If they were created from a parent with pests (Yes or Not sure), they start as pests **Yes** (badge + pricing).
 - Yes → pests treatment pricing when Shopify/rules apply.
 
 ### Propagate
 
-1. Plant must be **standard**, in **In Surgery**, **pests = No**, and not already propagated.  
-2. Use **Propagate** → pick child **size** → confirm.  
-3. A **new drop-off** with one child plant appears in **Propagation**.  
+1. Plant must be **standard**, in **In Surgery**, and not already propagated. Pests **Yes** / **No** / **Not sure** are all allowed.
+2. Use **Propagate** → pick child **size** → confirm.
+3. A **new drop-off** with one child plant appears in **Propagation**. If the source had pests Yes or Not sure, the child is pests **Yes**; if the source was No, the child is No.
 4. Source plant can only propagate **once**.
 
 ### Collect / payment

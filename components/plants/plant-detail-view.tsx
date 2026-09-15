@@ -88,9 +88,7 @@ export function PlantDetailView({
     (plant.pestTreatments.length > 0 && bugsFound !== false);
   const propagateDisabledReason = plant.hasPropagation
     ? "This plant has already been propagated."
-    : bugsFound !== false
-      ? "Plants with pests cannot be propagated."
-      : undefined;
+    : undefined;
 
   useEffect(() => {
     setBugsFound(plant.bugsFound);
