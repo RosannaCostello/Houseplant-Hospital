@@ -43,6 +43,10 @@ function isMissingPlantNotesColumnError(message: string): boolean {
   return lower.includes("notes") && lower.includes("plants");
 }
 
+function isMissingPlantPotConsentColumnError(message: string): boolean {
+  return message.includes("pot_size_change_consent");
+}
+
 export async function createCheckInRecordsWithClient(
   supabase: SupabaseClient,
   input: CreateCheckInInput,
@@ -100,6 +104,7 @@ export async function createCheckInRecordsWithClient(
           bugs_found: plant.bugsFound ?? null,
           bugs_found_ever: plant.bugsFound === true,
           notes,
+          pot_size_change_consent: plant.potSizeChangeConsent,
         },
         insertLegacy: {
           visit_id: visitRow.id,
@@ -110,6 +115,16 @@ export async function createCheckInRecordsWithClient(
           bugs_found: plant.bugsFound ?? null,
           bugs_found_ever: plant.bugsFound === true,
         },
+        insertWithoutPotConsent: {
+          visit_id: visitRow.id,
+          name: plant.name.trim() || null,
+          species: plant.species.trim() || null,
+          size: plant.size,
+          status: initialStatus,
+          bugs_found: plant.bugsFound ?? null,
+          bugs_found_ever: plant.bugsFound === true,
+          notes,
+        },
       };
     });
 
@@ -117,6 +132,13 @@ export async function createCheckInRecordsWithClient(
       .from("plants")
       .insert(plantRows.map((row) => row.insertWithNotes))
       .select("id");
+
+    if (plantError && isMissingPlantPotConsentColumnError(plantError.message)) {
+      ({ data: insertedPlants, error: plantError } = await supabase
+        .from("plants")
+        .insert(plantRows.map((row) => row.insertWithoutPotConsent))
+        .select("id"));
+    }
 
     if (plantError && isMissingPlantNotesColumnError(plantError.message)) {
       const legacyNotes = buildLegacyVisitNotes(plants);
