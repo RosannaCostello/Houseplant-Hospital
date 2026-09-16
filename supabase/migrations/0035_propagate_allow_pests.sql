@@ -1,5 +1,9 @@
 -- HIL-127: allow propagating plants with pests; child inherits pests Yes.
 
+-- Drop the old “propagation children must be pest-free” check (also in 0036).
+alter table public.plants
+  drop constraint if exists plants_propagation_no_pests_check;
+
 create or replace function public.propagate_plant(
   p_source_plant_id uuid,
   p_new_visit_id uuid,
