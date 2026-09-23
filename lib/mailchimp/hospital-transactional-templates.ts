@@ -141,20 +141,20 @@ export function wrapHospitalTransactionalTemplateHtml(bodyHtml: string): string 
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /></head>
-<body style="margin:0;padding:0;background:#f7f4ef;font-family:Helvetica,Arial,sans-serif;color:#2c2a26;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ef;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#e2e8e8;font-family:Helvetica,Arial,sans-serif;color:#315f5f;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#e2e8e8;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width:520px;background:#fffdf9;border:1px solid #e6e0d6;border-radius:12px;padding:28px 24px;">
-          <tr><td style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#b08d3a;">Hilda Houseplant Hospital</td></tr>
-          <tr><td style="padding-top:20px;font-size:16px;line-height:1.55;color:#4a463f;">Hi *|FNAME|*,</td></tr>
-          <tr><td style="padding-top:14px;font-size:16px;line-height:1.55;color:#4a463f;">${bodyHtml}</td></tr>
+        <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border:1px solid rgba(23,29,26,0.15);border-radius:12px;padding:28px 24px;">
+          <tr><td style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#d3ac54;">Hilda Houseplant Hospital</td></tr>
+          <tr><td style="padding-top:20px;font-size:16px;line-height:1.55;color:#315f5f;">Hi *|FNAME|*,</td></tr>
+          <tr><td style="padding-top:14px;font-size:16px;line-height:1.55;color:#315f5f;">${bodyHtml}</td></tr>
           <tr>
             <td style="padding-top:24px;">
-              <a href="*|CARE_CARD_URL|*" style="display:inline-block;background:#b08d3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 18px;border-radius:8px;">View your Care Card</a>
+              <a href="*|CARE_CARD_URL|*" style="display:inline-block;background:#d3ac54;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 18px;border-radius:8px;">View your Care Card</a>
             </td>
           </tr>
-          <tr><td style="padding-top:28px;font-size:16px;line-height:1.55;color:#4a463f;">Thanks,<br />Hilda team</td></tr>
+          <tr><td style="padding-top:28px;font-size:16px;line-height:1.55;color:#315f5f;">Thanks,<br />Hilda team</td></tr>
         </table>
       </td>
     </tr>
