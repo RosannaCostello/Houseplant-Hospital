@@ -20,7 +20,10 @@ import type { CheckInCustomer } from "@/lib/check-in/customer-schema";
 import type { CheckInDraftPhotoView } from "@/lib/check-in/photo-schema";
 import { checkInPlantLabel, type CheckInPlantPhoto } from "@/lib/check-in/photo-schema";
 import type { CheckInPlant, CheckInPlantInput } from "@/lib/check-in/plant-schema";
-import { checkInPlantsPhotosStepSchema } from "@/lib/check-in/plant-schema";
+import {
+  CHECK_IN_INTERNAL_NOTES_MIN_LENGTH,
+  checkInPlantsPhotosStepSchema,
+} from "@/lib/check-in/plant-schema";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { cn } from "@/lib/utils";
 
@@ -139,6 +142,7 @@ export function PhotosStepForm({ draftId, customer, plants: initialPlants, initi
         delete next[clientId];
         return next;
       });
+      setFormError(null);
     }
   }
 
@@ -148,23 +152,32 @@ export function PhotosStepForm({ draftId, customer, plants: initialPlants, initi
     if (!parsed.success) {
       const errors: Record<string, { notes?: string }> = {};
       let firstErrorClientId: string | null = null;
+      let notesTooShort = false;
+      let pestsMissing = false;
 
       for (const issue of parsed.error.issues) {
-        const index = issue.path[0];
-        const field = issue.path[1];
+        // Schema is `{ plants: [...] }` → path is ["plants", index, field]
+        const index = issue.path[0] === "plants" ? issue.path[1] : issue.path[0];
+        const field = issue.path[0] === "plants" ? issue.path[2] : issue.path[1];
 
-        if (typeof index === "number" && field === "notes") {
-          const plant = normalizedPlants[index];
-          if (!plant) continue;
+        if (typeof index !== "number") continue;
+        const plant = normalizedPlants[index];
+        if (!plant) continue;
 
-          if (firstErrorClientId === null) {
-            firstErrorClientId = plant.clientId;
-          }
+        if (firstErrorClientId === null) {
+          firstErrorClientId = plant.clientId;
+        }
 
+        if (field === "notes") {
+          notesTooShort = true;
           errors[plant.clientId] ??= {};
           if (!errors[plant.clientId].notes) {
-            errors[plant.clientId].notes = issue.message;
+            errors[plant.clientId].notes =
+              issue.message ||
+              `Internal notes must be at least ${CHECK_IN_INTERNAL_NOTES_MIN_LENGTH} characters`;
           }
+        } else if (field === "bugsFound") {
+          pestsMissing = true;
         }
       }
 
@@ -173,11 +186,18 @@ export function PhotosStepForm({ draftId, customer, plants: initialPlants, initi
       }
 
       setPlantErrors(errors);
-      setFormError(
-        Object.keys(errors).length > 0
-          ? "Add internal notes (at least 12 characters) for each plant."
-          : "Check the highlighted fields and try again.",
-      );
+
+      if (notesTooShort) {
+        setFormError(
+          `Internal notes need at least ${CHECK_IN_INTERNAL_NOTES_MIN_LENGTH} characters on each plant.`,
+        );
+      } else if (pestsMissing) {
+        setFormError(
+          "Pests must be Yes, No, or Not sure for each plant. Go back to the plants step to answer.",
+        );
+      } else {
+        setFormError(parsed.error.issues[0]?.message ?? "Fix the plant details and try again.");
+      }
       return null;
     }
 
@@ -326,18 +346,28 @@ export function PhotosStepForm({ draftId, customer, plants: initialPlants, initi
               <label className={hildaLabelClassName}>
                 Internal notes
                 <textarea
-                  className={cn(hildaInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
+                  className={cn(
+                    hildaInputClassName,
+                    "min-h-[4.5rem] resize-none py-2.5",
+                    plantErrors[plant.clientId]?.notes
+                      ? "border-hilda-error-text focus:border-hilda-error-text"
+                      : null,
+                  )}
                   rows={2}
                   value={plant.notes}
                   onChange={(event) => updatePlant(plant.clientId, { notes: event.target.value })}
-                  placeholder="Visible issues, pot size, customer concerns…"
+                  placeholder={`Visible issues, pot size, customer concerns… (at least ${CHECK_IN_INTERNAL_NOTES_MIN_LENGTH} characters)`}
                   aria-invalid={Boolean(plantErrors[plant.clientId]?.notes)}
                 />
                 {plantErrors[plant.clientId]?.notes ? (
                   <span className="mt-1 block text-sm text-hilda-error-text">
                     {plantErrors[plant.clientId]?.notes}
                   </span>
-                ) : null}
+                ) : (
+                  <span className="mt-1 block text-xs text-hilda-text-muted">
+                    At least {CHECK_IN_INTERNAL_NOTES_MIN_LENGTH} characters required.
+                  </span>
+                )}
               </label>
 
               <PlantPhotoCapture
