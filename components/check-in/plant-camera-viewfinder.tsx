@@ -19,6 +19,8 @@ export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraV
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
 
+  // Do not clear video.srcObject on close — Safari may end tracks when no
+  // element is attached. Shared keep-alive video owns the stream for the step.
   useEffect(() => {
     if (!open) return;
 
@@ -51,10 +53,6 @@ export function PlantCameraViewfinder({ open, onClose, onCapture }: PlantCameraV
 
     return () => {
       cancelled = true;
-      const video = videoRef.current;
-      if (video) {
-        video.srcObject = null;
-      }
     };
   }, [open]);
 

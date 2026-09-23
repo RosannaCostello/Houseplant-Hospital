@@ -26,6 +26,8 @@ type PlantAutosaveTextareaProps = {
   /** View-only (e.g. collected plants). */
   readOnly?: boolean;
   lockedMessage?: string;
+  /** Temporary validation outline (e.g. Outpatient readiness). */
+  highlighted?: boolean;
 };
 
 export function PlantAutosaveTextarea({
@@ -41,6 +43,7 @@ export function PlantAutosaveTextarea({
   showCount = false,
   readOnly = false,
   lockedMessage = "Locked after collection.",
+  highlighted = false,
 }: PlantAutosaveTextareaProps) {
   const [content, setContent] = useState(initialValue);
   const [lastSaved, setLastSaved] = useState(initialValue);
@@ -172,11 +175,13 @@ export function PlantAutosaveTextarea({
         "resize-y py-2.5 text-base",
         !label && "w-full",
         readOnly && "cursor-default bg-hilda-bg text-hilda-text",
+        highlighted && "border-hilda-error-text focus:border-hilda-error-text",
       )}
       name="content"
       rows={rows}
       placeholder={readOnly ? undefined : placeholder}
       value={content}
+      aria-invalid={highlighted || undefined}
       maxLength={maxLength}
       readOnly={readOnly}
       aria-readonly={readOnly || undefined}

@@ -118,6 +118,10 @@ For **staff Care tips Other** (optional RLS; app also uses service role), run `s
 
 Shopify is the source of truth for **standard** and **pests** treatment prices. App size **Mini** matches Shopify option **Mini** on both products.
 
+There is also a **pests surcharge** product (delta only: pests − standard per size) for post–check-in top-ups when pests are confirmed later. Product `16031780831613`; variant IDs live in `lib/shopify/config.ts` (`pestsSurchargeVariantId`).
+
+For **part_paid** visit payment status (HIL-128), run `supabase/migrations/0037_part_paid_payment_status.sql`.
+
 ### Env vars (server only)
 
 ```bash
@@ -194,14 +198,21 @@ Server code lives under `lib/mailchimp/`:
 - `event-types.ts` — event names + payload types (`plant_checked_in`, status changes, etc.)
 - `enqueue-event.ts` — insert `pending` rows into `mailchimp_events`
 - `adapter.ts` — `getMailchimpAdapter()` queues via outbox (no live API from request path)
+- Transactional Route A (HIL-140): `transactional-env.ts`, `transactional-client.ts`, `send-hospital-transactional.ts`, `hospital-transactional-copy.ts`
 
 Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (useful locally). When Mailchimp env vars are missing, outbox-only is automatic. The worker (HIL-57) processes pending rows when live delivery is enabled.
 
-**Check-in sync (HIL-55):** on successful check-in, the app queues `plant_checked_in` per plant. When Mailchimp is configured and not outbox-only, it also upserts the contact, applies tags (`houseplant_hospital`, `repeat_hospital_customer`, `newsletter` when consented), and saves `mailchimp_contact_id` on the customer. Mailchimp failures do not block check-in.
+**Transactional Route A (HIL-140):** hospital plant events (everything except `plant_collected`) send via **Mailchimp Transactional** (Mandrill) using `MAILCHIMP_TRANSACTIONAL_API_KEY` (`md-…`). From address defaults to `hospital@hilda.co` / `Hilda Houseplant Hospital` (`MAILCHIMP_TRANSACTIONAL_FROM_EMAIL` / `_FROM_NAME` override). Domain `hilda.co` must stay verified in Transactional. Emails are app-composed thin HTML with a Care Card CTA (no Mandrill templates required for v1). **`plant_collected`** still uses the Marketing member Events API so Customer Journeys can run nurture (consent-gated).
+
+If the Transactional key is missing, hospital events fall back to the Marketing Events API (legacy behaviour) and a warning is logged.
+
+**Check-in sync (HIL-55 / HIL-126):** on successful check-in, the app queues `plant_checked_in` per plant. When Mailchimp is configured and not outbox-only, it also upserts the contact, applies tags (`houseplant_hospital`, `repeat_hospital_customer`, `newsletter` when consented), and saves `mailchimp_contact_id` on the customer. If marketing consent is on and the existing contact is `unsubscribed` or `transactional`, the upsert attempts `subscribed` (skips cleaned / compliance-blocked). Mailchimp failures do not block check-in.
 
 **Status and bugs events (HIL-56):** kanban status moves, collection, and enabling **bugs found** queue the matching event to `mailchimp_events` (`plant_in_surgery`, `plant_outpatient`, `plant_collected`, etc.). Enabling bugs found also applies the `bugs_treatment` tag when live Mailchimp is enabled.
 
-**Outbox worker (HIL-57):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50), POSTs each event to Mailchimp’s member Events API, and sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
+**Outpatient reminder (HIL-131):** daily cron `GET /api/cron/outpatient-reminders` (same `0 6 * * *` schedule as Shopify pricing in `custom-worker.ts`) enqueues `plant_outpatient_reminder` for plants still in Outpatient for 14+ days. Deduped via `mailchimp_events` (no new plant columns) so at most one reminder per plant per 14-day window. Delivered via Transactional Route A (no Marketing journey required).
+
+**Outbox worker (HIL-57 / HIL-140):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50). Hospital events → Transactional API; `plant_collected` → Marketing Events API. Sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Rows left in `processing` for more than **15 minutes** (Worker timeout/deploy mid-send) are reset to `pending` at the start of each run. Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
 
 ```bash
 curl -s -H "Authorization: Bearer $CRON_SECRET" \
@@ -244,6 +255,7 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 | Propagate plant | `plant_propagated` | **Build** HH App - Propagated |
 | Move to Outpatient (visit fully ready) | `plant_outpatient` | **Build** HH App - Outpatient |
 | Move to Outpatient (multi-plant, not last) | `plant_outpatient_partial` | **Build** HH App - Outpatient (partial) |
+| Still outpatient after 14+ days (cron, every 14d) | `plant_outpatient_reminder` | **Build** HH App - Outpatient reminder (Jack) |
 | Collect plant | `plant_collected` | **Build** new flow + email |
 | Move to Dead | `plant_dead` | Shell only — create trigger/flow but **do not activate** yet |
 | Bugs found toggled on | `bugs_found` | Out of scope for HIL-96 |
@@ -307,6 +319,7 @@ Suggested journey names (HIL-96):
 | `plant_propagated` | HH App - Propagated |
 | `plant_outpatient` | HH App - Outpatient |
 | `plant_outpatient_partial` | HH App - Outpatient (partial) |
+| `plant_outpatient_reminder` | HH App - Outpatient reminder |
 | `plant_collected` | HH App - Collected |
 | `plant_dead` | HH App - Dead (inactive shell) |
 
@@ -315,18 +328,16 @@ Suggested journey names (HIL-96):
 The worker sends string properties (Mailchimp Events API: max **255** chars each):
 
 - `visit_id`, `plant_id`, `customer_id`
+- `care_card_url` — absolute Customer Care Card link for the drop-off (built from `APP_BASE_URL` + `/hh/care/{visitId}`). **Use this as the CTA** in journey emails.
 - `previous_status`, `new_status` (status-change events)
 - `bugs_found` (`true` on `bugs_found`)
 - `awaiting_plant_count` (outpatient partial only)
 - `plant_name` (when present; truncated to 255 if longer)
-- `care_tips_water`, `care_tips_leaves`, `care_tips_light` — option text only (no `Water:` / `Leaves:` / `Light:` prefix). Put each on its own line in the template. Do not use the old single `care_tips` property.
-- `treatment_notes_1`, `treatment_notes_2`, `treatment_notes_3` — treatment notes are capped at **750** chars in the app and split into three 250-char chunks (trailing empty chunks omitted). **Do not** use the old single `treatment_notes` property.
+- `child_plant_id`, `size` (`plant_propagated` only)
 
-**Journey emails that include treatment notes must insert all three** (`treatment_notes_1` + `_2` + `_3`) so longer notes are not cut off. Empty chunks render blank.
+**Thin emails (HIL-139):** treatment notes and care tips are **no longer** sent as event properties. Aftercare lives on the Care Card. Update journey templates accordingly (remove `treatment_notes_*` / `care_tips_*`).
 
-**Journey emails that include care tips must insert all three** (`care_tips_water` + `care_tips_leaves` + `care_tips_light`) on separate lines so each tip appears on its own row.
-
-**Essentials note:** event properties are not the same as merge tags (`*|NAME|*`). On many plans you cannot drop `plant_name` into an email as `*|plant_name|*`. Use them for journey filters / Activity, or create audience merge fields and map later if you need them in every email body.
+**Essentials note:** event properties are not the same as merge tags (`*|NAME|*`). On many plans you cannot drop `care_card_url` into an email as `*|care_card_url|*`. Use them for journey filters / Activity, or create audience merge fields and map later if you need them in every email body.
 
 #### Schedule the outbox worker (production)
 
@@ -338,6 +349,7 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 | Print jobs drain | `*/5 * * * *` | `/api/cron/print-jobs` |
 | POS checkout expiry (24h unpaid queue) | `*/5 * * * *` | `/api/cron/pos-checkout-expiry` |
 | Shopify pricing | `0 6 * * *` (06:00 UTC daily) | `/api/cron/shopify-pricing` |
+| Outpatient 14d reminder | `0 6 * * *` (same daily cron) | `/api/cron/outpatient-reminders` |
 
 Requires `CRON_SECRET` and `APP_BASE_URL` on the worker. After deploy, check **Cloudflare → houseplanthospital → Settings → Triggers → Cron Triggers**.
 
@@ -358,6 +370,7 @@ Record active journeys here when live (HIL-96):
 | In surgery | `plant_in_surgery` | | HIL-96 |
 | Ready for collection | `plant_outpatient` | | HIL-96 — single plant or final plant |
 | Outpatient (awaiting siblings) | `plant_outpatient_partial` | | HIL-96 — multi-plant, not last yet |
+| Outpatient 14d reminder | `plant_outpatient_reminder` | | HIL-131 — Jack builds journey; daily cron |
 | Aftercare | `plant_collected` | | HIL-96 |
 | Dead | `plant_dead` | Inactive shell | HIL-96 — no email yet |
 | 6-month reminder (marketing) | TBD — tag/time based | | Requires `newsletter` tag; not HIL-96 |
@@ -406,8 +419,8 @@ Hard-refresh or use a private window after each deploy if behaviour looks stale.
 - [ ] **View visit** → `/app/visits/[id]` shows all 3 plants on the drop-off
 - [ ] **Customers** → search finds the customer by surname or email
 - [ ] Customer history → visits and plant links work
-- [ ] **Open QR case page** → `/hh/case/[plantId]` opens on live host (not localhost)
-- [ ] QR case page loads **without** login (test in private window)
+- [ ] **Open Care Card** → `/hh/care/[visitId]` opens on live host (not localhost); legacy `/hh/case/[plantId]` redirects
+- [ ] Care Card loads **without** login (test in private window)
 
 ### C — Regression
 

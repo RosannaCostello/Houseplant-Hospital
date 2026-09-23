@@ -1,7 +1,5 @@
 import "server-only";
 
-import { careTipsToMailchimpProperties } from "@/lib/mailchimp/care-tips-properties";
-import { chunkTreatmentNotes } from "@/lib/mailchimp/chunk-treatment-notes";
 import { MailchimpApiError } from "@/lib/mailchimp/client";
 import {
   isMailchimpEventName,
@@ -9,13 +7,21 @@ import {
   type MailchimpEventPayload,
 } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
+import { payloadToEventProperties } from "@/lib/mailchimp/payload-to-event-properties";
+import { sendHospitalTransactionalEmail } from "@/lib/mailchimp/send-hospital-transactional";
 import { formatMailchimpOccurredAt, sendMemberEvent } from "@/lib/mailchimp/send-member-event";
-import { truncateEventProperty } from "@/lib/mailchimp/truncate-event-property";
+import { MailchimpTransactionalApiError } from "@/lib/mailchimp/transactional-client";
+import {
+  isMailchimpTransactionalConfigured,
+} from "@/lib/mailchimp/transactional-env";
+import { isHospitalTransactionalEvent } from "@/lib/mailchimp/hospital-transactional-events";
 import { upsertListMember } from "@/lib/mailchimp/upsert-list-member";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const BATCH_SIZE = 50;
 const MAX_SEND_ATTEMPTS = 3;
+/** Reclaim `processing` rows stuck longer than this (Worker kill mid-send). */
+const STALE_PROCESSING_MS = 15 * 60 * 1000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 type MailchimpEventRow = {
@@ -34,6 +40,7 @@ export type ProcessMailchimpOutboxResult = {
   processed: number;
   sent: number;
   failed: number;
+  reclaimed?: number;
   errors: Array<{ eventId: string; eventName: string; error: string }>;
 };
 
@@ -41,33 +48,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function payloadToEventProperties(payload: MailchimpEventPayload): Record<string, string> {
-  const properties: Record<string, string> = {};
-
-  if (payload.visitId) properties.visit_id = payload.visitId;
-  if (payload.plantId) properties.plant_id = payload.plantId;
-  if (payload.customerId) properties.customer_id = payload.customerId;
-  if (payload.previousStatus) properties.previous_status = payload.previousStatus;
-  if (payload.newStatus) properties.new_status = payload.newStatus;
-  if (payload.bugsFound !== undefined) properties.bugs_found = String(payload.bugsFound);
-  if (payload.awaitingPlantCount !== undefined) {
-    properties.awaiting_plant_count = String(payload.awaitingPlantCount);
-  }
-  if (payload.childPlantId) properties.child_plant_id = payload.childPlantId;
-  if (payload.size) properties.size = truncateEventProperty(payload.size);
-  if (payload.plantName) properties.plant_name = truncateEventProperty(payload.plantName);
-  if (payload.treatmentNotes) {
-    Object.assign(properties, chunkTreatmentNotes(payload.treatmentNotes));
-  }
-  if (payload.careTips) {
-    Object.assign(properties, careTipsToMailchimpProperties(payload.careTips));
-  }
-
-  return properties;
-}
-
 function isRetryableError(error: unknown): boolean {
-  if (error instanceof MailchimpApiError) {
+  if (error instanceof MailchimpApiError || error instanceof MailchimpTransactionalApiError) {
+    // Mandrill reject_reason responses use status 200 with our wrapper — don't retry those.
+    if (error.status === 200) return false;
     return RETRYABLE_STATUS_CODES.has(error.status);
   }
 
@@ -131,9 +115,26 @@ function resolveOccurredAt(row: MailchimpEventRow): string | undefined {
 
 async function claimEventRow(eventId: string): Promise<MailchimpEventRow | null> {
   const supabase = createSupabaseAdminClient();
+  const { data: existing, error: loadError } = await supabase
+    .from("mailchimp_events")
+    .select("id, customer_id, plant_id, event_name, payload, status, created_at")
+    .eq("id", eventId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (loadError || !existing) {
+    return null;
+  }
+
+  const claimedAt = new Date().toISOString();
+  const payload: MailchimpEventPayload = {
+    ...(existing.payload as MailchimpEventPayload),
+    _claimedAt: claimedAt,
+  };
+
   const { data, error } = await supabase
     .from("mailchimp_events")
-    .update({ status: "processing" })
+    .update({ status: "processing", payload })
     .eq("id", eventId)
     .eq("status", "pending")
     .select("id, customer_id, plant_id, event_name, payload, status, created_at")
@@ -144,6 +145,58 @@ async function claimEventRow(eventId: string): Promise<MailchimpEventRow | null>
   }
 
   return data as MailchimpEventRow;
+}
+
+/**
+ * Reset rows left in `processing` after a Worker timeout/deploy mid-send.
+ * Uses payload._claimedAt when present; otherwise falls back to created_at
+ * (legacy stuck rows from before claim timestamps existed).
+ */
+async function reclaimStaleProcessingRows(): Promise<number> {
+  const supabase = createSupabaseAdminClient();
+  const staleBeforeMs = Date.now() - STALE_PROCESSING_MS;
+
+  const { data, error } = await supabase
+    .from("mailchimp_events")
+    .select("id, payload, created_at")
+    .eq("status", "processing")
+    .limit(BATCH_SIZE);
+
+  if (error || !data?.length) {
+    return 0;
+  }
+
+  const staleIds: string[] = [];
+  for (const row of data) {
+    const payload = (row.payload ?? {}) as MailchimpEventPayload;
+    const claimedAtRaw = typeof payload._claimedAt === "string" ? payload._claimedAt : null;
+    const anchorMs = claimedAtRaw
+      ? Date.parse(claimedAtRaw)
+      : Date.parse(row.created_at);
+
+    if (!Number.isFinite(anchorMs) || anchorMs > staleBeforeMs) {
+      continue;
+    }
+    staleIds.push(row.id);
+  }
+
+  if (!staleIds.length) {
+    return 0;
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("mailchimp_events")
+    .update({ status: "pending" })
+    .in("id", staleIds)
+    .eq("status", "processing")
+    .select("id");
+
+  if (updateError) {
+    console.error("[mailchimp] reclaim stale processing failed:", updateError.message);
+    return 0;
+  }
+
+  return updated?.length ?? 0;
 }
 
 async function markEventSent(eventId: string): Promise<void> {
@@ -183,22 +236,55 @@ async function markEventFailed(
     .eq("status", "processing");
 }
 
+async function resolveToNameForEvent(row: MailchimpEventRow): Promise<string | undefined> {
+  if (!row.customer_id) return undefined;
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("customers")
+    .select("first_name, last_name")
+    .eq("id", row.customer_id)
+    .maybeSingle();
+
+  if (!data) return undefined;
+  const name = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+  return name || undefined;
+}
+
 async function sendEventWithRetry(
   email: string,
   eventName: MailchimpEventName,
   payload: MailchimpEventPayload,
-  occurredAt?: string,
+  options: { occurredAt?: string; toName?: string } = {},
 ): Promise<void> {
+  const useTransactional =
+    isHospitalTransactionalEvent(eventName) && isMailchimpTransactionalConfigured();
+
+  if (isHospitalTransactionalEvent(eventName) && !isMailchimpTransactionalConfigured()) {
+    console.warn(
+      `[mailchimp] ${eventName}: MAILCHIMP_TRANSACTIONAL_API_KEY unset — falling back to Marketing Events API`,
+    );
+  }
+
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
     try {
-      await sendMemberEvent({
-        email,
-        eventName,
-        properties: payloadToEventProperties(payload),
-        occurredAt,
-      });
+      if (useTransactional) {
+        await sendHospitalTransactionalEmail({
+          email,
+          eventName,
+          payload,
+          toName: options.toName,
+        });
+      } else {
+        await sendMemberEvent({
+          email,
+          eventName,
+          properties: payloadToEventProperties(payload),
+          occurredAt: options.occurredAt,
+        });
+      }
       return;
     } catch (error) {
       lastError = error;
@@ -239,12 +325,11 @@ async function processEventRow(row: MailchimpEventRow): Promise<ProcessEventRowR
 
   try {
     await ensureAudienceMember(claimed, email);
-    await sendEventWithRetry(
-      email,
-      claimed.event_name,
-      claimed.payload ?? {},
-      resolveOccurredAt(claimed),
-    );
+    const toName = await resolveToNameForEvent(claimed);
+    await sendEventWithRetry(email, claimed.event_name, claimed.payload ?? {}, {
+      occurredAt: resolveOccurredAt(claimed),
+      toName,
+    });
     await markEventSent(claimed.id);
     return { success: true };
   } catch (error) {
@@ -263,6 +348,7 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
       processed: 0,
       sent: 0,
       failed: 0,
+      reclaimed: 0,
       errors: [],
     };
   }
@@ -274,9 +360,12 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
       processed: 0,
       sent: 0,
       failed: 0,
+      reclaimed: 0,
       errors: [],
     };
   }
+
+  const reclaimed = await reclaimStaleProcessingRows();
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
@@ -292,6 +381,7 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
       processed: 0,
       sent: 0,
       failed: 0,
+      reclaimed,
       errors: [{ eventId: "", eventName: "", error: error.message }],
     };
   }
@@ -326,6 +416,7 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
     processed: rows.length,
     sent,
     failed,
+    reclaimed,
     errors,
   };
 }
