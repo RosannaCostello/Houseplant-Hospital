@@ -357,7 +357,7 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 - `previous_status`, `new_status` (status-change events)
 - `bugs_found` (`true` on `bugs_found`)
 - `awaiting_plant_count` (outpatient partial only)
-- `plant_name` (when present; truncated to 255 if longer)
+- `species` (when present; also mirrored as legacy `plant_name` for older Journey templates)
 - `child_plant_id`, `size` (`plant_propagated` only)
 
 **Thin emails (HIL-139):** treatment notes and care tips are **no longer** sent as event properties. Aftercare lives on the Care Card. Update journey templates accordingly (remove `treatment_notes_*` / `care_tips_*`).
