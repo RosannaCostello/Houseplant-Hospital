@@ -3,6 +3,8 @@
 import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
 import { getCareTipOptions } from "@/lib/care-tips/get-care-tip-options";
 import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
+import { getOutpatientZoneOptions } from "@/lib/outpatient-zones/get-outpatient-zone-options";
+import type { OutpatientZoneOption } from "@/lib/outpatient-zones/types";
 import { getPestTreatmentOptions } from "@/lib/pest-treatments/get-pest-treatment-options";
 import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
 import { getPestTypeOptions } from "@/lib/pest-types/get-pest-type-options";
@@ -21,6 +23,7 @@ export type PlantDetailModalPayload = {
   careTipOptions: CareTipOptionsByCategory;
   pestTreatmentOptions: PestTreatmentOption[];
   pestTypeOptions: PestTypeOption[];
+  outpatientZoneOptions: OutpatientZoneOption[];
   treatmentNotesPlaceholder: string;
   hospitalStaff: HospitalStaff[];
 };
@@ -38,15 +41,23 @@ export async function getPlantDetailModalAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const [pricing, careTipOptions, pestTreatmentOptions, pestTypeOptions, appCopy, hospitalStaff] =
-    await Promise.all([
-      getPlantPricing(plantId).catch(() => null),
-      getCareTipOptions(),
-      getPestTreatmentOptions().catch(() => []),
-      getPestTypeOptions().catch(() => []),
-      getAppCopySettings(),
-      getHospitalStaffWithClient(supabase).catch(() => []),
-    ]);
+  const [
+    pricing,
+    careTipOptions,
+    pestTreatmentOptions,
+    pestTypeOptions,
+    outpatientZoneOptions,
+    appCopy,
+    hospitalStaff,
+  ] = await Promise.all([
+    getPlantPricing(plantId).catch(() => null),
+    getCareTipOptions(),
+    getPestTreatmentOptions().catch(() => []),
+    getPestTypeOptions().catch(() => []),
+    getOutpatientZoneOptions().catch(() => []),
+    getAppCopySettings(),
+    getHospitalStaffWithClient(supabase).catch(() => []),
+  ]);
 
   return {
     success: true,
@@ -56,6 +67,7 @@ export async function getPlantDetailModalAction(
       careTipOptions,
       pestTreatmentOptions,
       pestTypeOptions,
+      outpatientZoneOptions,
       treatmentNotesPlaceholder: appCopy.treatmentNotesPlaceholder,
       hospitalStaff,
     },

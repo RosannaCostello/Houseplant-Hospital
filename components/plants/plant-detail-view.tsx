@@ -10,6 +10,7 @@ import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { InternalNotesSection } from "@/components/plants/internal-notes-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
 import { PestTreatmentsSection } from "@/components/plants/pest-treatments-section";
+import { OutpatientZoneField } from "@/components/plants/outpatient-zone-field";
 import { PestTypeField } from "@/components/plants/pest-type-field";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { PlantIdentityFields } from "@/components/plants/plant-identity-fields";
@@ -28,6 +29,7 @@ import { formatPlantSizeLabel } from "@/lib/plant-size";
 import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
 import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
+import type { OutpatientZoneOption } from "@/lib/outpatient-zones/types";
 import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
 import type { PestTypeOption } from "@/lib/pest-types/types";
 import { formatPlantMilestoneDate } from "@/lib/plants/get-plant-milestone-dates";
@@ -39,6 +41,7 @@ type PlantDetailViewProps = {
   careTipOptions: CareTipOptionsByCategory;
   pestTreatmentOptions: PestTreatmentOption[];
   pestTypeOptions: PestTypeOption[];
+  outpatientZoneOptions: OutpatientZoneOption[];
   treatmentNotesPlaceholder: string;
   hospitalStaff?: HospitalStaff[];
   /** When true, omit page bottom-nav padding (modal overlay). */
@@ -65,6 +68,7 @@ export function PlantDetailView({
   careTipOptions,
   pestTreatmentOptions,
   pestTypeOptions,
+  outpatientZoneOptions,
   treatmentNotesPlaceholder,
   hospitalStaff = [],
   embeddedInModal = false,
@@ -148,11 +152,13 @@ export function PlantDetailView({
         />
       ) : null}
 
-      {isOutpatient && plant.outpatientZoneLabel ? (
-        <p className="text-sm text-hilda-text">
-          Zone:{" "}
-          <span className="font-medium text-hilda-heading">{plant.outpatientZoneLabel}</span>
-        </p>
+      {isOutpatient ? (
+        <OutpatientZoneField
+          plantId={plant.id}
+          options={outpatientZoneOptions}
+          initialOutpatientZoneId={plant.outpatientZoneId}
+          readOnly={isCollected}
+        />
       ) : null}
 
       {isOutpatient ? treatmentNotes : null}

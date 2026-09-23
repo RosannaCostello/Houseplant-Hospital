@@ -3,6 +3,7 @@ import { SetPageTitle } from "@/components/app/app-page-title";
 import { PlantDetailView } from "@/components/plants/plant-detail-view";
 import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
 import { getCareTipOptions } from "@/lib/care-tips/get-care-tip-options";
+import { getOutpatientZoneOptions } from "@/lib/outpatient-zones/get-outpatient-zone-options";
 import { getPestTreatmentOptions } from "@/lib/pest-treatments/get-pest-treatment-options";
 import { getPestTypeOptions } from "@/lib/pest-types/get-pest-type-options";
 import { getPlantDetail } from "@/lib/plants/get-plant-detail";
@@ -32,15 +33,23 @@ export default async function PlantDetailPage({ params }: PlantDetailPageProps) 
   }
 
   const supabase = await createSupabaseServerClient();
-  const [pricing, careTipOptions, pestTreatmentOptions, pestTypeOptions, appCopy, hospitalStaff] =
-    await Promise.all([
-      getPlantPricing(id).catch(() => null),
-      getCareTipOptions(),
-      getPestTreatmentOptions().catch(() => []),
-      getPestTypeOptions().catch(() => []),
-      getAppCopySettings(),
-      getHospitalStaffWithClient(supabase).catch(() => []),
-    ]);
+  const [
+    pricing,
+    careTipOptions,
+    pestTreatmentOptions,
+    pestTypeOptions,
+    outpatientZoneOptions,
+    appCopy,
+    hospitalStaff,
+  ] = await Promise.all([
+    getPlantPricing(id).catch(() => null),
+    getCareTipOptions(),
+    getPestTreatmentOptions().catch(() => []),
+    getPestTypeOptions().catch(() => []),
+    getOutpatientZoneOptions().catch(() => []),
+    getAppCopySettings(),
+    getHospitalStaffWithClient(supabase).catch(() => []),
+  ]);
 
   return (
     <>
@@ -51,6 +60,7 @@ export default async function PlantDetailPage({ params }: PlantDetailPageProps) 
         careTipOptions={careTipOptions}
         pestTreatmentOptions={pestTreatmentOptions}
         pestTypeOptions={pestTypeOptions}
+        outpatientZoneOptions={outpatientZoneOptions}
         treatmentNotesPlaceholder={appCopy.treatmentNotesPlaceholder}
         hospitalStaff={hospitalStaff}
       />
