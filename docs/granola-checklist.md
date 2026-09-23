@@ -5,7 +5,9 @@ Source: plant-page bugs, pests, payments, guarantee, outpatient zones, customer 
 
 Amendments locked in earlier: outpatient reminder = Mailchimp event only (no status-strip log); part-paid includes pest-only Shopify surcharge SKUs + POS.
 
-**P0 eng + ship:** done ([HIL-128](https://linear.app/hilda-houseplant-hospital/issue/HIL-128) / [HIL-129](https://linear.app/hilda-houseplant-hospital/issue/HIL-129); migration `0037`; live Worker `275db517`; [PR #4](https://github.com/RosannaCostello/Houseplant-Hospital/pull/4)). **P1 #7–11 eng:** [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131) (migration `0038`; apply in Supabase then deploy).
+**P0 eng + ship:** done ([HIL-128](https://linear.app/hilda-houseplant-hospital/issue/HIL-128) / [HIL-129](https://linear.app/hilda-houseplant-hospital/issue/HIL-129); migration `0037`; live Worker; [PR #4](https://github.com/RosannaCostello/Houseplant-Hospital/pull/4)).
+
+**P1 eng + ship:** done for product items #7–14 ([HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131)–[HIL-137](https://linear.app/hilda-houseplant-hospital/issue/HIL-137); migrations `0038` + `0039` applied; live Workers through `122106a1`). Next Granola app epic: **P2**.
 
 ---
 
@@ -13,7 +15,7 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 
 - [x] **Pest plants propagatable** — [HIL-127](https://linear.app/hilda-houseplant-hospital/issue/HIL-127) (always allow; child inherits pests Yes if source Yes/Not sure). Meeting also mentioned a “tick box override”; current ship is unconditional allow, not a checkbox.
 - [x] **Pests Yes/No/Not sure UI** — [HIL-124](https://linear.app/hilda-houseplant-hospital/issue/HIL-124)
-- [x] **Pest treatment options catalog** — **Partial** — [HIL-107](https://linear.app/hilda-houseplant-hospital/issue/HIL-107) / [HIL-104](https://linear.app/hilda-houseplant-hospital/issue/HIL-104) (3 locked slots when pests Yes; not “multiple per round” + pest-type paragraphs — see P1 #9–10)
+- [x] **Pest treatment options catalog** — [HIL-107](https://linear.app/hilda-houseplant-hospital/issue/HIL-107) / [HIL-104](https://linear.app/hilda-houseplant-hospital/issue/HIL-104); extended by P1 #10 ([HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131)) with **Add another treatment** beyond 1–3.
 
 ---
 
@@ -44,20 +46,41 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 ### P0 ship leftover (ops)
 
 - [x] Apply Supabase migration `0037_part_paid_payment_status.sql` (adds `part_paid` to `pos_payment_status`)
-- [x] Commit / push / deploy P0 code live — branch `jack/hil-128-p0-pests-cascade`, [PR #4](https://github.com/RosannaCostello/Houseplant-Hospital/pull/4), Worker `275db517-96d0-47d8-a2dc-050331af8cf1` (2026-09-23)
+- [x] Commit / push / deploy P0 code live — branch `jack/hil-128-p0-pests-cascade`, [PR #4](https://github.com/RosannaCostello/Houseplant-Hospital/pull/4)
 - [x] Handbook updated in repo and live with deploy
-- [ ] Merge [PR #4](https://github.com/RosannaCostello/Houseplant-Hospital/pull/4) into `main` (optional cleanup; live already on branch deploy)
+- [ ] Merge open PRs into `main` (optional cleanup; live already on branch deploys) — [#4](https://github.com/RosannaCostello/Houseplant-Hospital/pull/4)–[#9](https://github.com/RosannaCostello/Houseplant-Hospital/pull/9)
 
 ---
 
 ## P1 — Product features (near-term)
 
-- [x] **7. Outpatient zones** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131) (Settings catalog; required on Outpatient move; card chip).
+- [x] **7. Outpatient zones** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131) / [HIL-132](https://linear.app/hilda-houseplant-hospital/issue/HIL-132) / [HIL-133](https://linear.app/hilda-houseplant-hospital/issue/HIL-133)
+  - Settings catalog (seed Office / Quarantine; staff renamed to e.g. **Houseplant Hospital**).
+  - Required zone when confirming move to Outpatient; chip on Dashboard card.
+  - Editable on **Update plant** while Outpatient ([HIL-132](https://linear.app/hilda-houseplant-hospital/issue/HIL-132)).
+  - Backfill: all then-current Outpatients → Houseplant Hospital ([HIL-133](https://linear.app/hilda-houseplant-hospital/issue/HIL-133); migration `0039` applied).
 - [x] **8. Outpatient 2-week reminder** (**amended**) — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131)
-  - Cron enqueues `plant_outpatient_reminder` every **14 days** while Outpatient (dedupe via `mailchimp_events`). Jack builds/activates the Mailchimp journey.
-- [x] **9. Pest type at check-in/surgery** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131) (Settings + select; autofills treatment notes when blank).
-- [x] **10. Multiple treatments per round** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131) (**Add another treatment** beyond 1–3; outpatient still needs ≥3).
-- [x] **11. Dashboard search/filter by pest type** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131).
+  - Cron enqueues `plant_outpatient_reminder` every **14 days** while Outpatient (dedupe via `mailchimp_events`).
+  - **Ops leftover:** Jack builds/activates the Mailchimp journey on that trigger (emails not customer-facing until then).
+- [x] **9. Pest type at check-in/surgery** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131) / [HIL-134](https://linear.app/hilda-houseplant-hospital/issue/HIL-134) / [HIL-135](https://linear.app/hilda-houseplant-hospital/issue/HIL-135)
+  - Settings: pest type → treatment-notes paragraph; select at check-in / Update plant; autofills notes when blank.
+  - Required before Outpatient when pests are Yes ([HIL-135](https://linear.app/hilda-houseplant-hospital/issue/HIL-135)).
+  - Dashboard: single gold badge = bug icon, or icon + type name ([HIL-134](https://linear.app/hilda-houseplant-hospital/issue/HIL-134)).
+- [x] **10. Multiple treatments per round** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131)
+  - **Add another treatment** beyond 1–3; Outpatient still needs ≥3 when pests require treatments.
+- [x] **11. Dashboard search by pest type** — [HIL-131](https://linear.app/hilda-houseplant-hospital/issue/HIL-131) / [HIL-137](https://linear.app/hilda-houseplant-hospital/issue/HIL-137)
+  - Search box matches pest type labels (name / email / pest).
+  - **All pests** dropdown removed ([HIL-137](https://linear.app/hilda-houseplant-hospital/issue/HIL-137)) — search only.
+
+### P1 polish (shipped with P1)
+
+- [x] Temporary red outlines on missing Outpatient readiness fields when move blocked ([HIL-136](https://linear.app/hilda-houseplant-hospital/issue/HIL-136)) — same idea as check-in notes validation.
+
+### P1 ship leftover (ops)
+
+- [x] Apply Supabase migration `0038_outpatient_zones_pest_types_treatments.sql`
+- [x] Apply Supabase migration `0039_backfill_outpatient_zone_houseplant_hospital.sql`
+- [ ] Mailchimp journey for event **`plant_outpatient_reminder`** (ties to #8)
 
 ---
 
@@ -88,6 +111,7 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 - [ ] **20.** Rosanna: investigate **auto-import** remaining Zoho without bulk Mailchimp emails.
 - [ ] **21.** Kits MVP / membership: strategy only for now (not HHH app unless scoped later). SOS bookings stay on Zoho/Zoom.
 - [x] **22.** **Ops: create Pest surcharge Shopify product/variants** (required for P0 #3; prices = pests − standard per size) — done: product `16031780831613`, Mini–XL variants wired in app config.
+- [ ] **23.** **Ops: Mailchimp journey** on `plant_outpatient_reminder` (required for P1 #8 customer emails).
 
 ---
 
@@ -107,7 +131,7 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 3. [x] On pests → Yes after `paid`: set `part_paid`, queue `pos_line_items` with surcharge variant(s) onto Pending check-ins.
 4. [x] POS payment webhook/flow: when that balance cart is paid → `paid`.
 5. [x] Cascade (#1) uses the same path (quarantine + part_paid + surcharge cart + Mailchimp).
-6. [x] Live: apply `0037` + deploy (Worker `275db517`; PR #4).
+6. [x] Live: apply `0037` + deploy (PR #4).
 
 ---
 
@@ -132,4 +156,4 @@ flowchart TD
   pestType --> customerDash
 ```
 
-P0 + P1 #7–14 product items done (or OOS). Remaining Granola app epic: **P2 customer dashboard**. Handbook updates required for any staff-facing ship.
+**Status:** P0 + P1 eng done (or OOS). Open ops: Mailchimp `plant_outpatient_reminder` journey; optional PR merges to `main`. Next app epic: **P2 customer dashboard**. Handbook updates required for any staff-facing ship.
