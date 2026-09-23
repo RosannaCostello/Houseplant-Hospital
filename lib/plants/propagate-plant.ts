@@ -3,34 +3,44 @@ import { emitPlantPropagatedEvent } from "@/lib/mailchimp/emit-plant-event";
 import type { PlantSize } from "@/lib/plant-size";
 import { SHOPIFY_VARIANT_IDS } from "@/lib/shopify/config";
 import type { PosCheckoutPayload } from "@/lib/shopify/pos-checkout-types";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type PropagatePlantResult =
   | { success: true; plantId: string; visitId: string }
   | { success: false; error: string };
 
-function rpcErrorMessage(message: string): string {
-  const knownMessages = [
-    "Source plant not found.",
-    "A propagation plant cannot be propagated.",
-    "Only a plant in surgery can be propagated.",
-    "A plant with pests cannot be propagated.",
-    "This plant has already been propagated.",
-  ];
-
-  return knownMessages.find((known) => message.includes(known)) ?? "Could not propagate this plant.";
-}
-
+/**
+ * Propagate a standard plant in Surgery into a new pay-at-collection visit.
+ * Uses the admin client for writes so we can set child pests independently of
+ * the older DB RPC that blocked pests (HIL-127). Migration 0035 keeps the RPC
+ * in sync when applied.
+ */
 export async function propagatePlantWithClient(
   supabase: SupabaseClient,
   sourcePlantId: string,
   size: PlantSize,
 ): Promise<PropagatePlantResult> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "You must be signed in as staff to propagate a plant." };
+  }
+
   const { data: source, error: sourceError } = await supabase
     .from("plants")
     .select(
       `
       id,
+      name,
+      species,
+      status,
+      bugs_found,
+      plant_category,
+      visit_id,
       visits!inner (
+        customer_id,
         customers!inner (
           first_name,
           last_name,
@@ -47,11 +57,33 @@ export async function propagatePlantWithClient(
     return { success: false, error: "Source plant not found." };
   }
 
+  if (source.plant_category !== "standard") {
+    return { success: false, error: "A propagation plant cannot be propagated." };
+  }
+
+  if (source.status !== "in_surgery") {
+    return { success: false, error: "Only a plant in surgery can be propagated." };
+  }
+
+  const { count: existingChildren, error: childError } = await supabase
+    .from("plants")
+    .select("id", { count: "exact", head: true })
+    .eq("source_plant_id", sourcePlantId);
+
+  if (childError) {
+    return { success: false, error: childError.message };
+  }
+
+  if ((existingChildren ?? 0) > 0) {
+    return { success: false, error: "This plant has already been propagated." };
+  }
+
   const visit = Array.isArray(source.visits) ? source.visits[0] : source.visits;
   const customerRelation = visit?.customers;
   const customer = Array.isArray(customerRelation) ? customerRelation[0] : customerRelation;
+  const customerId = visit?.customer_id as string | undefined;
 
-  if (!customer) {
+  if (!customer || !customerId) {
     return { success: false, error: "Source plant customer not found." };
   }
 
@@ -73,24 +105,58 @@ export async function propagatePlantWithClient(
     ],
   };
 
-  const { data, error } = await supabase.rpc("propagate_plant", {
-    p_source_plant_id: sourcePlantId,
-    p_new_visit_id: visitId,
-    p_new_plant_id: plantId,
-    p_size: size,
-    p_pos_line_items: payload,
+  // Source pests Yes or Not sure → child Yes; source No → child No.
+  const childBugsFound = source.bugs_found !== false;
+
+  const admin = createSupabaseAdminClient();
+
+  const { error: visitInsertError } = await admin.from("visits").insert({
+    id: visitId,
+    customer_id: customerId,
+    checkin_date: new Date().toISOString(),
+    notes: null,
+    created_by: user.id,
+    payment_status: "pay_at_collection",
+    pos_line_items: payload,
   });
 
-  if (error) {
-    return { success: false, error: rpcErrorMessage(error.message) };
+  if (visitInsertError) {
+    return { success: false, error: visitInsertError.message };
   }
 
-  const result = Array.isArray(data) ? data[0] : data;
-  if (!result?.plant_id || !result?.visit_id) {
-    return { success: false, error: "Propagation was not created." };
+  const { error: plantInsertError } = await admin.from("plants").insert({
+    id: plantId,
+    visit_id: visitId,
+    name: source.name,
+    species: source.species,
+    size,
+    status: "propagation",
+    bugs_found: childBugsFound,
+    bugs_found_ever: childBugsFound,
+    pricing_modifier: 0,
+    plant_category: "propagation",
+    source_plant_id: sourcePlantId,
+  });
+
+  if (plantInsertError) {
+    await admin.from("visits").delete().eq("id", visitId);
+    return { success: false, error: plantInsertError.message };
   }
 
-  await emitPlantPropagatedEvent(supabase, sourcePlantId, result.plant_id as string, size);
+  const { error: historyError } = await admin.from("status_history").insert({
+    plant_id: plantId,
+    previous_status: null,
+    new_status: "propagation",
+    changed_by: user.id,
+  });
 
-  return { success: true, plantId: result.plant_id, visitId: result.visit_id };
+  if (historyError) {
+    await admin.from("plants").delete().eq("id", plantId);
+    await admin.from("visits").delete().eq("id", visitId);
+    return { success: false, error: historyError.message };
+  }
+
+  await emitPlantPropagatedEvent(supabase, sourcePlantId, plantId, size);
+
+  return { success: true, plantId, visitId };
 }

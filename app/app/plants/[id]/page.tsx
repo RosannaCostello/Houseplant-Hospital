@@ -4,9 +4,12 @@ import { PlantDetailView } from "@/components/plants/plant-detail-view";
 import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
 import { getCareTipOptions } from "@/lib/care-tips/get-care-tip-options";
 import { getPestTreatmentOptions } from "@/lib/pest-treatments/get-pest-treatment-options";
+import { getPestTypeOptions } from "@/lib/pest-types/get-pest-type-options";
 import { getPlantDetail } from "@/lib/plants/get-plant-detail";
 import { formatCustomerPlantTitle } from "@/lib/plants/format-customer-plant-title";
 import { getPlantPricing } from "@/lib/pricing/get-plant-pricing";
+import { getHospitalStaffWithClient } from "@/lib/staff/get-hospital-staff";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isValidRouteId } from "@/lib/validation/parse-route-id";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +31,16 @@ export default async function PlantDetailPage({ params }: PlantDetailPageProps) 
     notFound();
   }
 
-  const [pricing, careTipOptions, pestTreatmentOptions, appCopy] = await Promise.all([
-    getPlantPricing(id).catch(() => null),
-    getCareTipOptions(),
-    getPestTreatmentOptions().catch(() => []),
-    getAppCopySettings(),
-  ]);
+  const supabase = await createSupabaseServerClient();
+  const [pricing, careTipOptions, pestTreatmentOptions, pestTypeOptions, appCopy, hospitalStaff] =
+    await Promise.all([
+      getPlantPricing(id).catch(() => null),
+      getCareTipOptions(),
+      getPestTreatmentOptions().catch(() => []),
+      getPestTypeOptions().catch(() => []),
+      getAppCopySettings(),
+      getHospitalStaffWithClient(supabase).catch(() => []),
+    ]);
 
   return (
     <>
@@ -43,7 +50,9 @@ export default async function PlantDetailPage({ params }: PlantDetailPageProps) 
         pricing={pricing}
         careTipOptions={careTipOptions}
         pestTreatmentOptions={pestTreatmentOptions}
+        pestTypeOptions={pestTypeOptions}
         treatmentNotesPlaceholder={appCopy.treatmentNotesPlaceholder}
+        hospitalStaff={hospitalStaff}
       />
     </>
   );

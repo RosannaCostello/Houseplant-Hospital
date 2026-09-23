@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { checkOutpatientReadinessAction } from "@/app/actions/check-outpatient-readiness";
+import { listOutpatientZonesAction } from "@/app/actions/outpatient-zone-settings";
 import { updatePlantStatusAction } from "@/app/actions/update-plant-status";
 import {
   allowedPlantStatusTransitions,
@@ -12,6 +13,8 @@ import {
   type PlantStatus,
 } from "@/lib/plant-status";
 import { confirmationForStatusMove } from "@/lib/plants/status-move-confirmation";
+import type { OutpatientZoneOption } from "@/lib/outpatient-zones/types";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
 import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
 import { cn } from "@/lib/utils";
@@ -45,6 +48,7 @@ type ConfirmStep =
       title: string;
       message: string;
       paidAnotherWay?: boolean;
+      requireZone?: boolean;
     }
   | {
       kind: "incomplete";
@@ -58,7 +62,7 @@ export function PlantCardStatusMenu({
   plantId,
   currentStatus,
   size,
-  bugsFound,
+  bugsFound: _bugsFound,
   plantCategory,
   hasPropagation,
   customerName,
@@ -77,6 +81,8 @@ export function PlantCardStatusMenu({
   const [confirmStep, setConfirmStep] = useState<ConfirmStep | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [zoneOptions, setZoneOptions] = useState<OutpatientZoneOption[]>([]);
+  const [selectedZoneId, setSelectedZoneId] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const allowedStatuses = allowedPlantStatusTransitions(currentStatus);
@@ -86,9 +92,7 @@ export function PlantCardStatusMenu({
   const showPropagate = currentStatus === "in_surgery" && plantCategory === "standard";
   const propagateDisabledReason = hasPropagation
     ? "This plant has already been propagated."
-    : bugsFound !== false
-      ? "Plants with pests cannot be propagated."
-      : undefined;
+    : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -117,14 +121,18 @@ export function PlantCardStatusMenu({
 
   function closeAll() {
     setConfirmStep(null);
+    setSelectedZoneId("");
     setOpen(false);
   }
 
-  function applyStatus(newStatus: PlantStatus, paidAnotherWay = false) {
+  function applyStatus(
+    newStatus: PlantStatus,
+    options: { paidAnotherWay?: boolean; outpatientZoneId?: string } = {},
+  ) {
     setError(null);
 
     startTransition(async () => {
-      const result = await updatePlantStatusAction(plantId, newStatus, { paidAnotherWay });
+      const result = await updatePlantStatusAction(plantId, newStatus, options);
 
       if (!result.success) {
         setError(result.error);
@@ -161,6 +169,7 @@ export function PlantCardStatusMenu({
     if (newStatus === currentStatus || isPending) return;
 
     setError(null);
+    setSelectedZoneId("");
 
     if (newStatus === "outpatient") {
       startTransition(async () => {
@@ -170,6 +179,14 @@ export function PlantCardStatusMenu({
           return;
         }
 
+        const zonesResult = await listOutpatientZonesAction();
+        if (zonesResult.success) {
+          setZoneOptions(zonesResult.options);
+        } else {
+          setZoneOptions([]);
+          setError(zonesResult.error);
+        }
+
         const confirm = confirmationForStatusMove(currentStatus, newStatus);
         if (confirm) {
           setConfirmStep({
@@ -177,9 +194,16 @@ export function PlantCardStatusMenu({
             targetStatus: newStatus,
             title: confirm.title,
             message: confirm.message,
+            requireZone: true,
           });
         } else {
-          applyStatus(newStatus);
+          setConfirmStep({
+            kind: "status",
+            targetStatus: newStatus,
+            title: "Move to Outpatient?",
+            message: "Choose a zone, then confirm.",
+            requireZone: true,
+          });
         }
       });
       return;
@@ -207,11 +231,33 @@ export function PlantCardStatusMenu({
   const showingConfirm = confirmStep !== null;
   const isButtonVariant = variant === "button";
   const isChipVariant = variant === "overlay" || variant === "chip";
+  const zoneRequired =
+    confirmStep?.kind === "status" &&
+    confirmStep.requireZone === true &&
+    confirmStep.targetStatus === "outpatient";
+  const canConfirmOutpatient = !zoneRequired || Boolean(selectedZoneId);
 
   function openMenu() {
     setConfirmStep(null);
+    setSelectedZoneId("");
     setError(null);
     setOpen(true);
+  }
+
+  function confirmStatusMove(step: Extract<ConfirmStep, { kind: "status" }>) {
+    if (step.requireZone && step.targetStatus === "outpatient") {
+      if (!selectedZoneId) {
+        setError("Select an outpatient zone before confirming.");
+        return;
+      }
+      applyStatus(step.targetStatus, {
+        paidAnotherWay: Boolean(step.paidAnotherWay),
+        outpatientZoneId: selectedZoneId,
+      });
+      return;
+    }
+
+    applyStatus(step.targetStatus, { paidAnotherWay: Boolean(step.paidAnotherWay) });
   }
 
   return (
@@ -416,6 +462,32 @@ export function PlantCardStatusMenu({
                       </p>
                     </div>
                     <div className="space-y-2 p-4">
+                      {zoneRequired ? (
+                        <label className={hildaLabelClassName}>
+                          Outpatient zone
+                          <select
+                            className={`${hildaInputClassName} py-2.5`}
+                            value={selectedZoneId}
+                            disabled={isPending || zoneOptions.length === 0}
+                            onChange={(event) => {
+                              setSelectedZoneId(event.target.value);
+                              setError(null);
+                            }}
+                          >
+                            <option value="">Select zone…</option>
+                            {zoneOptions.map((zone) => (
+                              <option key={zone.id} value={zone.id}>
+                                {zone.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      {zoneRequired && zoneOptions.length === 0 ? (
+                        <p className="text-sm text-hilda-error-text">
+                          No outpatient zones configured. An admin can add them in Settings.
+                        </p>
+                      ) : null}
                       {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
                       {confirmStep.paidAnotherWay ? (
                         <>
@@ -430,13 +502,8 @@ export function PlantCardStatusMenu({
                           <button
                             type="button"
                             className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95 disabled:opacity-50"
-                            disabled={isPending}
-                            onClick={() =>
-                              applyStatus(
-                                confirmStep.targetStatus,
-                                Boolean(confirmStep.paidAnotherWay),
-                              )
-                            }
+                            disabled={isPending || !canConfirmOutpatient}
+                            onClick={() => confirmStatusMove(confirmStep)}
                           >
                             {isPending ? "Updating…" : "Yes"}
                           </button>
@@ -446,13 +513,8 @@ export function PlantCardStatusMenu({
                           <button
                             type="button"
                             className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95 disabled:opacity-50"
-                            disabled={isPending}
-                            onClick={() =>
-                              applyStatus(
-                                confirmStep.targetStatus,
-                                Boolean(confirmStep.paidAnotherWay),
-                              )
-                            }
+                            disabled={isPending || !canConfirmOutpatient}
+                            onClick={() => confirmStatusMove(confirmStep)}
                           >
                             {isPending ? "Updating…" : "Yes"}
                           </button>

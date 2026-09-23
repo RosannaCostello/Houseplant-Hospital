@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
+import { PestsFoundAfterPaymentAlert } from "@/components/payments/pests-found-after-payment-alert";
 import { BugsFoundBadge } from "@/components/plants/bugs-found-badge";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { PropagationBadge } from "@/components/plants/propagation-badge";
@@ -190,6 +191,26 @@ export function PlantCard({
                 iconClassName="h-3 w-3"
               />
             ) : null}
+            {plant.outpatientZoneLabel ? (
+              <span
+                className={cn(
+                  imageOverlayBadgeClass,
+                  "bg-hilda-surface text-[10px] font-semibold uppercase tracking-wide text-hilda-heading",
+                )}
+              >
+                {plant.outpatientZoneLabel}
+              </span>
+            ) : null}
+            {plant.pestTypeLabel ? (
+              <span
+                className={cn(
+                  imageOverlayBadgeClass,
+                  "bg-hilda-bugs/15 text-[10px] font-semibold uppercase tracking-wide text-hilda-bugs",
+                )}
+              >
+                {plant.pestTypeLabel}
+              </span>
+            ) : null}
             <PaymentStatusBadge
               status={plant.paymentStatus}
               shopifyOrderId={plant.shopifyOrderId}
@@ -200,6 +221,11 @@ export function PlantCard({
         </button>
 
         <div className="shrink-0">
+          {plant.paymentStatus === "part_paid" ? (
+            <div className="border-b border-amber-200 px-2.5 pt-2">
+              <PestsFoundAfterPaymentAlert compact />
+            </div>
+          ) : null}
           <div className="flex items-start gap-2 p-2.5">
             <button
               type="button"
