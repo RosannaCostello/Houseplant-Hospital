@@ -42,7 +42,7 @@ export async function sendHospitalTransactionalEmail(
     throw new Error("care_card_url is required for Transactional hospital emails (set APP_BASE_URL).");
   }
 
-  const speciesLabel = properties.species?.trim() || "your plant";
+  const speciesLabel = properties.species?.trim() || "plant";
   const awaitingRaw = properties.awaiting_plant_count;
   const awaitingCount = awaitingRaw ? Number.parseInt(awaitingRaw, 10) : undefined;
 

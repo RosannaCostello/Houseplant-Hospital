@@ -49,81 +49,81 @@ const SEEDS = [
     subject: "Checked in at Hilda Houseplant Hospital",
     headline: "We've checked in your plant",
     bodyHtml:
-      "*|SPECIES|* is with us at Hilda Houseplant Hospital. You can follow progress on your Care Card anytime.",
+      "Your *|SPECIES|* is with us at Hilda Houseplant Hospital. You can follow progress on your Care Card anytime.",
     bodyText:
-      "*|SPECIES|* is with us at Hilda Houseplant Hospital. You can follow progress on your Care Card anytime.",
+      "Your *|SPECIES|* is with us at Hilda Houseplant Hospital. You can follow progress on your Care Card anytime.",
   },
   {
     name: "hh-plant-quarantined",
     subject: "Your plant is in Quarantine",
     headline: "Quarantine",
     bodyHtml:
-      "*|SPECIES|* is in Quarantine at the Hospital while we assess and treat. Open your Care Card for the latest status.",
+      "Your *|SPECIES|* is in Quarantine at the Hospital while we assess and treat. Open your Care Card for the latest status.",
     bodyText:
-      "*|SPECIES|* is in Quarantine at the Hospital while we assess and treat. Open your Care Card for the latest status.",
+      "Your *|SPECIES|* is in Quarantine at the Hospital while we assess and treat. Open your Care Card for the latest status.",
   },
   {
     name: "hh-plant-in-surgery",
     subject: "Your plant is in Surgery",
     headline: "In Surgery",
     bodyHtml:
-      "*|SPECIES|* is in Surgery with our team. We'll update you when it's ready — you can also check your Care Card.",
+      "Your *|SPECIES|* is in Surgery with our team. We'll update you when it's ready — you can also check your Care Card.",
     bodyText:
-      "*|SPECIES|* is in Surgery with our team. We'll update you when it's ready — you can also check your Care Card.",
+      "Your *|SPECIES|* is in Surgery with our team. We'll update you when it's ready — you can also check your Care Card.",
   },
   {
     name: "hh-plant-outpatient",
     subject: "Ready for collection at Hilda",
     headline: "Ready for collection",
     bodyHtml:
-      "*|SPECIES|* is ready to pick up from Hilda. View aftercare details on your Care Card before you visit.",
+      "Your *|SPECIES|* is ready to pick up from Hilda. View aftercare details on your Care Card before you visit.",
     bodyText:
-      "*|SPECIES|* is ready to pick up from Hilda. View aftercare details on your Care Card before you visit.",
+      "Your *|SPECIES|* is ready to pick up from Hilda. View aftercare details on your Care Card before you visit.",
   },
   {
     name: "hh-plant-outpatient-partial",
     subject: "One of your plants is ready",
     headline: "Partial update",
     bodyHtml:
-      "*|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
+      "Your *|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
     bodyText:
-      "*|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
+      "Your *|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
   },
   {
     name: "hh-plant-outpatient-reminder",
     subject: "Friendly reminder — plant ready for collection",
     headline: "Still ready for collection",
     bodyHtml:
-      "*|SPECIES|* is still waiting for collection at Hilda. Open your Care Card for details, or speak to the team in store.",
+      "Your *|SPECIES|* is still waiting for collection at Hilda. Open your Care Card for details, or speak to the team in store.",
     bodyText:
-      "*|SPECIES|* is still waiting for collection at Hilda. Open your Care Card for details, or speak to the team in store.",
+      "Your *|SPECIES|* is still waiting for collection at Hilda. Open your Care Card for details, or speak to the team in store.",
   },
   {
     name: "hh-plant-dead",
     subject: "Update from Hilda Houseplant Hospital",
     headline: "Assessment complete",
     bodyHtml:
-      "Please speak to the Hilda team about *|SPECIES|*. Your Care Card has the latest status.",
+      "Please speak to the Hilda team about your *|SPECIES|*. Your Care Card has the latest status.",
     bodyText:
-      "Please speak to the Hilda team about *|SPECIES|*. Your Care Card has the latest status.",
+      "Please speak to the Hilda team about your *|SPECIES|*. Your Care Card has the latest status.",
   },
   {
     name: "hh-plant-propagated",
     subject: "A new propagation from your plant",
     headline: "Propagation",
     bodyHtml:
-      "We've started a new propagation from *|SPECIES|*. Follow both plants on your Care Card.",
+      "We've started a new propagation from your *|SPECIES|*. Follow both plants on your Care Card.",
     bodyText:
-      "We've started a new propagation from *|SPECIES|*. Follow both plants on your Care Card.",
+      "We've started a new propagation from your *|SPECIES|*. Follow both plants on your Care Card.",
   },
   {
     name: "hh-bugs-found",
     subject: "Pests found on your plant",
     headline: "Pests found",
     bodyHtml:
-      "We've found pests on *|SPECIES|* and are treating them at the Hospital. Open your Care Card for details.",
+      "We've found pests on your *|SPECIES|* and are treating them at the Hospital. Open your Care Card for details.",
     bodyText:
-      "We've found pests on *|SPECIES|* and are treating them at the Hospital. Open your Care Card for details.",
+      "We've found pests on your *|SPECIES|* and are treating them at the Hospital. Open your Care Card for details.",
   },
 ];
 
