@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 function normalizeDraftPlants(plants: CheckInPlantInput[]): CheckInPlant[] {
   return plants.map((plant) => ({
     ...plant,
+    name: plant.name ?? "",
     bugsFound: plant.bugsFound ?? null,
     potSizeChangeConsent: plant.potSizeChangeConsent ?? false,
   }));
