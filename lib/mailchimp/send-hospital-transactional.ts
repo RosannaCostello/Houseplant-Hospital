@@ -42,13 +42,13 @@ export async function sendHospitalTransactionalEmail(
     throw new Error("care_card_url is required for Transactional hospital emails (set APP_BASE_URL).");
   }
 
-  const plantName = properties.plant_name?.trim() || "your plant";
+  const speciesLabel = properties.species?.trim() || "your plant";
   const awaitingRaw = properties.awaiting_plant_count;
   const awaitingCount = awaitingRaw ? Number.parseInt(awaitingRaw, 10) : undefined;
 
   const globalMergeVars: MandrillMergeVar[] = [
     { name: "CARE_CARD_URL", content: careCardUrl },
-    { name: "PLANT_NAME", content: plantName },
+    { name: "SPECIES", content: speciesLabel },
     { name: "AWAITING_SUMMARY", content: awaitingSummaryPhrase(awaitingCount) },
   ];
 

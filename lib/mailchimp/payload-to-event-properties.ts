@@ -20,7 +20,17 @@ export function payloadToEventProperties(payload: MailchimpEventPayload): Record
   }
   if (payload.childPlantId) properties.child_plant_id = payload.childPlantId;
   if (payload.size) properties.size = truncateEventProperty(payload.size);
-  if (payload.plantName) properties.plant_name = truncateEventProperty(payload.plantName);
+  const species =
+    payload.species?.trim() ||
+    // Legacy queued rows still used plantName (was plant display name / species).
+    (typeof (payload as { plantName?: string }).plantName === "string"
+      ? (payload as { plantName?: string }).plantName!.trim()
+      : "");
+  if (species) {
+    properties.species = truncateEventProperty(species);
+    // Legacy alias for older Journey templates still using plant_name.
+    properties.plant_name = truncateEventProperty(species);
+  }
 
   const careCardUrl =
     payload.careCardUrl?.trim() ||

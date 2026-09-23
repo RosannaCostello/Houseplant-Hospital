@@ -38,8 +38,8 @@ export type MailchimpEventPayload = {
   bugsFound?: boolean;
   /** Sibling plants still blocking ready-to-collect (outpatient partial only). */
   awaitingPlantCount?: number;
-  /** Plant display name for journey email copy (HIL-98). */
-  plantName?: string;
+  /** Plant species for journey / Transactional merge (HIL-129 — no plant name). */
+  species?: string;
   /**
    * Absolute Customer Care Card URL for the drop-off (HIL-139).
    * Prefer deriving from visitId + APP_BASE_URL at send time when omitted.

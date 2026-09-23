@@ -71,11 +71,11 @@ export async function syncCheckInToMailchimp(
   for (const plant of input.plants) {
     const { data: plantRow } = await input.supabase
       .from("plants")
-      .select("name")
+      .select("species")
       .eq("id", plant.plantId)
       .maybeSingle();
 
-    const plantName = plantRow?.name?.trim() || undefined;
+    const species = plantRow?.species?.trim() || undefined;
     const careCardUrl = careCardUrlFromEnv(input.visitId) ?? undefined;
 
     const queued = await adapter.queueEvent({
@@ -87,7 +87,7 @@ export async function syncCheckInToMailchimp(
         visitId: input.visitId,
         customerId: input.customerId,
         plantId: plant.plantId,
-        plantName,
+        species,
         careCardUrl,
       },
     });

@@ -210,7 +210,7 @@ The app queues plant events in `mailchimp_events`. Delivery splits by **Route A*
 | **Mailchimp Transactional** (Mandrill) | Hospital service emails: check-in, Quarantine, Surgery, Outpatient (+ partial / reminder), Dead, Propagated, pests found | **Every** hospital customer (marketing opt-in **not** required) |
 | **Marketing Events API → Customer Journey** | **`plant_collected` only** | Used to start **nurture** journeys — gate those journeys to subscribed / `newsletter` |
 
-Hospital Transactional emails are Mandrill **templates** (copy + layout edited in Mailchimp Transactional → Outbound → Templates, slugs `hh-…`). They include a **View your Care Card** button via `*|CARE_CARD_URL|*`. Treatment notes and care tips are on the Care Card, not in the email body.
+Hospital Transactional emails are Mandrill **templates** (copy + layout edited in Mailchimp Transactional → Outbound → Templates, slugs `hh-…`). They include a **View your Care Card** button via `*|CARE_CARD_URL|*`. Species (not plant name) is available as `*|SPECIES|*`. Treatment notes and care tips are on the Care Card, not in the email body.
 
 **Ops:** deactivate Marketing Journeys that used to fire on hospital events (check-in, surgery, outpatient, etc.) so you are not confused by dormant triggers. Keep / build the **`plant_collected`** nurture journey with a consent filter.
 
@@ -238,7 +238,7 @@ Still stored on queued rows and sent with `plant_collected` Journey triggers. Em
 | `visit_id` | Drop-off UUID (stored as visit id) |
 | `plant_id` | Plant UUID (for `plant_propagated`: the **source** plant) |
 | `customer_id` | Customer UUID |
-| `plant_name` | Plant display name (if set) |
+| `species` | Plant species (HIL-129 — no plant name). Also mirrored as legacy `plant_name` for older Journey templates |
 | `care_card_url` | Absolute link to the visit **Customer Care Card** (`/hh/care/…`) — use this as the CTA in journey emails |
 | `previous_status` | Status before the change (status / bugs events) |
 | `new_status` | Status after the change (status events) |

@@ -24,7 +24,7 @@ type PlantCustomerContext = {
   customerId: string;
   visitId: string;
   email: string;
-  plantName?: string;
+  species?: string;
   careCardUrl?: string;
 };
 
@@ -35,7 +35,7 @@ async function resolvePlantCustomerContext(
 ): Promise<PlantCustomerContext | null> {
   const { data: plant, error: plantError } = await supabase
     .from("plants")
-    .select("id, visit_id, name, species")
+    .select("id, visit_id, species")
     .eq("id", plantId)
     .maybeSingle();
 
@@ -67,7 +67,7 @@ async function resolvePlantCustomerContext(
     return null;
   }
 
-  const plantName = plant.species?.trim() || plant.name?.trim() || undefined;
+  const species = plant.species?.trim() || undefined;
   const careCardUrl = careCardUrlFromEnv(plant.visit_id) ?? undefined;
 
   return {
@@ -75,7 +75,7 @@ async function resolvePlantCustomerContext(
     customerId: visit.customer_id,
     visitId: plant.visit_id,
     email,
-    plantName,
+    species,
     careCardUrl,
   };
 }
@@ -102,7 +102,7 @@ async function queuePlantEvent(
       customerId: context.customerId,
       visitId: context.visitId,
       plantId: context.plantId,
-      plantName: context.plantName,
+      species: context.species,
       careCardUrl: context.careCardUrl,
       ...payload,
     },
