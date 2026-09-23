@@ -16,6 +16,8 @@ export type SendHospitalTransactionalInput = {
   payload: MailchimpEventPayload;
   /** Optional display name for the To: header. */
   toName?: string;
+  /** Customer first name for *|FNAME|* greeting. */
+  firstName?: string;
 };
 
 type MandrillMergeVar = { name: string; content: string };
@@ -43,10 +45,12 @@ export async function sendHospitalTransactionalEmail(
   }
 
   const speciesLabel = properties.species?.trim() || "plant";
+  const firstName = input.firstName?.trim() || "there";
   const awaitingRaw = properties.awaiting_plant_count;
   const awaitingCount = awaitingRaw ? Number.parseInt(awaitingRaw, 10) : undefined;
 
   const globalMergeVars: MandrillMergeVar[] = [
+    { name: "FNAME", content: firstName },
     { name: "CARE_CARD_URL", content: careCardUrl },
     { name: "SPECIES", content: speciesLabel },
     { name: "AWAITING_SUMMARY", content: awaitingSummaryPhrase(awaitingCount) },

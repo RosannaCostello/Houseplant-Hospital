@@ -218,7 +218,7 @@ Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (usef
 | `plant_propagated` | `hh-plant-propagated` |
 | `bugs_found` | `hh-bugs-found` |
 
-Merge tags the app fills: `*|SPECIES|*`, `*|CARE_CARD_URL|*`, and (partial only) `*|AWAITING_SUMMARY|*`. Keep those tags in the template. After editing, **Publish** the template.
+Merge tags the app fills: `*|FNAME|*`, `*|SPECIES|*`, `*|CARE_CARD_URL|*`, and (partial only) `*|AWAITING_SUMMARY|*`. Keep those tags in the template. After editing, **Publish** the template.
 
 Seed / refresh starter templates (skips existing unless `--force`):
 

@@ -127,24 +127,24 @@ const SEEDS = [
   },
 ];
 
-function wrapHtml(headline, bodyHtml) {
+function wrapHtml(bodyHtml) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /></head>
-<body style="margin:0;padding:0;background:#f7f4ef;font-family:Georgia,'Times New Roman',serif;color:#2c2a26;">
+<body style="margin:0;padding:0;background:#f7f4ef;font-family:Helvetica,Arial,sans-serif;color:#2c2a26;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f4ef;padding:32px 16px;">
     <tr>
       <td align="center">
         <table role="presentation" width="100%" style="max-width:520px;background:#fffdf9;border:1px solid #e6e0d6;border-radius:12px;padding:28px 24px;">
-          <tr><td style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#b08d3a;font-family:Helvetica,Arial,sans-serif;">Hilda Houseplant Hospital</td></tr>
-          <tr><td style="padding-top:12px;font-size:26px;line-height:1.25;color:#2c2a26;">${headline}</td></tr>
-          <tr><td style="padding-top:14px;font-size:16px;line-height:1.55;font-family:Helvetica,Arial,sans-serif;color:#4a463f;">${bodyHtml}</td></tr>
+          <tr><td style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#b08d3a;">Hilda Houseplant Hospital</td></tr>
+          <tr><td style="padding-top:20px;font-size:16px;line-height:1.55;color:#4a463f;">Hi *|FNAME|*,</td></tr>
+          <tr><td style="padding-top:14px;font-size:16px;line-height:1.55;color:#4a463f;">${bodyHtml}</td></tr>
           <tr>
             <td style="padding-top:24px;">
-              <a href="*|CARE_CARD_URL|*" style="display:inline-block;background:#b08d3a;color:#ffffff;text-decoration:none;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;padding:12px 18px;border-radius:8px;">View your Care Card</a>
+              <a href="*|CARE_CARD_URL|*" style="display:inline-block;background:#b08d3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 18px;border-radius:8px;">View your Care Card</a>
             </td>
           </tr>
-          <tr><td style="padding-top:18px;font-size:13px;line-height:1.45;font-family:Helvetica,Arial,sans-serif;color:#7a746a;">Or open: <a href="*|CARE_CARD_URL|*" style="color:#b08d3a;">*|CARE_CARD_URL|*</a></td></tr>
+          <tr><td style="padding-top:28px;font-size:16px;line-height:1.55;color:#4a463f;">Thanks,<br />Hilda team</td></tr>
         </table>
       </td>
     </tr>
@@ -153,8 +153,8 @@ function wrapHtml(headline, bodyHtml) {
 </html>`;
 }
 
-function wrapText(headline, bodyText) {
-  return `${headline}\n\n${bodyText}\n\nView your Care Card: *|CARE_CARD_URL|*\n\n— Hilda Houseplant Hospital`;
+function wrapText(bodyText) {
+  return `Hi *|FNAME|*,\n\n${bodyText}\n\nView your Care Card: *|CARE_CARD_URL|*\n\nThanks,\nHilda team`;
 }
 
 async function mandrill(path, body) {
@@ -187,8 +187,8 @@ async function main() {
   console.log(force ? "Seeding templates (--force overwrites)…" : "Seeding missing templates only…");
 
   for (const seed of SEEDS) {
-    const code = wrapHtml(seed.headline, seed.bodyHtml);
-    const text = wrapText(seed.headline, seed.bodyText);
+    const code = wrapHtml(seed.bodyHtml);
+    const text = wrapText(seed.bodyText);
     const exists = await templateExists(seed.name);
 
     if (exists && !force) {

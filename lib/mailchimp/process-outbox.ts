@@ -236,8 +236,10 @@ async function markEventFailed(
     .eq("status", "processing");
 }
 
-async function resolveToNameForEvent(row: MailchimpEventRow): Promise<string | undefined> {
-  if (!row.customer_id) return undefined;
+async function resolveCustomerNamesForEvent(
+  row: MailchimpEventRow,
+): Promise<{ toName?: string; firstName?: string }> {
+  if (!row.customer_id) return {};
 
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase
@@ -246,16 +248,19 @@ async function resolveToNameForEvent(row: MailchimpEventRow): Promise<string | u
     .eq("id", row.customer_id)
     .maybeSingle();
 
-  if (!data) return undefined;
-  const name = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
-  return name || undefined;
+  if (!data) return {};
+
+  const firstName = data.first_name?.trim() || undefined;
+  const lastName = data.last_name?.trim() || undefined;
+  const toName = [firstName, lastName].filter(Boolean).join(" ").trim() || undefined;
+  return { toName, firstName };
 }
 
 async function sendEventWithRetry(
   email: string,
   eventName: MailchimpEventName,
   payload: MailchimpEventPayload,
-  options: { occurredAt?: string; toName?: string } = {},
+  options: { occurredAt?: string; toName?: string; firstName?: string } = {},
 ): Promise<void> {
   const useTransactional =
     isHospitalTransactionalEvent(eventName) && isMailchimpTransactionalConfigured();
@@ -276,6 +281,7 @@ async function sendEventWithRetry(
           eventName,
           payload,
           toName: options.toName,
+          firstName: options.firstName,
         });
       } else {
         await sendMemberEvent({
@@ -325,10 +331,11 @@ async function processEventRow(row: MailchimpEventRow): Promise<ProcessEventRowR
 
   try {
     await ensureAudienceMember(claimed, email);
-    const toName = await resolveToNameForEvent(claimed);
+    const { toName, firstName } = await resolveCustomerNamesForEvent(claimed);
     await sendEventWithRetry(email, claimed.event_name, claimed.payload ?? {}, {
       occurredAt: resolveOccurredAt(claimed),
       toName,
+      firstName,
     });
     await markEventSent(claimed.id);
     return { success: true };
