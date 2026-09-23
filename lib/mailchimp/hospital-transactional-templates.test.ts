@@ -4,7 +4,10 @@ import {
   hospitalTransactionalTemplateName,
   HOSPITAL_TRANSACTIONAL_TEMPLATE_BY_EVENT,
 } from "@/lib/mailchimp/hospital-transactional-templates";
-import { isHospitalTransactionalEvent } from "@/lib/mailchimp/hospital-transactional-events";
+import {
+  isHospitalTransactionalEvent,
+  isSuppressedHospitalEmail,
+} from "@/lib/mailchimp/hospital-transactional-events";
 
 describe("hospital transactional templates", () => {
   it("maps every hospital event to a hh- template slug", () => {
@@ -16,6 +19,12 @@ describe("hospital transactional templates", () => {
 
   it("keeps collected off Transactional routing", () => {
     expect(isHospitalTransactionalEvent("plant_collected")).toBe(false);
+  });
+
+  it("suppresses plant_dead live email while keeping the template map", () => {
+    expect(isHospitalTransactionalEvent("plant_dead")).toBe(true);
+    expect(isSuppressedHospitalEmail("plant_dead")).toBe(true);
+    expect(isSuppressedHospitalEmail("plant_checked_in")).toBe(false);
   });
 
   it("builds awaiting summary phrases", () => {
