@@ -2,14 +2,13 @@ import "server-only";
 
 import type { MailchimpEventName } from "@/lib/mailchimp/event-types";
 import type { MailchimpEventPayload } from "@/lib/mailchimp/event-types";
+import {
+  awaitingSummaryPhrase,
+  hospitalTransactionalTemplateName,
+} from "@/lib/mailchimp/hospital-transactional-templates";
 import { payloadToEventProperties } from "@/lib/mailchimp/payload-to-event-properties";
 import { mandrillRequest } from "@/lib/mailchimp/transactional-client";
 import { getMailchimpTransactionalConfig } from "@/lib/mailchimp/transactional-env";
-import {
-  buildHospitalTransactionalHtml,
-  buildHospitalTransactionalText,
-  hospitalTransactionalCopy,
-} from "@/lib/mailchimp/hospital-transactional-copy";
 
 export type SendHospitalTransactionalInput = {
   email: string;
@@ -19,9 +18,12 @@ export type SendHospitalTransactionalInput = {
   toName?: string;
 };
 
+type MandrillMergeVar = { name: string; content: string };
+
 /**
- * Route A — send a hospital service email via Mailchimp Transactional (Mandrill).
- * Uses app-composed thin HTML (Care Card CTA). Not used for `plant_collected`.
+ * Route A — send via Mandrill template (`messages/send-template`).
+ * Edit copy/layout in Transactional → Outbound → Templates (slug `hh-…`).
+ * Not used for `plant_collected`.
  */
 export async function sendHospitalTransactionalEmail(
   input: SendHospitalTransactionalInput,
@@ -30,37 +32,32 @@ export async function sendHospitalTransactionalEmail(
   const email = input.email.trim().toLowerCase();
   const properties = payloadToEventProperties(input.payload);
   const careCardUrl = properties.care_card_url?.trim();
+  const templateName = hospitalTransactionalTemplateName(input.eventName);
+
+  if (!templateName) {
+    throw new Error(`No Transactional template mapped for event ${input.eventName}`);
+  }
 
   if (!careCardUrl) {
     throw new Error("care_card_url is required for Transactional hospital emails (set APP_BASE_URL).");
   }
 
+  const plantName = properties.plant_name?.trim() || "your plant";
   const awaitingRaw = properties.awaiting_plant_count;
-  const awaitingPlantCount = awaitingRaw ? Number.parseInt(awaitingRaw, 10) : undefined;
+  const awaitingCount = awaitingRaw ? Number.parseInt(awaitingRaw, 10) : undefined;
 
-  const copy = hospitalTransactionalCopy(input.eventName, {
-    plantName: properties.plant_name,
-    awaitingPlantCount: Number.isFinite(awaitingPlantCount) ? awaitingPlantCount : undefined,
-  });
-
-  const html = buildHospitalTransactionalHtml({
-    headline: copy.headline,
-    body: copy.body,
-    careCardUrl,
-  });
-  const text = buildHospitalTransactionalText({
-    headline: copy.headline,
-    body: copy.body,
-    careCardUrl,
-  });
+  const globalMergeVars: MandrillMergeVar[] = [
+    { name: "CARE_CARD_URL", content: careCardUrl },
+    { name: "PLANT_NAME", content: plantName },
+    { name: "AWAITING_SUMMARY", content: awaitingSummaryPhrase(awaitingCount) },
+  ];
 
   await mandrillRequest({
-    path: "messages/send",
+    path: "messages/send-template",
     body: {
+      template_name: templateName,
+      template_content: [],
       message: {
-        html,
-        text,
-        subject: copy.subject,
         from_email: fromEmail,
         from_name: fromName,
         to: [
@@ -70,6 +67,9 @@ export async function sendHospitalTransactionalEmail(
             type: "to",
           },
         ],
+        merge: true,
+        merge_language: "mailchimp",
+        global_merge_vars: globalMergeVars,
         track_opens: true,
         track_clicks: true,
         metadata: {

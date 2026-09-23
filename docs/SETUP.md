@@ -198,11 +198,36 @@ Server code lives under `lib/mailchimp/`:
 - `event-types.ts` — event names + payload types (`plant_checked_in`, status changes, etc.)
 - `enqueue-event.ts` — insert `pending` rows into `mailchimp_events`
 - `adapter.ts` — `getMailchimpAdapter()` queues via outbox (no live API from request path)
-- Transactional Route A (HIL-140): `transactional-env.ts`, `transactional-client.ts`, `send-hospital-transactional.ts`, `hospital-transactional-copy.ts`
+- Transactional Route A (HIL-140 / HIL-141): `transactional-env.ts`, `transactional-client.ts`, `send-hospital-transactional.ts`, `hospital-transactional-templates.ts`
 
 Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (useful locally). When Mailchimp env vars are missing, outbox-only is automatic. The worker (HIL-57) processes pending rows when live delivery is enabled.
 
-**Transactional Route A (HIL-140):** hospital plant events (everything except `plant_collected`) send via **Mailchimp Transactional** (Mandrill) using `MAILCHIMP_TRANSACTIONAL_API_KEY` (`md-…`). From address defaults to `hospital@hilda.co` / `Hilda Houseplant Hospital` (`MAILCHIMP_TRANSACTIONAL_FROM_EMAIL` / `_FROM_NAME` override). Domain `hilda.co` must stay verified in Transactional. Emails are app-composed thin HTML with a Care Card CTA (no Mandrill templates required for v1). **`plant_collected`** still uses the Marketing member Events API so Customer Journeys can run nurture (consent-gated).
+**Transactional Route A (HIL-140 / HIL-141):** hospital plant events (everything except `plant_collected`) send via **Mailchimp Transactional** (Mandrill) using `MAILCHIMP_TRANSACTIONAL_API_KEY` (`md-…`) and **`messages/send-template`**. From address defaults to `hospital@hilda.co` / `Hilda Houseplant Hospital` (`MAILCHIMP_TRANSACTIONAL_FROM_EMAIL` / `_FROM_NAME` override). Domain `hilda.co` must stay verified in Transactional.
+
+**Edit hospital email copy/layout:** Mailchimp → **Transactional** → **Outbound → Templates**. Slugs:
+
+| Event | Template slug |
+|-------|----------------|
+| `plant_checked_in` | `hh-plant-checked-in` |
+| `plant_quarantined` | `hh-plant-quarantined` |
+| `plant_in_surgery` | `hh-plant-in-surgery` |
+| `plant_outpatient` | `hh-plant-outpatient` |
+| `plant_outpatient_partial` | `hh-plant-outpatient-partial` |
+| `plant_outpatient_reminder` | `hh-plant-outpatient-reminder` |
+| `plant_dead` | `hh-plant-dead` |
+| `plant_propagated` | `hh-plant-propagated` |
+| `bugs_found` | `hh-bugs-found` |
+
+Merge tags the app fills: `*|PLANT_NAME|*`, `*|CARE_CARD_URL|*`, and (partial only) `*|AWAITING_SUMMARY|*`. Keep those tags in the template. After editing, **Publish** the template.
+
+Seed / refresh starter templates (skips existing unless `--force`):
+
+```bash
+npm run mailchimp:seed-tx-templates
+npm run mailchimp:seed-tx-templates -- --force   # overwrites Mandrill edits — use carefully
+```
+
+**`plant_collected`** still uses the Marketing member Events API so Customer Journeys can run nurture (consent-gated).
 
 If the Transactional key is missing, hospital events fall back to the Marketing Events API (legacy behaviour) and a warning is logged.
 

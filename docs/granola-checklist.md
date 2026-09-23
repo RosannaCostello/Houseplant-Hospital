@@ -101,9 +101,9 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 - [x] **15b. Thin emails + `care_card_url` on all plant events** — [HIL-139](https://linear.app/hilda-houseplant-hospital/issue/HIL-139)
   - App sends `care_card_url`; stops sending treatment notes / care tips on events.
   - **Ops:** update Mailchimp journey templates to CTA the Care Card (collection nurture).
-- [x] **15c. Mailchimp Transactional (Route A)** — [HIL-140](https://linear.app/hilda-houseplant-hospital/issue/HIL-140)
-  - Hospital events → Mandrill Transactional; `plant_collected` stays on Marketing Journeys for nurture.
-  - **Ops:** deactivate old hospital Marketing journeys; keep collection nurture consent-gated.
+- [x] **15c. Mailchimp Transactional (Route A)** — [HIL-140](https://linear.app/hilda-houseplant-hospital/issue/HIL-140) / templates [HIL-141](https://linear.app/hilda-houseplant-hospital/issue/HIL-141)
+  - Hospital events → Mandrill Transactional templates (`hh-…`); `plant_collected` stays on Marketing Journeys for nurture.
+  - **Ops:** edit copy in Transactional → Outbound → Templates; deactivate old hospital Marketing journeys; keep collection nurture consent-gated.
 
 ---
 

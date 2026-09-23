@@ -23,7 +23,8 @@
     "import:zoho-mailchimp": "node scripts/import-zoho-mailchimp.mjs",
     "import:zoho-plants": "node scripts/import-zoho-plants.mjs",
     "backfill:zoho-prices": "node scripts/backfill-zoho-null-prices.mjs",
-    "backfill:zoho-bugs": "node scripts/backfill-zoho-null-bugs.mjs"
+    "backfill:zoho-bugs": "node scripts/backfill-zoho-null-bugs.mjs",
+    "mailchimp:seed-tx-templates": "node --env-file=.env.local scripts/seed-mailchimp-transactional-templates.mjs"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.11",

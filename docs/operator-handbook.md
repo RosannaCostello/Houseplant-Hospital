@@ -210,7 +210,7 @@ The app queues plant events in `mailchimp_events`. Delivery splits by **Route A*
 | **Mailchimp Transactional** (Mandrill) | Hospital service emails: check-in, Quarantine, Surgery, Outpatient (+ partial / reminder), Dead, Propagated, pests found | **Every** hospital customer (marketing opt-in **not** required) |
 | **Marketing Events API → Customer Journey** | **`plant_collected` only** | Used to start **nurture** journeys — gate those journeys to subscribed / `newsletter` |
 
-Hospital Transactional emails are thin status notes with a **View your Care Card** button. Treatment notes and care tips are on the Care Card, not in the email body.
+Hospital Transactional emails are Mandrill **templates** (copy + layout edited in Mailchimp Transactional → Outbound → Templates, slugs `hh-…`). They include a **View your Care Card** button via `*|CARE_CARD_URL|*`. Treatment notes and care tips are on the Care Card, not in the email body.
 
 **Ops:** deactivate Marketing Journeys that used to fire on hospital events (check-in, surgery, outpatient, etc.) so you are not confused by dormant triggers. Keep / build the **`plant_collected`** nurture journey with a consent filter.
 
