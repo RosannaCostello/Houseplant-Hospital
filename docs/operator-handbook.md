@@ -67,7 +67,7 @@ Use these words when talking about the app.
 | **Plant** | One plant on a drop-off. The board is organised by **plants**, not drop-offs. |
 | **Check-in** (flow) | Creating a new drop-off: customer → plants → photos. |
 | **Incomplete check-in** | A draft drop-off not finished yet (still on plants or photos step). Shown in the Incomplete lane. |
-| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name**, **email**, or **pest type**. Use the **All pests** dropdown to filter by a pest type from Settings. When search or pest filter is active, tap **Cancel search** to clear both and show the full board again. From any plant’s **⋯** menu, **Search customer** fills the search box with that customer’s email and closes the menu. On iPad, **tap the photo or customer name** to **Update plant**; use the **⋯** menu for lane moves (drag between lanes also works, but tap is the reliable path). When **Stacking cards** is on (Settings), plants from the same drop-off in the same lane appear as a fan stack — use the **left/right arrows** to move between plants. Plant cards show an **outpatient zone** chip when set. When pests are Yes, a gold pests badge shows the bug icon alone, or the icon plus pest type name when a type is set. |
+| **Dashboard** | Kanban board of active plants by lane. Use the search box to filter by customer **name**, **email**, or **pest type**. When search is active, tap **Cancel search** to show the full board again. From any plant’s **⋯** menu, **Search customer** fills the search box with that customer’s email and closes the menu. On iPad, **tap the photo or customer name** to **Update plant**; use the **⋯** menu for lane moves (drag between lanes also works, but tap is the reliable path). When **Stacking cards** is on (Settings), plants from the same drop-off in the same lane appear as a fan stack — use the **left/right arrows** to move between plants. Plant cards show an **outpatient zone** chip when set. When pests are Yes, a gold pests badge shows the bug icon alone, or the icon plus pest type name when a type is set. |
 | **Update plant** | Opens the plant record as an **overlay** on the current page (not a separate screen). Check-in stays full screen so you can hand the iPad to the customer. **Species** can be edited (rare corrections; save on blur). Treatment notes autosave on pause and when you tap **Close** — wait for “Saving…” if you just typed. On **Outpatient** plants, **Treatment notes** appear first (highlighted) above the photo. From Update plant, **View drop-off** closes the overlay and opens the drop-off page. |
 | **Stacking cards** | Admin Settings toggle (default on). Same drop-off, same lane → fan stack on the Dashboard with **← / →** arrows to step through plants. |
 | **Lane / status** | Where a plant sits on the board (see [Lanes](#lanes)). |
@@ -155,11 +155,10 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 ### Find a plant on the Dashboard
 
 1. Use the **Search by name, email, or pest** box above the lanes, or **Search customer** from a plant’s **⋯** menu.  
-2. Optionally use the **All pests** dropdown to show only plants with that pest type.  
-3. As you type or filter, plant cards and incomplete drafts that do not match are hidden.  
-4. Tap **Cancel search** to clear search and pest filter and show the full board.  
-5. Each lane has a **Newest / Oldest** toggle. Most lanes sort by check-in date. The **Collected** lane sorts by **collection date** (newest = collected most recently).  
-6. If **Stacking cards** is on (Settings), use the **left/right arrows** on a stack when several plants from one drop-off share a lane.
+2. As you type, plant cards and incomplete drafts that do not match are hidden.  
+3. Tap **Cancel search** to clear search and show the full board.  
+4. Each lane has a **Newest / Oldest** toggle. Most lanes sort by check-in date. The **Collected** lane sorts by **collection date** (newest = collected most recently).  
+5. If **Stacking cards** is on (Settings), use the **left/right arrows** on a stack when several plants from one drop-off share a lane.
 
 ### Move a plant on the board
 

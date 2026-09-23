@@ -22,13 +22,11 @@ import {
 import type { DashboardPlant } from "@/lib/dashboard/types";
 import type { IncompleteCheckInDraft } from "@/lib/check-in/check-in-draft-types";
 import { canTransitionPlantStatus, PLANT_STATUS_LANES, type PlantStatus } from "@/lib/plant-status";
-import type { PestTypeOption } from "@/lib/pest-types/types";
 
 type KanbanBoardProps = {
   plants?: DashboardPlant[];
   incompleteDrafts?: IncompleteCheckInDraft[];
   stackingCardsEnabled?: boolean;
-  pestTypeOptions?: PestTypeOption[];
 };
 
 const DEFAULT_SORT_ORDER: DashboardLaneSortOrder = "newest";
@@ -71,25 +69,22 @@ export function KanbanBoard({
   plants = [],
   incompleteDrafts = [],
   stackingCardsEnabled = true,
-  pestTypeOptions = [],
 }: KanbanBoardProps) {
   const [sortByLane, setSortByLane] = useState(initialSortByLane);
   const [searchQuery, setSearchQuery] = useState("");
-  const [pestTypeFilter, setPestTypeFilter] = useState("");
   const [pendingMove, setPendingMove] = useState<PendingPlantStatusMove | null>(null);
 
   const filteredPlants = useMemo(
     () =>
-      plants.filter((plant) => {
-        if (pestTypeFilter && plant.pestTypeLabel !== pestTypeFilter) return false;
-        return matchesSearch(
+      plants.filter((plant) =>
+        matchesSearch(
           searchQuery,
           plant.customerName,
           plant.customerEmail,
           plant.pestTypeLabel,
-        );
-      }),
-    [plants, searchQuery, pestTypeFilter],
+        ),
+      ),
+    [plants, searchQuery],
   );
 
   const filteredDrafts = useMemo(
@@ -158,33 +153,12 @@ export function KanbanBoard({
           className="min-w-0 flex-1 max-w-md rounded-hilda border border-hilda-border/20 bg-hilda-surface px-3 py-2 text-sm text-hilda-text placeholder:text-hilda-text-muted focus:border-hilda-border/40 focus:outline-none"
           autoComplete="off"
         />
-        <label className="sr-only" htmlFor="dashboard-pest-filter">
-          Filter by pest type
-        </label>
-        <select
-          id="dashboard-pest-filter"
-          value={pestTypeFilter}
-          onChange={(event) => setPestTypeFilter(event.target.value)}
-          className="min-h-10 shrink-0 rounded-hilda border border-hilda-border/20 bg-hilda-surface px-3 py-2 text-sm text-hilda-text focus:border-hilda-border/40 focus:outline-none"
-        >
-          <option value="">All pests</option>
-          {pestTypeOptions
-            .filter((option) => option.active)
-            .map((option) => (
-              <option key={option.id} value={option.label}>
-                {option.label}
-              </option>
-            ))}
-        </select>
-        {searchQuery.trim() || pestTypeFilter ? (
+        {searchQuery.trim() ? (
           <Button
             type="button"
             variant="outline"
             className="shrink-0"
-            onClick={() => {
-              setSearchQuery("");
-              setPestTypeFilter("");
-            }}
+            onClick={() => setSearchQuery("")}
           >
             Cancel search
           </Button>

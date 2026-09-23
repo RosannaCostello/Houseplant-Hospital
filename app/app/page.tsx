@@ -4,14 +4,12 @@ import { KanbanBoard } from "@/components/dashboard/kanban-board";
 import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
 import { getDashboardPlants } from "@/lib/dashboard/get-dashboard-plants";
 import { getIncompleteCheckInDrafts } from "@/lib/dashboard/get-incomplete-check-in-drafts";
-import { getPestTypeOptions } from "@/lib/pest-types/get-pest-type-options";
 
 export default async function AppHome() {
-  const [plants, incompleteDrafts, appCopy, pestTypeOptions] = await Promise.all([
+  const [plants, incompleteDrafts, appCopy] = await Promise.all([
     getDashboardPlants(),
     getIncompleteCheckInDrafts(),
     getAppCopySettings(),
-    getPestTypeOptions().catch(() => []),
   ]);
 
   return (
@@ -20,7 +18,6 @@ export default async function AppHome() {
         plants={plants}
         incompleteDrafts={incompleteDrafts}
         stackingCardsEnabled={appCopy.stackingCardsEnabled}
-        pestTypeOptions={pestTypeOptions}
       />
     </div>
   );
