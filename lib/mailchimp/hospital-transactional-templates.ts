@@ -90,9 +90,9 @@ export const HOSPITAL_TRANSACTIONAL_TEMPLATE_SEEDS: readonly HospitalTemplateSee
     subject: "One of your plants is ready",
     headline: "Partial update",
     bodyHtml:
-      "Your *|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
+      "We're still working on *|AWAITING_SUMMARY|* — just so you know, your *|SPECIES|* is all set. We'll email again when all your plants are ready. Check your Care Card for details.",
     bodyText:
-      "Your *|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
+      "We're still working on *|AWAITING_SUMMARY|* — just so you know, your *|SPECIES|* is all set. We'll email again when all your plants are ready. Check your Care Card for details.",
   },
   {
     eventName: MAILCHIMP_EVENT_NAMES.plantOutpatientReminder,
@@ -178,8 +178,8 @@ export function wrapHospitalTransactionalTemplateText(bodyText: string): string 
 
 export function awaitingSummaryPhrase(count: number | undefined): string {
   if (count == null || !Number.isFinite(count) || count <= 0) {
-    return "other plants on this drop-off are still with us";
+    return "your other plants";
   }
-  if (count === 1) return "1 other plant is still with us";
-  return `${count} other plants are still with us`;
+  if (count === 1) return "1 other plant";
+  return `${count} other plants`;
 }

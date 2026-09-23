@@ -19,8 +19,8 @@ describe("hospital transactional templates", () => {
   });
 
   it("builds awaiting summary phrases", () => {
-    expect(awaitingSummaryPhrase(1)).toBe("1 other plant is still with us");
-    expect(awaitingSummaryPhrase(3)).toBe("3 other plants are still with us");
-    expect(awaitingSummaryPhrase(undefined)).toContain("other plants");
+    expect(awaitingSummaryPhrase(1)).toBe("1 other plant");
+    expect(awaitingSummaryPhrase(3)).toBe("3 other plants");
+    expect(awaitingSummaryPhrase(undefined)).toBe("your other plants");
   });
 });

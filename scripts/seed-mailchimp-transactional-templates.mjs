@@ -85,9 +85,9 @@ const SEEDS = [
     subject: "One of your plants is ready",
     headline: "Partial update",
     bodyHtml:
-      "Your *|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
+      "We're still working on *|AWAITING_SUMMARY|* — just so you know, your *|SPECIES|* is all set. We'll email again when all your plants are ready. Check your Care Card for details.",
     bodyText:
-      "Your *|SPECIES|* is ready, but *|AWAITING_SUMMARY|*. We'll email again when the whole drop-off is ready. Check your Care Card for details.",
+      "We're still working on *|AWAITING_SUMMARY|* — just so you know, your *|SPECIES|* is all set. We'll email again when all your plants are ready. Check your Care Card for details.",
   },
   {
     name: "hh-plant-outpatient-reminder",
