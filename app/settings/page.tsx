@@ -1,12 +1,18 @@
 import { redirect } from "next/navigation";
 import { CareTipsSettingsForm } from "@/components/settings/care-tips-settings-form";
 import { DashboardSettingsForm } from "@/components/settings/dashboard-settings-form";
+import { OutpatientZoneOptionsSettingsForm } from "@/components/settings/outpatient-zone-options-settings-form";
 import { PestTreatmentOptionsSettingsForm } from "@/components/settings/pest-treatment-options-settings-form";
+import { PestTypeOptionsSettingsForm } from "@/components/settings/pest-type-options-settings-form";
 import { PricingSettingsForm } from "@/components/settings/pricing-settings-form";
+import { StaffSettingsForm } from "@/components/settings/staff-settings-form";
 import { getAppCopySettings } from "@/lib/care-tips/get-app-copy-settings";
 import { getCareTipOptions } from "@/lib/care-tips/get-care-tip-options";
+import { getOutpatientZoneOptions } from "@/lib/outpatient-zones/get-outpatient-zone-options";
 import { getPestTreatmentOptions } from "@/lib/pest-treatments/get-pest-treatment-options";
+import { getPestTypeOptions } from "@/lib/pest-types/get-pest-type-options";
 import { getPricingSettings } from "@/lib/pricing/get-pricing-settings";
+import { getHospitalStaffWithClient } from "@/lib/staff/get-hospital-staff";
 import {
   shouldRunDailyShopifySync,
   syncPricingFromShopify,
@@ -38,11 +44,24 @@ export default async function SettingsPage() {
     }
   }
 
-  const [settings, careTipOptions, pestTreatmentOptions, appCopy] = await Promise.all([
+  const [
+    settings,
+    careTipOptions,
+    pestTreatmentOptions,
+    outpatientZoneOptions,
+    pestTypeOptions,
+    appCopy,
+    hospitalStaff,
+  ] = await Promise.all([
     getPricingSettings(),
     getCareTipOptions({ includeInactive: true }),
     getPestTreatmentOptions({ includeInactive: true }).catch(() => []),
+    getOutpatientZoneOptions({ includeInactive: true }).catch(() => []),
+    getPestTypeOptions({ includeInactive: true }).catch(() => []),
     getAppCopySettings(),
+    createSupabaseServerClient()
+      .then((supabase) => getHospitalStaffWithClient(supabase, { includeInactive: true }))
+      .catch(() => []),
   ]);
 
   return (
@@ -58,11 +77,23 @@ export default async function SettingsPage() {
       </section>
 
       <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+        <StaffSettingsForm staff={hospitalStaff} />
+      </section>
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <PricingSettingsForm settings={settings} />
       </section>
 
       <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
         <PestTreatmentOptionsSettingsForm options={pestTreatmentOptions} />
+      </section>
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+        <OutpatientZoneOptionsSettingsForm options={outpatientZoneOptions} />
+      </section>
+
+      <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">
+        <PestTypeOptionsSettingsForm options={pestTypeOptions} />
       </section>
 
       <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm">

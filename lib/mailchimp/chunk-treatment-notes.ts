@@ -1,4 +1,4 @@
-/** Max chars staff can enter for treatment notes (3 × Mailchimp event chunks). */
+/** Max chars sent to Mailchimp (3 × 250-char event property chunks). App saves longer notes. */
 export const TREATMENT_NOTES_MAX_CHARS = 750;
 
 /** Max chars per Mailchimp event property chunk (under the API 255 limit). */

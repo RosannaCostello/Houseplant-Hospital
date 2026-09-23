@@ -8,6 +8,11 @@ import { isPlantCategory, type PlantCategory } from "@/lib/plant-category";
 import type { PestTreatmentNumber, PlantPestTreatment } from "@/lib/plants/pest-treatments";
 import { getMinutesInSurgeryWithClient } from "@/lib/plants/get-minutes-in-surgery";
 import { resolvePlantInternalNotes } from "@/lib/plants/internal-notes";
+import {
+  buildPlantMilestoneDatesFromHistory,
+  type PlantMilestoneDates,
+} from "@/lib/plants/get-plant-milestone-dates";
+import type { HospitalStaff } from "@/lib/staff/types";
 
 export type PlantDetailPhoto = {
   id: string;
@@ -24,6 +29,10 @@ export type PlantDetail = {
   status: PlantStatus;
   bugsFound: boolean | null;
   bugsFoundEver: boolean;
+  pestTypeOptionId: string | null;
+  pestTypeLabel: string | null;
+  outpatientZoneId: string | null;
+  outpatientZoneLabel: string | null;
   pestTreatments: PlantPestTreatment[];
   plantCategory: PlantCategory;
   sourcePlantId: string | null;
@@ -34,6 +43,9 @@ export type PlantDetail = {
   minutesInSurgery: number | null;
   checkedInAt: string;
   visitId: string;
+  potSizeChangeConsent: boolean;
+  milestoneDates: PlantMilestoneDates;
+  surgeryCompletedBy: HospitalStaff | null;
   paymentStatus: PosPaymentStatus | null;
   shopifyOrderId: string | null;
   visitPlantIndex: number;
@@ -76,6 +88,7 @@ const PLANT_DETAIL_RELATIONS_BASE = `
         id,
         checkin_date,
         notes,
+        pot_size_change_consent,
         payment_status,
         shopify_order_id,
         customers!inner (
@@ -132,7 +145,17 @@ const PLANT_DETAIL_SELECT = `
       final_price,
       collected_at,
       notes,
+      pot_size_change_consent,
+      surgery_completed_by,
+      pest_type_option_id,
+      outpatient_zone_id,
       created_at,
+      pest_type_options (
+        label
+      ),
+      outpatient_zone_options (
+        label
+      ),
       ${PLANT_DETAIL_RELATIONS}
 `;
 
@@ -149,8 +172,29 @@ const PLANT_DETAIL_SELECT_PRE_OPTIONS = `
       final_price,
       collected_at,
       notes,
+      pot_size_change_consent,
+      surgery_completed_by,
       created_at,
       ${PLANT_DETAIL_RELATIONS_PRE_OPTIONS}
+`;
+
+const PLANT_DETAIL_SELECT_WITHOUT_ZONE_PEST = `
+      id,
+      name,
+      species,
+      size,
+      status,
+      bugs_found,
+      bugs_found_ever,
+      plant_category,
+      source_plant_id,
+      final_price,
+      collected_at,
+      notes,
+      pot_size_change_consent,
+      surgery_completed_by,
+      created_at,
+      ${PLANT_DETAIL_RELATIONS}
 `;
 
 const PLANT_DETAIL_SELECT_LEGACY = `
@@ -178,9 +222,19 @@ const PLANT_DETAIL_SELECT_WITHOUT_PLANT_NOTES = `
       source_plant_id,
       final_price,
       collected_at,
+      surgery_completed_by,
+      pot_size_change_consent,
       created_at,
       ${PLANT_DETAIL_RELATIONS}
 `;
+
+function isMissingSurgerySignOffColumnError(message: string): boolean {
+  return message.includes("surgery_completed_by");
+}
+
+function isMissingPotConsentColumnError(message: string): boolean {
+  return message.includes("pot_size_change_consent");
+}
 
 function isMissingCollectionColumnsError(message: string): boolean {
   return message.includes("final_price") || message.includes("collected_at");
@@ -189,6 +243,15 @@ function isMissingCollectionColumnsError(message: string): boolean {
 function isMissingPlantNotesColumnError(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes("notes") && (lower.includes("plants") || lower.includes("'notes'"));
+}
+
+function isMissingZoneOrPestTypeColumnsError(message: string): boolean {
+  return (
+    message.includes("pest_type_option_id") ||
+    message.includes("outpatient_zone_id") ||
+    message.includes("pest_type_options") ||
+    message.includes("outpatient_zone_options")
+  );
 }
 
 function isMissingPestTreatmentOptionColumnsError(message: string): boolean {
@@ -223,9 +286,9 @@ function parsePestTreatments(
         option_id?: string | null;
         option_label?: string | null;
       } =>
-        (row.treatment_number === 1 ||
-          row.treatment_number === 2 ||
-          row.treatment_number === 3) &&
+        typeof row.treatment_number === "number" &&
+        Number.isInteger(row.treatment_number) &&
+        row.treatment_number >= 1 &&
         typeof row.treated_at === "string",
     )
     .map((row) => ({
@@ -249,10 +312,34 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     .eq("id", plantId)
     .maybeSingle();
 
+  if (error && isMissingZoneOrPestTypeColumnsError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT_WITHOUT_ZONE_PEST)
+      .eq("id", plantId)
+      .maybeSingle());
+  }
+
   if (error && isMissingPlantNotesColumnError(error.message)) {
     ({ data, error } = await supabase
       .from("plants")
       .select(PLANT_DETAIL_SELECT_WITHOUT_PLANT_NOTES)
+      .eq("id", plantId)
+      .maybeSingle());
+  }
+
+  if (error && isMissingSurgerySignOffColumnError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT_WITHOUT_PLANT_NOTES.replace("surgery_completed_by,", ""))
+      .eq("id", plantId)
+      .maybeSingle());
+  }
+
+  if (error && isMissingPotConsentColumnError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT.replace("pot_size_change_consent,\n      ", ""))
       .eq("id", plantId)
       .maybeSingle());
   }
@@ -298,6 +385,13 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     final_price?: number | null;
     collected_at?: string | null;
     notes?: string | null;
+    pot_size_change_consent?: boolean;
+    surgery_completed_by?: string | null;
+    pest_type_option_id?: string | null;
+    outpatient_zone_id?: string | null;
+    created_at?: string;
+    pest_type_options?: { label?: string } | { label?: string }[] | null;
+    outpatient_zone_options?: { label?: string } | { label?: string }[] | null;
     plant_pest_treatments?: Array<{
       treatment_number?: number;
       treated_at?: string;
@@ -309,6 +403,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
           id: string;
           checkin_date: string;
           notes: string | null;
+          pot_size_change_consent?: boolean;
           payment_status?: string | null;
           shopify_order_id?: string | null;
           customers:
@@ -329,6 +424,7 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
           id: string;
           checkin_date: string;
           notes: string | null;
+          pot_size_change_consent?: boolean;
           payment_status?: string | null;
           shopify_order_id?: string | null;
           customers:
@@ -362,6 +458,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
 
   const visit = unwrapRelation(row.visits);
   const customer = visit ? unwrapRelation(visit.customers) : null;
+  const pestType = unwrapRelation(row.pest_type_options);
+  const zone = unwrapRelation(row.outpatient_zone_options);
 
   if (!row.id || !row.size || !row.status || !visit || !customer) {
     return null;
@@ -439,6 +537,49 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
       ? await getMinutesInSurgeryWithClient(supabase, row.id)
       : null;
 
+  const { data: historyRows, error: historyError } = await supabase
+    .from("status_history")
+    .select("new_status, created_at")
+    .eq("plant_id", row.id)
+    .order("created_at", { ascending: true });
+
+  if (historyError) {
+    throw new Error(`Failed to load plant history: ${historyError.message}`);
+  }
+
+  const milestoneDates = buildPlantMilestoneDatesFromHistory(historyRows ?? []);
+  if (!milestoneDates.collectedAt && row.collected_at) {
+    milestoneDates.collectedAt = row.collected_at;
+  }
+
+  const plantCategory = isPlantCategory(row.plant_category) ? row.plant_category : "standard";
+  if (!milestoneDates.propagatedAt && plantCategory === "propagation" && row.created_at) {
+    milestoneDates.propagatedAt = row.created_at;
+  }
+
+  let surgeryCompletedBy: HospitalStaff | null = null;
+  if (row.surgery_completed_by) {
+    const { data: staffRow, error: staffError } = await supabase
+      .from("hospital_staff")
+      .select("id, first_name, last_name, active, sort_order")
+      .eq("id", row.surgery_completed_by)
+      .maybeSingle();
+
+    if (staffError && !staffError.message.includes("hospital_staff")) {
+      throw new Error(`Failed to load surgery sign-off: ${staffError.message}`);
+    }
+
+    if (staffRow) {
+      surgeryCompletedBy = {
+        id: staffRow.id,
+        firstName: staffRow.first_name,
+        lastName: staffRow.last_name,
+        active: staffRow.active,
+        sortOrder: staffRow.sort_order,
+      };
+    }
+  }
+
   return {
     id: row.id,
     name: row.name ?? null,
@@ -447,8 +588,18 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     status: row.status,
     bugsFound: row.bugs_found ?? null,
     bugsFoundEver: row.bugs_found_ever === true || row.bugs_found === true,
+    pestTypeOptionId:
+      typeof row.pest_type_option_id === "string" ? row.pest_type_option_id : null,
+    pestTypeLabel:
+      pestType && typeof pestType.label === "string" && pestType.label.trim()
+        ? pestType.label.trim()
+        : null,
+    outpatientZoneId:
+      typeof row.outpatient_zone_id === "string" ? row.outpatient_zone_id : null,
+    outpatientZoneLabel:
+      zone && typeof zone.label === "string" && zone.label.trim() ? zone.label.trim() : null,
     pestTreatments: parsePestTreatments(row.plant_pest_treatments),
-    plantCategory: isPlantCategory(row.plant_category) ? row.plant_category : "standard",
+    plantCategory,
     sourcePlantId: row.source_plant_id ?? null,
     hasPropagation: Boolean(propagationChild),
     finalPrice: row.final_price != null ? Number(row.final_price) : null,
@@ -456,6 +607,9 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     minutesInSurgery,
     checkedInAt: visit.checkin_date,
     visitId: visit.id,
+    potSizeChangeConsent: row.pot_size_change_consent ?? visit.pot_size_change_consent ?? true,
+    milestoneDates,
+    surgeryCompletedBy,
     paymentStatus,
     shopifyOrderId: visit.shopify_order_id ?? null,
     visitPlantIndex: visitPlantPosition.index,

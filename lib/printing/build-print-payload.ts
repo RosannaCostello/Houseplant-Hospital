@@ -19,10 +19,7 @@ export type PlantPrintSource = {
 };
 
 function plantDisplayName(plant: PlantPrintSource): string {
-  const name = plant.name?.trim();
   const species = plant.species?.trim();
-  if (name && species) return `${name} (${species})`.slice(0, 120);
-  if (name) return name.slice(0, 120);
   if (species) return species.slice(0, 120);
   return "Plant";
 }

@@ -13,6 +13,8 @@ export type DashboardPlant = {
   species: string | null;
   size: string;
   bugsFound: boolean | null;
+  outpatientZoneLabel: string | null;
+  pestTypeLabel: string | null;
   plantCategory: PlantCategory;
   hasPropagation: boolean;
   checkedInAt: string;
