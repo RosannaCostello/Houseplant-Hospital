@@ -8,6 +8,7 @@ export type OutpatientReadinessMissing =
   | "treatment_notes"
   | "care_tips"
   | "pest_treatments"
+  | "pest_type"
   | "surgery_sign_off";
 
 export type OutpatientReadinessResult =
@@ -29,6 +30,10 @@ export function formatOutpatientReadinessMessage(
     return "Select who completed surgery before Outpatient.";
   }
 
+  if (missing.length === 1 && missing[0] === "pest_type") {
+    return "Select a pest type before Outpatient.";
+  }
+
   const labels: string[] = [];
 
   if (missing.includes("pests")) {
@@ -42,6 +47,9 @@ export function formatOutpatientReadinessMessage(
   }
   if (missing.includes("pest_treatments")) {
     labels.push("complete all three pest treatments");
+  }
+  if (missing.includes("pest_type")) {
+    labels.push("select a pest type");
   }
   if (missing.includes("surgery_sign_off")) {
     labels.push("select who completed surgery");
@@ -66,14 +74,23 @@ export async function checkOutpatientReadinessWithClient(
 ): Promise<OutpatientReadinessResult> {
   const { data: plant, error: plantError } = await supabase
     .from("plants")
-    .select("bugs_found, bugs_found_ever, plant_category, status, surgery_completed_by")
+    .select(
+      "bugs_found, bugs_found_ever, pest_type_option_id, plant_category, status, surgery_completed_by",
+    )
     .eq("id", plantId)
     .maybeSingle();
 
   if (plantError || !plant) {
     return {
       ready: false,
-      missing: ["pests", "treatment_notes", "care_tips", "pest_treatments", "surgery_sign_off"],
+      missing: [
+        "pests",
+        "treatment_notes",
+        "care_tips",
+        "pest_treatments",
+        "pest_type",
+        "surgery_sign_off",
+      ],
     };
   }
 
@@ -120,6 +137,10 @@ export async function checkOutpatientReadinessWithClient(
     treatmentCount < 3
   ) {
     missing.push("pest_treatments");
+  }
+
+  if (plant.bugs_found === true && !plant.pest_type_option_id) {
+    missing.push("pest_type");
   }
 
   if (plant.status === "in_surgery" && !plant.surgery_completed_by) {

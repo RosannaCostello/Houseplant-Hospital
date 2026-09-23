@@ -72,6 +72,7 @@ export function PestTypeField({
     <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
       <label className={hildaLabelClassName}>
         Pest type
+        <span className="font-normal text-hilda-text-muted"> (required before Outpatient)</span>
         <select
           className={`${hildaInputClassName} py-2.5`}
           value={selectedId}
