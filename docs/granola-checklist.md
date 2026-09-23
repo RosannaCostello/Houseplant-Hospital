@@ -95,10 +95,12 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 ## P2 — Customer Care Card (epic)
 
 - [x] **15a. Customer Care Card (public visit page)** — [HIL-138](https://linear.app/hilda-houseplant-hospital/issue/HIL-138)
-  - `/hh/care/[visitId]` — whole drop-off; soft status; timeline; aftercare gated post-surgery.
+  - `/hh/care/[visitId]` — whole drop-off; Quarantine / In Surgery nomenclature; timeline; aftercare gated post-surgery; pests when Yes.
   - Legacy `/hh/case/[plantId]` redirects here. Staff: **Open Care Card**.
   - Hosting / new domain: deferred (current Workers URL).
-- [ ] **15b. Thin emails + `care_card_url` on all plant events** (payload refactor).
+- [x] **15b. Thin emails + `care_card_url` on all plant events** — [HIL-139](https://linear.app/hilda-houseplant-hospital/issue/HIL-139)
+  - App sends `care_card_url`; stops sending treatment notes / care tips on events.
+  - **Ops:** update Mailchimp journey templates to CTA the Care Card.
 - [ ] **15c. Mailchimp Transactional (Route A)** for hospital events; keep `plant_collected` on Marketing Journeys for nurture.
 
 ---

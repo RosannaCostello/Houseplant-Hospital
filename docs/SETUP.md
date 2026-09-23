@@ -323,18 +323,16 @@ Suggested journey names (HIL-96):
 The worker sends string properties (Mailchimp Events API: max **255** chars each):
 
 - `visit_id`, `plant_id`, `customer_id`
+- `care_card_url` — absolute Customer Care Card link for the drop-off (built from `APP_BASE_URL` + `/hh/care/{visitId}`). **Use this as the CTA** in journey emails.
 - `previous_status`, `new_status` (status-change events)
 - `bugs_found` (`true` on `bugs_found`)
 - `awaiting_plant_count` (outpatient partial only)
 - `plant_name` (when present; truncated to 255 if longer)
-- `care_tips_water`, `care_tips_leaves`, `care_tips_light` — option text only (no `Water:` / `Leaves:` / `Light:` prefix). Put each on its own line in the template. Do not use the old single `care_tips` property.
-- `treatment_notes_1`, `treatment_notes_2`, `treatment_notes_3` — only the **first 750** chars of treatment notes are sent, split into three 250-char chunks (trailing empty chunks omitted). The app stores longer notes. **Do not** use the old single `treatment_notes` property.
+- `child_plant_id`, `size` (`plant_propagated` only)
 
-**Journey emails that include treatment notes must insert all three** (`treatment_notes_1` + `_2` + `_3`) so longer notes are not cut off. Empty chunks render blank.
+**Thin emails (HIL-139):** treatment notes and care tips are **no longer** sent as event properties. Aftercare lives on the Care Card. Update journey templates accordingly (remove `treatment_notes_*` / `care_tips_*`).
 
-**Journey emails that include care tips must insert all three** (`care_tips_water` + `care_tips_leaves` + `care_tips_light`) on separate lines so each tip appears on its own row.
-
-**Essentials note:** event properties are not the same as merge tags (`*|NAME|*`). On many plans you cannot drop `plant_name` into an email as `*|plant_name|*`. Use them for journey filters / Activity, or create audience merge fields and map later if you need them in every email body.
+**Essentials note:** event properties are not the same as merge tags (`*|NAME|*`). On many plans you cannot drop `care_card_url` into an email as `*|care_card_url|*`. Use them for journey filters / Activity, or create audience merge fields and map later if you need them in every email body.
 
 #### Schedule the outbox worker (production)
 

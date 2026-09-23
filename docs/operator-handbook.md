@@ -77,8 +77,8 @@ Use these words when talking about the app.
 | **Pest treatments** | Treatment slots on plant detail (Treatment 1 / 2 / 3, then **Add another treatment** if more are needed). Shown when pests are **Yes** (or were ever Yes and not currently No). **Never** shown when pests are currently **No**. At least three are required before Outpatient only when that rule applies — never when pests are No. |
 | **Outpatient zone** | Required when moving a plant to **Outpatient** (e.g. Office, Quarantine). Staff choose the zone in the confirm dialog before Yes. On **Update plant** for Outpatient plants, the zone can also be set or changed with the **Outpatient zone** dropdown (saves immediately). Shown as a chip on the Dashboard card. Admins manage the list in Settings. |
 | **Internal notes** | Staff notes for **that plant** (optional). Editable on **Update plant** until **Collected**. Also shown on the drop-off page. Not the same as **Treatment notes**. |
-| **Treatment notes** | Notes on the plant (required before Outpatient). No character limit in the app; only the **first 750 characters** are sent in customer emails via Mailchimp (see below). |
-| **Care tips** | Aftercare advice for the customer as **Water / Leaves / Light** on plant detail. **At least one** tip is required before Outpatient; the others may be left blank. Each dropdown has **Other…** for a **one-off** custom tip on that plant only (not added to Settings). Blank tips send nothing to Mailchimp for that field. |
+| **Treatment notes** | Notes on the plant (required before Outpatient). Shown to the customer on the **Customer Care Card** after Outpatient / Collected / Dead. Not embedded in Mailchimp emails (emails link to the Care Card instead). |
+| **Care tips** | Aftercare advice for the customer as **Water / Leaves / Light** on plant detail. **At least one** tip is required before Outpatient; the others may be left blank. Each dropdown has **Other…** for a **one-off** custom tip on that plant only (not added to Settings). Tips appear on the **Customer Care Card** (with treatment notes) after Outpatient / Collected / Dead — not inside Mailchimp email bodies. |
 | **Surgery sign-off** | While a plant is **In Surgery**, choose who completed surgery from the staff dropdown. Required before **Outpatient**. Initials show on Outpatient and Collected cards. |
 | **Final price** | Price locked on the plant at collection. Used for **treatment revenue**. |
 | **Treatment revenue** | Sum of final prices on plants collected in a period. **Revenue, not profit.** |
@@ -234,31 +234,17 @@ Properties are only included when the app has a value. Empty / unused properties
 | `plant_id` | Plant UUID (for `plant_propagated`: the **source** plant) |
 | `customer_id` | Customer UUID |
 | `plant_name` | Plant display name (if set) |
+| `care_card_url` | Absolute link to the visit **Customer Care Card** (`/hh/care/…`) — use this as the CTA in journey emails |
 | `previous_status` | Status before the change (status / bugs events) |
 | `new_status` | Status after the change (status events) |
 | `bugs_found` | `"true"` / `"false"` when sent with the `bugs_found` event |
 | `awaiting_plant_count` | How many sibling plants still block collection (`plant_outpatient_partial` only) |
 | `child_plant_id` | New propagation plant UUID (`plant_propagated` only) |
 | `size` | Propagation size band Mini/S/M/L/XL (`plant_propagated` only) |
-| `treatment_notes_1` | Treatment note chars 1–250 |
-| `treatment_notes_2` | Treatment note chars 251–500 |
-| `treatment_notes_3` | Treatment note chars 501–750 |
-| `care_tips_water` | Water tip option text only (no `Water:` prefix) |
-| `care_tips_leaves` | Leaves tip option text only |
-| `care_tips_light` | Light tip option text only |
 
-**What typically carries notes / tips:** status-change events and `bugs_found` load the latest treatment notes and care tips for that plant. `plant_checked_in` usually only has ids + optional `plant_name` (notes/tips are rarely filled yet).
+**Thin emails (HIL-139):** hospital journey emails should be short status updates with a button/link to `care_card_url`. Treatment notes and care tips are **not** sent as event properties anymore — customers read them on the Care Card after Outpatient / Collected / Dead.
 
-**Treatment notes (Mailchimp):**
-
-1. Staff can enter any length in the app (same practical cap as other text fields).  
-2. Only the **first 750 characters** are sent to Mailchimp, split into `treatment_notes_1` / `_2` / `_3` as above.  
-3. In email builders: include **all three** one after another. Unused chunks are blank / omitted.
-
-**Care tips:**
-
-1. Sent as separate properties (option text only). Blank tips are **omitted** (no property / no characters).  
-2. In email builders: include `care_tips_water`, `care_tips_leaves`, `care_tips_light` **each on its own line**. Do not use the old single `care_tips` tag.
+**Ops:** update each active Mailchimp journey template to use `care_card_url` (and remove any `treatment_notes_*` / `care_tips_*` blocks). Event properties are not always insertable as `*|…|*` merge tags on Essentials — check the journey builder’s event-property / Activity fields for your plan.
 
 #### Audience merge fields (contact profile)
 
@@ -375,7 +361,7 @@ Leaves: …
 Light: …
 ```
 
-Blank lines still appear in storage with an empty value after the label. Mailchimp only receives properties for tips that have text.
+Blank lines still appear in storage with an empty value after the label. Tips with text appear on the **Customer Care Card** after Outpatient / Collected / Dead (not in Mailchimp email bodies).
 
 Older free-text care tips that do not match this format show as a read-only note until staff re-select tips and save.
 

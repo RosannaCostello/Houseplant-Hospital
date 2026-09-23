@@ -40,9 +40,19 @@ export type MailchimpEventPayload = {
   awaitingPlantCount?: number;
   /** Plant display name for journey email copy (HIL-98). */
   plantName?: string;
-  /** Latest treatment note content (HIL-98). */
+  /**
+   * Absolute Customer Care Card URL for the drop-off (HIL-139).
+   * Prefer deriving from visitId + APP_BASE_URL at send time when omitted.
+   */
+  careCardUrl?: string;
+  /**
+   * @deprecated HIL-139 — aftercare lives on the Care Card; no longer sent to Mailchimp.
+   * Kept optional so old queued rows still deserialize.
+   */
   treatmentNotes?: string;
-  /** Latest care tips content (HIL-98). */
+  /**
+   * @deprecated HIL-139 — aftercare lives on the Care Card; no longer sent to Mailchimp.
+   */
   careTips?: string;
   /** New propagation child plant id (`plant_propagated` only). */
   childPlantId?: string;

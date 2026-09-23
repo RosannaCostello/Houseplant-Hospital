@@ -1,7 +1,5 @@
 import "server-only";
 
-import { careTipsToMailchimpProperties } from "@/lib/mailchimp/care-tips-properties";
-import { chunkTreatmentNotes } from "@/lib/mailchimp/chunk-treatment-notes";
 import { MailchimpApiError } from "@/lib/mailchimp/client";
 import {
   isMailchimpEventName,
@@ -9,8 +7,8 @@ import {
   type MailchimpEventPayload,
 } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
+import { payloadToEventProperties } from "@/lib/mailchimp/payload-to-event-properties";
 import { formatMailchimpOccurredAt, sendMemberEvent } from "@/lib/mailchimp/send-member-event";
-import { truncateEventProperty } from "@/lib/mailchimp/truncate-event-property";
 import { upsertListMember } from "@/lib/mailchimp/upsert-list-member";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -42,31 +40,6 @@ export type ProcessMailchimpOutboxResult = {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function payloadToEventProperties(payload: MailchimpEventPayload): Record<string, string> {
-  const properties: Record<string, string> = {};
-
-  if (payload.visitId) properties.visit_id = payload.visitId;
-  if (payload.plantId) properties.plant_id = payload.plantId;
-  if (payload.customerId) properties.customer_id = payload.customerId;
-  if (payload.previousStatus) properties.previous_status = payload.previousStatus;
-  if (payload.newStatus) properties.new_status = payload.newStatus;
-  if (payload.bugsFound !== undefined) properties.bugs_found = String(payload.bugsFound);
-  if (payload.awaitingPlantCount !== undefined) {
-    properties.awaiting_plant_count = String(payload.awaitingPlantCount);
-  }
-  if (payload.childPlantId) properties.child_plant_id = payload.childPlantId;
-  if (payload.size) properties.size = truncateEventProperty(payload.size);
-  if (payload.plantName) properties.plant_name = truncateEventProperty(payload.plantName);
-  if (payload.treatmentNotes) {
-    Object.assign(properties, chunkTreatmentNotes(payload.treatmentNotes));
-  }
-  if (payload.careTips) {
-    Object.assign(properties, careTipsToMailchimpProperties(payload.careTips));
-  }
-
-  return properties;
 }
 
 function isRetryableError(error: unknown): boolean {

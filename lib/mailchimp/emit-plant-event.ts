@@ -12,6 +12,7 @@ import {
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
 import { shouldEmitPlantInSurgeryEvent } from "@/lib/mailchimp/surgery-event-gate";
 import { addMemberTags } from "@/lib/mailchimp/update-member-tags";
+import { careCardUrlFromEnv } from "@/lib/plants/plant-case-url";
 import { PLANT_STATUSES, type PlantStatus } from "@/lib/plant-status";
 
 function isPlantStatus(value: string): value is PlantStatus {
@@ -24,11 +25,10 @@ type PlantCustomerContext = {
   visitId: string;
   email: string;
   plantName?: string;
-  treatmentNotes?: string;
-  careTips?: string;
+  careCardUrl?: string;
 };
 
-/** Load plant → visit → customer (+ notes) in separate queries (reliable on Cloudflare + RLS). */
+/** Load plant → visit → customer in separate queries (reliable on Cloudflare + RLS). */
 async function resolvePlantCustomerContext(
   supabase: SupabaseClient,
   plantId: string,
@@ -55,31 +55,20 @@ async function resolvePlantCustomerContext(
     return null;
   }
 
-  const [customerResult, treatmentResult, careTipsResult] = await Promise.all([
-    supabase.from("customers").select("email").eq("id", visit.customer_id).maybeSingle(),
-    supabase.from("treatment_notes").select("content").eq("plant_id", plantId).maybeSingle(),
-    supabase.from("care_tips").select("content").eq("plant_id", plantId).maybeSingle(),
-  ]);
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("email")
+    .eq("id", visit.customer_id)
+    .maybeSingle();
 
-  const email = customerResult.data?.email?.trim().toLowerCase();
-  if (customerResult.error || !email) {
-    console.error(
-      "[mailchimp] customer lookup failed:",
-      customerResult.error?.message ?? "no email",
-    );
+  const email = customer?.email?.trim().toLowerCase();
+  if (customerError || !email) {
+    console.error("[mailchimp] customer lookup failed:", customerError?.message ?? "no email");
     return null;
   }
 
-  if (treatmentResult.error) {
-    console.error("[mailchimp] treatment notes lookup failed:", treatmentResult.error.message);
-  }
-  if (careTipsResult.error) {
-    console.error("[mailchimp] care tips lookup failed:", careTipsResult.error.message);
-  }
-
   const plantName = plant.species?.trim() || plant.name?.trim() || undefined;
-  const treatmentNotes = treatmentResult.data?.content?.trim() || undefined;
-  const careTips = careTipsResult.data?.content?.trim() || undefined;
+  const careCardUrl = careCardUrlFromEnv(plant.visit_id) ?? undefined;
 
   return {
     plantId: plant.id,
@@ -87,8 +76,7 @@ async function resolvePlantCustomerContext(
     visitId: plant.visit_id,
     email,
     plantName,
-    treatmentNotes,
-    careTips,
+    careCardUrl,
   };
 }
 
@@ -115,8 +103,7 @@ async function queuePlantEvent(
       visitId: context.visitId,
       plantId: context.plantId,
       plantName: context.plantName,
-      treatmentNotes: context.treatmentNotes,
-      careTips: context.careTips,
+      careCardUrl: context.careCardUrl,
       ...payload,
     },
   });
