@@ -61,11 +61,7 @@ export default async function CheckInPlantsPage({ searchParams }: CheckInPlantsP
         shopifyOrderId: checkout.shopifyOrderId,
         summaryLines: checkout.summaryLines,
       }}
-      initialPlants={
-        draft.plants.length
-          ? draft.plants.map((plant) => ({ ...plant, bugsFound: plant.bugsFound ?? null }))
-          : [createEmptyPlant()]
-      }
+      initialPlants={draft.plants.length ? draft.plants : [createEmptyPlant()]}
     />
   );
 }

@@ -508,7 +508,7 @@ export function PlantsStepForm({
               </fieldset>
 
               <BugsFoundToggleField
-                value={activePlant.bugsFound ?? null}
+                value={activePlant.bugsFound}
                 onChange={(bugsFound) => updatePlant(activePlant.clientId, { bugsFound })}
                 question="Any pests visible on this plant?"
                 ariaLabel="Any pests visible on this plant"
