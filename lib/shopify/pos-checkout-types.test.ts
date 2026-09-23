@@ -12,10 +12,11 @@ describe("isVisitUnpaid", () => {
     expect(isVisitUnpaid("cancelled")).toBe(true);
   });
 
-  it("treats queued, loaded, and pay_at_collection as unpaid", () => {
+  it("treats queued, loaded, pay_at_collection, and part_paid as unpaid", () => {
     expect(isVisitUnpaid("queued")).toBe(true);
     expect(isVisitUnpaid("loaded")).toBe(true);
     expect(isVisitUnpaid("pay_at_collection")).toBe(true);
+    expect(isVisitUnpaid("part_paid")).toBe(true);
   });
 
   it("treats paid as paid", () => {

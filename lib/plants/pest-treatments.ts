@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type PestTreatmentNumber = 1 | 2 | 3;
+export type PestTreatmentNumber = number;
 
 export type PlantPestTreatment = {
   treatmentNumber: PestTreatmentNumber;
@@ -13,10 +13,8 @@ export type SetPestTreatmentResult =
   | { success: true; treatments: PlantPestTreatment[] }
   | { success: false; error: string };
 
-const TREATMENT_NUMBERS: PestTreatmentNumber[] = [1, 2, 3];
-
 function isTreatmentNumber(value: number): value is PestTreatmentNumber {
-  return value === 1 || value === 2 || value === 3;
+  return Number.isInteger(value) && value >= 1;
 }
 
 function mapTreatmentRow(row: {
@@ -100,6 +98,15 @@ export async function countPlantPestTreatmentsWithClient(
   return count ?? 0;
 }
 
+function maxTreatmentNumber(treatments: PlantPestTreatment[]): number {
+  return treatments.reduce((max, row) => Math.max(max, row.treatmentNumber), 0);
+}
+
+/** Next treatment slot: max existing + 1, or 1 if none. */
+export function nextPestTreatmentNumber(treatments: PlantPestTreatment[]): PestTreatmentNumber {
+  return maxTreatmentNumber(treatments) + 1;
+}
+
 /** Lock in a treatment type for a slot. Existing slots cannot be changed or cleared. */
 export async function recordPestTreatmentWithClient(
   supabase: SupabaseClient,
@@ -115,7 +122,7 @@ export async function recordPestTreatmentWithClient(
     return { success: false, error: "You must be signed in to update pest treatments." };
   }
 
-  if (!TREATMENT_NUMBERS.includes(treatmentNumber)) {
+  if (!isTreatmentNumber(treatmentNumber)) {
     return { success: false, error: "Invalid treatment number." };
   }
 
@@ -137,19 +144,27 @@ export async function recordPestTreatmentWithClient(
     return { success: false, error: "Collected plants cannot be edited." };
   }
 
-  const { data: existing, error: existingError } = await supabase
-    .from("plant_pest_treatments")
-    .select("id")
-    .eq("plant_id", plantId)
-    .eq("treatment_number", treatmentNumber)
-    .maybeSingle();
-
-  if (existingError) {
-    return { success: false, error: existingError.message };
+  let existingTreatments: PlantPestTreatment[];
+  try {
+    existingTreatments = await listPlantPestTreatmentsWithClient(supabase, plantId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not load treatments.";
+    return { success: false, error: message };
   }
 
-  if (existing) {
+  if (existingTreatments.some((row) => row.treatmentNumber === treatmentNumber)) {
     return { success: false, error: "This treatment is already recorded and cannot be changed." };
+  }
+
+  // Slots 1–3 may be filled in any order (legacy UI). Beyond that, only next = max+1.
+  if (treatmentNumber > 3) {
+    const expected = nextPestTreatmentNumber(existingTreatments);
+    if (treatmentNumber !== expected) {
+      return {
+        success: false,
+        error: `Next treatment must be number ${expected}.`,
+      };
+    }
   }
 
   const { data: option, error: optionError } = await supabase
