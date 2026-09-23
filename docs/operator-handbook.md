@@ -303,6 +303,7 @@ When pests are **Yes** at check-in, the plant goes straight into **Quarantine**,
 - **Outpatient → Collected** may prompt for payment if the drop-off is still unpaid (**including Part paid**).
   1. Find the order in **Shopify POS** under the customer name and take payment, **or**
   2. Confirm **Customer paid another way** (second confirm — cannot be undone). That marks the **drop-off** as settled for Hospital ops.
+- **Guarantee plants:** use Shopify discount code **`GUARANTEE26`** (100% off) on the Hospital charge in POS when a plant is covered by the guarantee — prefer this over “paid another way” so Shopify stays the source of truth.
 - For **Part paid** (pests found after standard was paid): take the **pests surcharge** cart from POS **Pending check-ins** before collecting.
 - Collecting a plant stamps **final price** from the treatment estimate when none was stored yet (no separate collection form).
 - Payment is **drop-off-level**: collecting one plant on a multi-plant drop-off does not require siblings to be collected first.

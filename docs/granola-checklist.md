@@ -70,7 +70,7 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 
 ## P1 — Payments / Shopify (mixed ops + light app)
 
-- [ ] **12. Shopify “guarantee” 100% discount code** (ops in Shopify; optional Analytics count later).
+- [x] **12. Shopify “guarantee” 100% discount code** (ops in Shopify) — code **`GUARANTEE26`**. Optional Analytics count later (#13).
 - [ ] **13. Guarantee flow in app**
   - Prefer Shopify as source of truth; reduce reliance on “paid another way”; Analytics can surface guarantee count from Shopify if useful.
 - [ ] **14. Shopify logins per staff** (ops / Shopify Admin — accountability for discounts; out of app scope unless POS identity is later wired).
@@ -91,7 +91,7 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 
 - [ ] **16.** Confirm ownership of **houseplanthospital.co** (Tom?).
 - [ ] **17.** **Upgrade Acuity** plan (~£20–34/mo) to activate booking→draft link (already built).
-- [ ] **18.** Create Shopify **guarantee** discount code (ties to #12).
+- [x] **18.** Create Shopify **guarantee** discount code (ties to #12) — **`GUARANTEE26`**.
 - [ ] **19.** Manually migrate **4–5 Zoho propagation plants**; then cancel Zoho (~£28/mo).
 - [ ] **20.** Rosanna: investigate **auto-import** remaining Zoho without bulk Mailchimp emails.
 - [ ] **21.** Kits MVP / membership: strategy only for now (not HHH app unless scoped later). SOS bookings stay on Zoho/Zoom.
