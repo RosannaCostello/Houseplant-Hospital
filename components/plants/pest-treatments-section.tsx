@@ -11,12 +11,16 @@ import {
   type PestTreatmentNumber,
   type PlantPestTreatment,
 } from "@/lib/plants/pest-treatments";
+import { FIELD_HIGHLIGHT_CLASS } from "@/lib/ui/field-highlight";
+import { cn } from "@/lib/utils";
 
 type PestTreatmentsSectionProps = {
   plantId: string;
   treatments: PlantPestTreatment[];
   options: PestTreatmentOption[];
   disabled?: boolean;
+  highlighted?: boolean;
+  onTreatmentsChange?: (treatments: PlantPestTreatment[]) => void;
 };
 
 function treatmentLabel(number: PestTreatmentNumber): string {
@@ -45,6 +49,8 @@ export function PestTreatmentsSection({
   treatments: initialTreatments,
   options,
   disabled = false,
+  highlighted = false,
+  onTreatmentsChange,
 }: PestTreatmentsSectionProps) {
   const router = useRouter();
   const [treatments, setTreatments] = useState(initialTreatments);
@@ -140,6 +146,7 @@ export function PestTreatmentsSection({
       setTreatments(result.treatments);
       clearDraft(treatmentNumber);
       setAddingExtra(false);
+      onTreatmentsChange?.(result.treatments);
       router.refresh();
     });
   }
@@ -150,7 +157,13 @@ export function PestTreatmentsSection({
   }
 
   return (
-    <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+    <section
+      data-readiness-field="pest_treatments"
+      className={cn(
+        "rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3",
+        highlighted ? FIELD_HIGHLIGHT_CLASS : null,
+      )}
+    >
       <h2 className="text-sm font-medium text-hilda-heading">Pest treatments</h2>
       <p className="mt-1 text-xs text-hilda-text-muted">
         Pick a treatment type to record it (you’ll confirm first). Once recorded, a treatment cannot

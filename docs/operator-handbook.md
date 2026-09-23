@@ -170,7 +170,7 @@ You can leave mid-flow and resume from the **Incomplete check-ins** lane (**Comp
 
 ### Before Outpatient (standard plants)
 
-The app blocks Outpatient until the plant is **Outpatient ready**:
+The app blocks Outpatient until the plant is **Outpatient ready**. If staff try to move anyway, **Update plant** opens with a short message and a **red outline** on each missing field (same idea as incomplete internal notes at check-in). Outlines clear as each field is completed.
 
 - **Pests** answered **Yes or No** (Not sure is not enough)  
 - **Treatment notes** filled  

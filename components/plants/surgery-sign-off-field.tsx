@@ -6,12 +6,16 @@ import { saveSurgerySignOffAction } from "@/app/actions/save-surgery-sign-off";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import type { HospitalStaff } from "@/lib/staff/types";
 import { formatStaffInitials, formatStaffName } from "@/lib/staff/types";
+import { FIELD_HIGHLIGHT_CLASS } from "@/lib/ui/field-highlight";
+import { cn } from "@/lib/utils";
 
 type SurgerySignOffFieldProps = {
   plantId: string;
   staffOptions: HospitalStaff[];
   initialStaff: HospitalStaff | null;
   readOnly?: boolean;
+  highlighted?: boolean;
+  onHighlightClear?: () => void;
 };
 
 export function SurgerySignOffField({
@@ -19,6 +23,8 @@ export function SurgerySignOffField({
   staffOptions,
   initialStaff,
   readOnly = false,
+  highlighted = false,
+  onHighlightClear,
 }: SurgerySignOffFieldProps) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(initialStaff?.id ?? "");
@@ -47,6 +53,9 @@ export function SurgerySignOffField({
         return;
       }
 
+      if (nextId) {
+        onHighlightClear?.();
+      }
       router.refresh();
     });
   }
@@ -68,7 +77,13 @@ export function SurgerySignOffField({
   }
 
   return (
-    <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+    <section
+      data-readiness-field="surgery_sign_off"
+      className={cn(
+        "rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3",
+        highlighted ? FIELD_HIGHLIGHT_CLASS : null,
+      )}
+    >
       <label className={hildaLabelClassName}>
         Surgery was completed on this plant by
         <select
@@ -76,6 +91,7 @@ export function SurgerySignOffField({
           value={selectedId}
           disabled={isPending || staffOptions.length === 0}
           onChange={(event) => onChange(event.target.value)}
+          aria-invalid={highlighted || undefined}
         >
           <option value="">Select staff member…</option>
           {staffOptions.map((staff) => (

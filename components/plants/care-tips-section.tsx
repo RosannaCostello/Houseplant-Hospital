@@ -24,6 +24,7 @@ import {
 import type { CareTipOption, CareTipOptionsByCategory } from "@/lib/care-tips/types";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { scrollFocusedFieldAboveKeyboard } from "@/lib/ui/keyboard-avoidance";
+import { FIELD_HIGHLIGHT_CLASS } from "@/lib/ui/field-highlight";
 import { cn } from "@/lib/utils";
 
 const OTHER_SENTINEL = "__other__";
@@ -35,6 +36,8 @@ type CareTipsSectionProps = {
   embedded?: boolean;
   compact?: boolean;
   readOnly?: boolean;
+  highlighted?: boolean;
+  onHighlightClear?: () => void;
 };
 
 function emptySelections(): CareTipSelections {
@@ -237,6 +240,8 @@ export function CareTipsSection({
   embedded = false,
   compact = false,
   readOnly = false,
+  highlighted = false,
+  onHighlightClear,
 }: CareTipsSectionProps) {
   const router = useRouter();
   const parsed = useMemo(() => parseCareTip(careTip), [careTip]);
@@ -295,9 +300,10 @@ export function CareTipsSection({
         }
         setLegacyNote(null);
         setStatus("saved");
+        onHighlightClear?.();
       });
     },
-    [plantId],
+    [onHighlightClear, plantId],
   );
 
   function handleChange(category: CareTipCategory, value: string) {
@@ -342,6 +348,7 @@ export function CareTipsSection({
       }
       setLegacyNote(null);
       setStatus("saved");
+      onHighlightClear?.();
       router.refresh();
     });
   }
@@ -407,7 +414,10 @@ export function CareTipsSection({
     : "space-y-4 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
 
   return (
-    <section className={sectionClass}>
+    <section
+      data-readiness-field="care_tips"
+      className={cn(sectionClass, highlighted ? FIELD_HIGHLIGHT_CLASS : null)}
+    >
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
           Care tips

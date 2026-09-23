@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { saveTreatmentNoteAction } from "@/app/actions/save-treatment-note";
 import { PlantAutosaveTextarea } from "@/components/plants/plant-autosave-textarea";
 import { DEFAULT_TREATMENT_NOTES_PLACEHOLDER } from "@/lib/care-tips/constants";
+import { FIELD_HIGHLIGHT_CLASS } from "@/lib/ui/field-highlight";
 import { cn } from "@/lib/utils";
 
 type TreatmentNotesSectionProps = {
@@ -13,6 +14,8 @@ type TreatmentNotesSectionProps = {
   embedded?: boolean;
   compact?: boolean;
   readOnly?: boolean;
+  highlighted?: boolean;
+  onHighlightClear?: () => void;
 };
 
 export function TreatmentNotesSection({
@@ -22,10 +25,18 @@ export function TreatmentNotesSection({
   embedded = false,
   compact = false,
   readOnly = false,
+  highlighted = false,
+  onHighlightClear,
 }: TreatmentNotesSectionProps) {
   const handleSave = useCallback(
-    (content: string) => saveTreatmentNoteAction(plantId, content),
-    [plantId],
+    async (content: string) => {
+      const result = await saveTreatmentNoteAction(plantId, content);
+      if (result.success && content.trim()) {
+        onHighlightClear?.();
+      }
+      return result;
+    },
+    [onHighlightClear, plantId],
   );
 
   const body = (
@@ -35,6 +46,7 @@ export function TreatmentNotesSection({
       initialValue={treatmentNote ?? ""}
       onSave={handleSave}
       readOnly={readOnly}
+      highlighted={highlighted && embedded}
     />
   );
 
@@ -47,7 +59,10 @@ export function TreatmentNotesSection({
     : "space-y-4 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
 
   return (
-    <section className={sectionClass}>
+    <section
+      data-readiness-field="treatment_notes"
+      className={cn(sectionClass, highlighted ? FIELD_HIGHLIGHT_CLASS : null)}
+    >
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
           Treatment notes

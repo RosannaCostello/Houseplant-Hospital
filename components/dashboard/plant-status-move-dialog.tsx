@@ -8,6 +8,7 @@ import { listOutpatientZonesAction } from "@/app/actions/outpatient-zone-setting
 import { updatePlantStatusAction } from "@/app/actions/update-plant-status";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { confirmationForStatusMove } from "@/lib/plants/status-move-confirmation";
+import type { OutpatientReadinessMissing } from "@/lib/plants/outpatient-readiness";
 import { canTransitionPlantStatus, type PlantStatus } from "@/lib/plant-status";
 import type { OutpatientZoneOption } from "@/lib/outpatient-zones/types";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
@@ -33,7 +34,7 @@ type ConfirmStep =
       paidAnotherWay?: boolean;
       requireZone?: boolean;
     }
-  | { kind: "incomplete"; message: string }
+  | { kind: "incomplete"; message: string; missing: OutpatientReadinessMissing[] }
   | { kind: "unpaid_collect" };
 
 type PlantStatusMoveDialogProps = {
@@ -80,7 +81,11 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
       startTransition(async () => {
         const readiness = await checkOutpatientReadinessAction(pending.plantId);
         if (!readiness.ready) {
-          setConfirmStep({ kind: "incomplete", message: readiness.message });
+          plantDetailModal?.openPlantDetail(pending.plantId, {
+            readinessMissing: readiness.missing,
+            readinessMessage: readiness.message,
+          });
+          onDismiss();
           return;
         }
 
@@ -253,7 +258,14 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
                 type="button"
                 className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse"
                 onClick={() => {
-                  plantDetailModal?.openPlantDetail(pending.plantId);
+                  if (confirmStep.kind === "incomplete") {
+                    plantDetailModal?.openPlantDetail(pending.plantId, {
+                      readinessMissing: confirmStep.missing,
+                      readinessMessage: confirmStep.message,
+                    });
+                  } else {
+                    plantDetailModal?.openPlantDetail(pending.plantId);
+                  }
                   onDismiss();
                 }}
               >

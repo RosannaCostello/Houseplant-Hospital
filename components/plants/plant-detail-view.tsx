@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
@@ -32,8 +32,13 @@ import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
 import type { OutpatientZoneOption } from "@/lib/outpatient-zones/types";
 import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
 import type { PestTypeOption } from "@/lib/pest-types/types";
+import {
+  type OutpatientReadinessMissing,
+} from "@/lib/plants/outpatient-readiness";
 import { formatPlantMilestoneDate } from "@/lib/plants/get-plant-milestone-dates";
 import type { HospitalStaff } from "@/lib/staff/types";
+import { FIELD_HIGHLIGHT_CLASS } from "@/lib/ui/field-highlight";
+import { cn } from "@/lib/utils";
 
 type PlantDetailViewProps = {
   plant: PlantDetail;
@@ -46,6 +51,9 @@ type PlantDetailViewProps = {
   hospitalStaff?: HospitalStaff[];
   /** When true, omit page bottom-nav padding (modal overlay). */
   embeddedInModal?: boolean;
+  /** Temporary red outlines from a blocked Outpatient move. */
+  initialReadinessMissing?: OutpatientReadinessMissing[];
+  initialReadinessMessage?: string | null;
 };
 
 function formatMilestoneRow(at: string) {
@@ -72,11 +80,20 @@ export function PlantDetailView({
   treatmentNotesPlaceholder,
   hospitalStaff = [],
   embeddedInModal = false,
+  initialReadinessMissing = [],
+  initialReadinessMessage = null,
 }: PlantDetailViewProps) {
   const router = useRouter();
   const plantDetailModal = useOptionalPlantDetailModal();
   const [bugsFound, setBugsFound] = useState(plant.bugsFound);
   const [bugsFoundEver, setBugsFoundEver] = useState(plant.bugsFoundEver);
+  const [readinessMissing, setReadinessMissing] = useState<OutpatientReadinessMissing[]>(
+    initialReadinessMissing,
+  );
+  const [readinessMessage, setReadinessMessage] = useState<string | null>(
+    initialReadinessMessage,
+  );
+  const scrolledHighlightRef = useRef(false);
   const isCollected = plant.status === "collected";
   const subtitle = isCollected ? plantSubtitle(plant) : null;
   const isPropagation = plant.plantCategory === "propagation";
@@ -104,13 +121,55 @@ export function PlantDetailView({
     setBugsFoundEver(plant.bugsFoundEver);
   }, [plant.bugsFound, plant.bugsFoundEver]);
 
+  useEffect(() => {
+    setReadinessMissing(initialReadinessMissing);
+    setReadinessMessage(initialReadinessMessage);
+    scrolledHighlightRef.current = false;
+  }, [initialReadinessMissing, initialReadinessMessage, plant.id]);
+
+  useEffect(() => {
+    if (readinessMissing.length === 0 || scrolledHighlightRef.current) return;
+    const first = readinessMissing[0];
+    const el = document.querySelector(`[data-readiness-field="${first}"]`);
+    if (el instanceof HTMLElement) {
+      scrolledHighlightRef.current = true;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [readinessMissing]);
+
+  function clearReadinessHighlight(key: OutpatientReadinessMissing) {
+    setReadinessMissing((current) => {
+      const next = current.filter((item) => item !== key);
+      if (next.length === 0) {
+        setReadinessMessage(null);
+      }
+      return next;
+    });
+  }
+
+  function applyOutpatientIncomplete(missing: OutpatientReadinessMissing[], message: string) {
+    scrolledHighlightRef.current = false;
+    setReadinessMissing(missing);
+    setReadinessMessage(message);
+  }
+
+  function isHighlighted(key: OutpatientReadinessMissing): boolean {
+    return readinessMissing.includes(key);
+  }
+
   function onViewDropOff() {
     plantDetailModal?.closePlantDetail();
     router.push(`/app/visits/${plant.visitId}`);
   }
 
   const treatmentNotes = isOutpatient ? (
-    <section className="space-y-3 rounded-hilda border border-hilda-warning-border bg-hilda-warning-bg p-3">
+    <section
+      data-readiness-field="treatment_notes"
+      className={cn(
+        "space-y-3 rounded-hilda border border-hilda-warning-border bg-hilda-warning-bg p-3",
+        isHighlighted("treatment_notes") ? FIELD_HIGHLIGHT_CLASS : null,
+      )}
+    >
       <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-warning-text">
         Treatment notes
       </h2>
@@ -121,6 +180,8 @@ export function PlantDetailView({
         compact
         embedded
         readOnly={isCollected}
+        highlighted={isHighlighted("treatment_notes")}
+        onHighlightClear={() => clearReadinessHighlight("treatment_notes")}
       />
     </section>
   ) : (
@@ -130,6 +191,8 @@ export function PlantDetailView({
       placeholder={treatmentNotesPlaceholder}
       compact
       readOnly={isCollected}
+      highlighted={isHighlighted("treatment_notes")}
+      onHighlightClear={() => clearReadinessHighlight("treatment_notes")}
     />
   );
 
@@ -142,6 +205,15 @@ export function PlantDetailView({
       }
     >
       {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
+
+      {readinessMessage ? (
+        <p
+          className="rounded-hilda border border-hilda-error-border bg-hilda-error-bg px-3 py-2 text-sm text-hilda-error-text-strong"
+          role="status"
+        >
+          {readinessMessage}
+        </p>
+      ) : null}
 
       {plant.paymentStatus === "part_paid" ? <PestsFoundAfterPaymentAlert /> : null}
 
@@ -320,6 +392,7 @@ export function PlantDetailView({
               variant="button"
               hideUpdatePlantLink
               className="mt-2 block w-full [&_button]:w-full"
+              onOutpatientIncomplete={applyOutpatientIncomplete}
             />
           ) : null}
         </div>
@@ -336,6 +409,8 @@ export function PlantDetailView({
           plantId={plant.id}
           staffOptions={hospitalStaff}
           initialStaff={plant.surgeryCompletedBy}
+          highlighted={isHighlighted("surgery_sign_off")}
+          onHighlightClear={() => clearReadinessHighlight("surgery_sign_off")}
         />
       ) : null}
 
@@ -359,7 +434,13 @@ export function PlantDetailView({
       ) : null}
 
       {!isPropagation ? (
-        <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+        <section
+          data-readiness-field="pests"
+          className={cn(
+            "rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3",
+            isHighlighted("pests") ? FIELD_HIGHLIGHT_CLASS : null,
+          )}
+        >
           <BugsFoundToggle
             plantId={plant.id}
             bugsFound={bugsFound}
@@ -367,6 +448,9 @@ export function PlantDetailView({
             onBugsFoundChange={(next) => {
               setBugsFound(next);
               if (next === true) setBugsFoundEver(true);
+              if (next === true || next === false) {
+                clearReadinessHighlight("pests");
+              }
             }}
           />
         </section>
@@ -378,6 +462,10 @@ export function PlantDetailView({
           options={pestTypeOptions}
           initialPestTypeOptionId={plant.pestTypeOptionId}
           readOnly={isCollected}
+          highlighted={isHighlighted("pest_type")}
+          onPestTypeChange={(pestTypeOptionId) => {
+            if (pestTypeOptionId) clearReadinessHighlight("pest_type");
+          }}
         />
       ) : null}
 
@@ -387,6 +475,10 @@ export function PlantDetailView({
           treatments={plant.pestTreatments}
           options={pestTreatmentOptions}
           disabled={isCollected}
+          highlighted={isHighlighted("pest_treatments")}
+          onTreatmentsChange={(treatments) => {
+            if (treatments.length >= 3) clearReadinessHighlight("pest_treatments");
+          }}
         />
       ) : null}
 
@@ -398,6 +490,8 @@ export function PlantDetailView({
         optionsByCategory={careTipOptions}
         compact
         readOnly={isCollected}
+        highlighted={isHighlighted("care_tips")}
+        onHighlightClear={() => clearReadinessHighlight("care_tips")}
       />
 
       <PricingSummarySection

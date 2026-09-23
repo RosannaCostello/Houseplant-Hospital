@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { PropagatePlantButton } from "@/components/plants/propagate-plant-button";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import type { PlantCategory } from "@/lib/plant-category";
+import type { OutpatientReadinessMissing } from "@/lib/plants/outpatient-readiness";
 import { isVisitUnpaid, type PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 
 type PlantCardStatusMenuProps = {
@@ -38,6 +39,8 @@ type PlantCardStatusMenuProps = {
   /** Hide "Update plant" when already on the plant detail page. */
   hideUpdatePlantLink?: boolean;
   onSearchCustomer?: (email: string) => void;
+  /** When Outpatient is blocked, highlight missing fields on Update plant. */
+  onOutpatientIncomplete?: (missing: OutpatientReadinessMissing[], message: string) => void;
   className?: string;
 };
 
@@ -53,6 +56,7 @@ type ConfirmStep =
   | {
       kind: "incomplete";
       message: string;
+      missing: OutpatientReadinessMissing[];
     }
   | {
       kind: "unpaid_collect";
@@ -71,6 +75,7 @@ export function PlantCardStatusMenu({
   variant = "overlay",
   hideUpdatePlantLink = false,
   onSearchCustomer,
+  onOutpatientIncomplete,
   className,
 }: PlantCardStatusMenuProps) {
   const router = useRouter();
@@ -149,10 +154,20 @@ export function PlantCardStatusMenu({
     });
   }
 
-  function openUpdatePlant() {
+  function openUpdatePlant(options?: {
+    readinessMissing?: OutpatientReadinessMissing[];
+    readinessMessage?: string;
+  }) {
     closeAll();
+    if (onOutpatientIncomplete && options?.readinessMissing?.length) {
+      onOutpatientIncomplete(options.readinessMissing, options.readinessMessage ?? "");
+      return;
+    }
     if (plantDetailModal) {
-      plantDetailModal.openPlantDetail(plantId);
+      plantDetailModal.openPlantDetail(plantId, {
+        readinessMissing: options?.readinessMissing,
+        readinessMessage: options?.readinessMessage,
+      });
       return;
     }
     router.push(`/app/plants/${plantId}`);
@@ -175,7 +190,11 @@ export function PlantCardStatusMenu({
       startTransition(async () => {
         const readiness = await checkOutpatientReadinessAction(plantId);
         if (!readiness.ready) {
-          setConfirmStep({ kind: "incomplete", message: readiness.message });
+          // Open Update plant with temporary red outlines on missing fields.
+          openUpdatePlant({
+            readinessMissing: readiness.missing,
+            readinessMessage: readiness.message,
+          });
           return;
         }
 
@@ -338,7 +357,7 @@ export function PlantCardStatusMenu({
                         <button
                           type="button"
                           className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95"
-                          onClick={openUpdatePlant}
+                          onClick={() => openUpdatePlant()}
                         >
                           Update plant
                         </button>
@@ -399,11 +418,29 @@ export function PlantCardStatusMenu({
                         <button
                           type="button"
                           className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95"
-                          onClick={openUpdatePlant}
+                          onClick={() =>
+                            openUpdatePlant({
+                              readinessMissing: confirmStep.missing,
+                              readinessMessage: confirmStep.message,
+                            })
+                          }
                         >
                           Update plant
                         </button>
-                      ) : null}
+                      ) : (
+                        <button
+                          type="button"
+                          className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse hover:brightness-95"
+                          onClick={() =>
+                            openUpdatePlant({
+                              readinessMissing: confirmStep.missing,
+                              readinessMessage: confirmStep.message,
+                            })
+                          }
+                        >
+                          Highlight missing fields
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-border/20 bg-hilda-bg px-4 py-2.5 text-sm font-medium text-hilda-heading"

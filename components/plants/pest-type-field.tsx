@@ -5,12 +5,15 @@ import { useEffect, useState, useTransition } from "react";
 import { setPestTypeAction } from "@/app/actions/set-pest-type";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import type { PestTypeOption } from "@/lib/pest-types/types";
+import { FIELD_HIGHLIGHT_CLASS } from "@/lib/ui/field-highlight";
+import { cn } from "@/lib/utils";
 
 type PestTypeFieldProps = {
   plantId: string;
   options: PestTypeOption[];
   initialPestTypeOptionId: string | null;
   readOnly?: boolean;
+  highlighted?: boolean;
   /** Called after a successful save so parent UI can refresh treatment notes. */
   onPestTypeChange?: (pestTypeOptionId: string | null) => void;
 };
@@ -20,6 +23,7 @@ export function PestTypeField({
   options,
   initialPestTypeOptionId,
   readOnly = false,
+  highlighted = false,
   onPestTypeChange,
 }: PestTypeFieldProps) {
   const router = useRouter();
@@ -69,7 +73,13 @@ export function PestTypeField({
   }
 
   return (
-    <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
+    <section
+      data-readiness-field="pest_type"
+      className={cn(
+        "rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3",
+        highlighted ? FIELD_HIGHLIGHT_CLASS : null,
+      )}
+    >
       <label className={hildaLabelClassName}>
         Pest type
         <span className="font-normal text-hilda-text-muted"> (required before Outpatient)</span>
@@ -78,6 +88,7 @@ export function PestTypeField({
           value={selectedId}
           disabled={isPending || activeOptions.length === 0}
           onChange={(event) => onChange(event.target.value)}
+          aria-invalid={highlighted || undefined}
         >
           <option value="">Select pest type…</option>
           {activeOptions.map((option) => (
