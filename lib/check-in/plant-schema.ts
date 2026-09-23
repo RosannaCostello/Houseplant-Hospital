@@ -6,10 +6,12 @@ export const CHECK_IN_INTERNAL_NOTES_MIN_LENGTH = 12;
 const checkInPlantCoreSchema = {
   clientId: z.string().min(1),
   size: z.enum(PLANT_SIZES, { message: "Select a size" }),
-  name: z.string().trim(),
+  /** Kept for draft/API compat; UI no longer collects plant nicknames (HIL-129). */
+  name: z.string().trim().optional().default(""),
   species: z.string().trim(),
   /** true = Yes, false = No, null = Not sure. Unanswered uses undefined on the form input. */
   bugsFound: z.union([z.literal(true), z.literal(false), z.null()]),
+  /** Kept for draft/API compat; pot consent UI removed (HIL-129). */
   potSizeChangeConsent: z.boolean().default(false),
 };
 

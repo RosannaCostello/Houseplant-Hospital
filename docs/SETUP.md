@@ -118,6 +118,10 @@ For **staff Care tips Other** (optional RLS; app also uses service role), run `s
 
 Shopify is the source of truth for **standard** and **pests** treatment prices. App size **Mini** matches Shopify option **Mini** on both products.
 
+There is also a **pests surcharge** product (delta only: pests − standard per size) for post–check-in top-ups when pests are confirmed later. Product `16031780831613`; variant IDs live in `lib/shopify/config.ts` (`pestsSurchargeVariantId`).
+
+For **part_paid** visit payment status (HIL-128), run `supabase/migrations/0037_part_paid_payment_status.sql`.
+
 ### Env vars (server only)
 
 ```bash

@@ -35,7 +35,7 @@ async function resolvePlantCustomerContext(
 ): Promise<PlantCustomerContext | null> {
   const { data: plant, error: plantError } = await supabase
     .from("plants")
-    .select("id, visit_id, name")
+    .select("id, visit_id, name, species")
     .eq("id", plantId)
     .maybeSingle();
 
@@ -77,7 +77,7 @@ async function resolvePlantCustomerContext(
     console.error("[mailchimp] care tips lookup failed:", careTipsResult.error.message);
   }
 
-  const plantName = plant.name?.trim() || undefined;
+  const plantName = plant.species?.trim() || plant.name?.trim() || undefined;
   const treatmentNotes = treatmentResult.data?.content?.trim() || undefined;
   const careTips = careTipsResult.data?.content?.trim() || undefined;
 

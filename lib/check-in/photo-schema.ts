@@ -27,10 +27,10 @@ export function photoPreviewSrc(photo: CheckInPlantPhoto | CheckInDraftPhotoView
 }
 
 export function checkInPlantLabel(plant: CheckInPlant, index: number): string {
-  const name = plant.name?.trim() || plant.species?.trim();
+  const species = plant.species?.trim();
 
-  if (name) {
-    return `${name} · ${plant.size}`;
+  if (species) {
+    return `${species} · ${plant.size}`;
   }
 
   return `Plant ${index + 1} · ${plant.size}`;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlantCardStatusMenu } from "@/components/dashboard/plant-card-status-menu";
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge";
+import { PestsFoundAfterPaymentAlert } from "@/components/payments/pests-found-after-payment-alert";
 import { BugsFoundToggle } from "@/components/plants/bugs-found-toggle";
 import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { InternalNotesSection } from "@/components/plants/internal-notes-section";
@@ -51,13 +52,8 @@ function formatMilestoneRow(at: string) {
 }
 
 function plantSubtitle(plant: PlantDetail): string | null {
-  const name = plant.name?.trim();
   const species = plant.species?.trim();
-
-  if (name && species) return `${name} · ${species}`;
-  if (name) return name;
-  if (species) return species;
-  return null;
+  return species || null;
 }
 
 export function PlantDetailView({
@@ -134,10 +130,11 @@ export function PlantDetailView({
     >
       {subtitle ? <p className="truncate text-sm text-hilda-text">{subtitle}</p> : null}
 
+      {plant.paymentStatus === "part_paid" ? <PestsFoundAfterPaymentAlert /> : null}
+
       {!isCollected ? (
         <PlantIdentityFields
           plantId={plant.id}
-          initialName={plant.name}
           initialSpecies={plant.species}
         />
       ) : null}
@@ -242,14 +239,6 @@ export function PlantDetailView({
                 </dd>
               </div>
             ) : null}
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">
-                Pot size change agreed
-              </dt>
-              <dd className="mt-0.5 font-medium text-hilda-heading">
-                {plant.potSizeChangeConsent ? "Yes" : "No"}
-              </dd>
-            </div>
             <div className="sm:col-span-2">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-hilda-text-muted">Contact</dt>
               <dd className="mt-0.5 text-hilda-heading">

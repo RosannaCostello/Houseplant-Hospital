@@ -317,23 +317,10 @@ export function PhotosStepForm({ draftId, customer, plants: initialPlants, initi
                 {checkInPlantLabel(plant, index)}
               </h2>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SpeciesField
-                  value={plant.species}
-                  onChange={(species) => updatePlant(plant.clientId, { species })}
-                />
-
-                <label className={hildaLabelClassName}>
-                  Plant name
-                  <input
-                    className={cn(hildaInputClassName, "min-h-11 py-2.5")}
-                    type="text"
-                    value={plant.name}
-                    onChange={(event) => updatePlant(plant.clientId, { name: event.target.value })}
-                    placeholder="e.g. Monty"
-                  />
-                </label>
-              </div>
+              <SpeciesField
+                value={plant.species}
+                onChange={(species) => updatePlant(plant.clientId, { species })}
+              />
 
               <label className={hildaLabelClassName}>
                 Internal notes

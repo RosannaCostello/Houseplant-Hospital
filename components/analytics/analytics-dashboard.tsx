@@ -38,6 +38,8 @@ function paymentLabel(status: string): string {
   switch (status) {
     case "pay_at_collection":
       return "Pay at collection";
+    case "part_paid":
+      return "Part paid";
     case "queued":
       return "Queued for POS";
     case "loaded":

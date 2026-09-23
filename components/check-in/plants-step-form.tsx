@@ -482,73 +482,37 @@ export function PlantsStepForm({
               ) : null}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(240px,38%)] md:items-start">
-              <div className="space-y-3">
-                <fieldset>
-                  <legend className={hildaLabelClassName}>Size</legend>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {PLANT_SIZES.map((size) => (
-                      <button
-                        key={size}
-                        type="button"
-                        className={cn(
-                          "min-h-11 min-w-14 rounded-hilda-sm border px-3 py-2 text-sm font-semibold transition-colors",
-                          activePlant.size === size
-                            ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
-                            : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
-                        )}
-                        onClick={() => updatePlant(activePlant.clientId, { size })}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                  {activeErrors.size ? (
-                    <span className="mt-1 block text-sm text-hilda-error-text">{activeErrors.size}</span>
-                  ) : null}
-                </fieldset>
+            <div className="space-y-3">
+              <fieldset>
+                <legend className={hildaLabelClassName}>Size</legend>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {PLANT_SIZES.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      className={cn(
+                        "min-h-11 min-w-14 rounded-hilda-sm border px-3 py-2 text-sm font-semibold transition-colors",
+                        activePlant.size === size
+                          ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
+                          : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
+                      )}
+                      onClick={() => updatePlant(activePlant.clientId, { size })}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+                {activeErrors.size ? (
+                  <span className="mt-1 block text-sm text-hilda-error-text">{activeErrors.size}</span>
+                ) : null}
+              </fieldset>
 
-                <BugsFoundToggleField
-                  value={activePlant.bugsFound ?? null}
-                  onChange={(bugsFound) => updatePlant(activePlant.clientId, { bugsFound })}
-                  question="Any pests visible on this plant?"
-                  ariaLabel="Any pests visible on this plant"
-                />
-              </div>
-
-              <label className="flex min-h-11 items-start gap-3 rounded-hilda-sm border border-hilda-border/15 bg-hilda-bg p-3 md:mt-0">
-                <span className="relative mt-0.5 h-5 w-5 shrink-0">
-                  <input
-                    className="peer sr-only"
-                    type="checkbox"
-                    name={`potSizeChangeConsent-${activePlant.clientId}`}
-                    checked={activePlant.potSizeChangeConsent ?? false}
-                    onChange={(event) =>
-                      updatePlant(activePlant.clientId, {
-                        potSizeChangeConsent: event.target.checked,
-                      })
-                    }
-                  />
-                  <span
-                    aria-hidden
-                    className="block h-5 w-5 rounded-hilda-sm border border-hilda-border/30 bg-hilda-surface transition-colors peer-checked:border-hilda-gold peer-checked:bg-hilda-gold peer-focus-visible:ring-2 peer-focus-visible:ring-hilda-gold/40"
-                  />
-                  <svg
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 m-auto hidden h-3.5 w-3.5 text-hilda-heading peer-checked:block"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span className="text-sm leading-snug text-hilda-text">
-                  The customer is happy for us to change the size of the pot in accordance to the
-                  plants diagnosed needs. Tick for yes.
-                </span>
-              </label>
+              <BugsFoundToggleField
+                value={activePlant.bugsFound ?? null}
+                onChange={(bugsFound) => updatePlant(activePlant.clientId, { bugsFound })}
+                question="Any pests visible on this plant?"
+                ariaLabel="Any pests visible on this plant"
+              />
             </div>
           </section>
         ) : null}
