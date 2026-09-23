@@ -10,7 +10,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
   plantId: z.string().uuid(),
-  treatmentNumber: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  treatmentNumber: z.number().int().min(1),
   optionId: z.string().uuid(),
 });
 

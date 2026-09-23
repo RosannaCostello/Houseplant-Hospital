@@ -120,7 +120,7 @@ export function SpeciesField({
 
   return (
     <div ref={containerRef} className="relative">
-      <label className={compact ? "block text-xs font-semibold uppercase tracking-wide text-hilda-text-muted" : hildaLabelClassName}>
+      <label className={compact ? hildaLabelClassName : hildaLabelClassName}>
         {compact ? (
           "Species"
         ) : (
@@ -130,11 +130,7 @@ export function SpeciesField({
         )}
         <input
           ref={inputRef}
-          className={cn(
-            compact
-              ? "mt-1 w-full rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm text-hilda-heading outline-none focus:border-hilda-text/50 disabled:opacity-60"
-              : cn(hildaInputClassName, "min-h-11 py-2.5"),
-          )}
+          className={cn(hildaInputClassName, "min-h-11 py-2.5")}
           type="text"
           autoComplete="off"
           value={value}

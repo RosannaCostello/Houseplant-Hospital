@@ -3,6 +3,7 @@ export const POS_PAYMENT_STATUSES = [
   "queued",
   "loaded",
   "paid",
+  "part_paid",
   "pay_at_collection",
   "cancelled",
 ] as const;
@@ -58,5 +59,15 @@ export function isVisitUnpaid(status: PosPaymentStatus | null | undefined): bool
   if (!status || status === "not_started" || status === "cancelled") {
     return true;
   }
-  return status === "pay_at_collection" || status === "queued" || status === "loaded";
+  return (
+    status === "pay_at_collection" ||
+    status === "queued" ||
+    status === "loaded" ||
+    status === "part_paid"
+  );
+}
+
+/** Visit already settled standard (or full) payment; pests balance may still be owed. */
+export function isVisitFullyPaid(status: PosPaymentStatus | null | undefined): boolean {
+  return status === "paid";
 }
