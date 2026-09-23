@@ -511,6 +511,7 @@ export function PlantDetailView({
 
       <div className="flex items-center justify-between gap-3">
         <PlantCaseLink
+          visitId={plant.visitId}
           plantId={plant.id}
           className="inline-flex min-h-10 items-center justify-center rounded-hilda-sm border border-hilda-border/25 bg-hilda-surface px-3 py-2 text-sm font-medium text-hilda-heading hover:bg-hilda-bg"
         />

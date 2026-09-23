@@ -416,8 +416,8 @@ Hard-refresh or use a private window after each deploy if behaviour looks stale.
 - [ ] **View visit** → `/app/visits/[id]` shows all 3 plants on the drop-off
 - [ ] **Customers** → search finds the customer by surname or email
 - [ ] Customer history → visits and plant links work
-- [ ] **Open QR case page** → `/hh/case/[plantId]` opens on live host (not localhost)
-- [ ] QR case page loads **without** login (test in private window)
+- [ ] **Open Care Card** → `/hh/care/[visitId]` opens on live host (not localhost); legacy `/hh/case/[plantId]` redirects
+- [ ] Care Card loads **without** login (test in private window)
 
 ### C — Regression
 

@@ -92,13 +92,14 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 
 ---
 
-## P2 — Customer dashboard (epic)
+## P2 — Customer Care Card (epic)
 
-- [ ] **15. Customer-facing plant dashboard** (split admin vs customer product)
-  - Hosting (domain: check `houseplanthospital.co` / Tom).
-  - Login vs magic-link still undecided — decide before build.
-  - Care notes / aftercare hero; journey timeline secondary (parcel-tracking simple).
-  - Emails shrink to one-liners + link; notes/tips live on dashboard.
+- [x] **15a. Customer Care Card (public visit page)** — [HIL-138](https://linear.app/hilda-houseplant-hospital/issue/HIL-138)
+  - `/hh/care/[visitId]` — whole drop-off; soft status; timeline; aftercare gated post-surgery.
+  - Legacy `/hh/case/[plantId]` redirects here. Staff: **Open Care Card**.
+  - Hosting / new domain: deferred (current Workers URL).
+- [ ] **15b. Thin emails + `care_card_url` on all plant events** (payload refactor).
+- [ ] **15c. Mailchimp Transactional (Route A)** for hospital events; keep `plant_collected` on Marketing Journeys for nurture.
 
 ---
 
@@ -156,4 +157,4 @@ flowchart TD
   pestType --> customerDash
 ```
 
-**Status:** P0 + P1 eng done (or OOS). Open ops: Mailchimp `plant_outpatient_reminder` journey; optional PR merges to `main`. Next app epic: **P2 customer dashboard**. Handbook updates required for any staff-facing ship.
+**Status:** P0 + P1 eng done (or OOS). P2 Care Card page shipped ([HIL-138](https://linear.app/hilda-houseplant-hospital/issue/HIL-138)); email thinning + Transactional still open. Ops: Mailchimp `plant_outpatient_reminder` journey; optional PR merges to `main`. Handbook updates required for any staff-facing ship.
