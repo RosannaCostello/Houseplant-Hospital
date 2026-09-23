@@ -214,7 +214,7 @@ Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (usef
 | `plant_outpatient` | `hh-plant-outpatient` |
 | `plant_outpatient_partial` | `hh-plant-outpatient-partial` |
 | `plant_outpatient_reminder` | `hh-plant-outpatient-reminder` |
-| `plant_dead` | `hh-plant-dead` |
+| `plant_dead` | `hh-plant-dead` (**draft only** — app suppresses sends; do not Publish) |
 | `plant_propagated` | `hh-plant-propagated` |
 | `bugs_found` | `hh-bugs-found` |
 

@@ -207,7 +207,7 @@ The app queues plant events in `mailchimp_events`. Delivery splits by **Route A*
 
 | Channel | What it sends | Who receives it |
 |---|---|---|
-| **Mailchimp Transactional** (Mandrill) | Hospital service emails: check-in, Quarantine, Surgery, Outpatient (+ partial / reminder), Dead, Propagated, pests found | **Every** hospital customer (marketing opt-in **not** required) |
+| **Mailchimp Transactional** (Mandrill) | Hospital service emails: check-in, Quarantine, Surgery, Outpatient (+ partial / reminder), Propagated, pests found. **`plant_dead` template exists as draft but does not send** (staff still confirm the customer was emailed before Dead). | **Every** hospital customer (marketing opt-in **not** required) |
 | **Marketing Events API → Customer Journey** | **`plant_collected` only** | Used to start **nurture** journeys — gate those journeys to subscribed / `newsletter` |
 
 Hospital Transactional emails are Mandrill **templates** (copy + layout edited in Mailchimp Transactional → Outbound → Templates, slugs `hh-…`). They include a greeting (`*|FNAME|*`), species (`*|SPECIES|*`), a **View your Care Card** button (`*|CARE_CARD_URL|*` — no raw URL shown), and a **Hilda team** sign-off. Treatment notes and care tips are on the Care Card, not in the email body.
@@ -225,7 +225,7 @@ Hospital Transactional emails are Mandrill **templates** (copy + layout edited i
 | `plant_outpatient` | Transactional | Plant moves to Outpatient **and** the drop-off is fully ready to collect |
 | `plant_outpatient_partial` | Transactional | Plant moves to Outpatient but sibling plants still block the ready-to-collect notice |
 | `plant_outpatient_reminder` | Transactional | Daily cron: plant has been Outpatient for 14+ days (repeats every 14 days while still Outpatient) |
-| `plant_dead` | Transactional | Plant moves to Dead |
+| `plant_dead` | Suppressed (draft template only) | Plant moves to Dead — **no live email**; keep `hh-plant-dead` unpublished in Mandrill |
 | `bugs_found` | Transactional | Pests set to Yes on plant detail (after check-in) |
 | `plant_collected` | Marketing Journey | Plant moves to Collected |
 

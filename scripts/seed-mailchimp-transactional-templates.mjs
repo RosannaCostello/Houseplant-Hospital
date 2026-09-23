@@ -204,9 +204,10 @@ async function main() {
         subject: seed.subject,
         code,
         text,
-        publish: true,
+        // Dead stays draft / unpublished — app also suppresses live sends.
+        publish: seed.name !== "hh-plant-dead",
       });
-      console.log(`add   ${seed.name}`);
+      console.log(`add   ${seed.name}${seed.name === "hh-plant-dead" ? " (draft only)" : ""}`);
     } else {
       await mandrill("templates/update", {
         name: seed.name,
@@ -215,9 +216,9 @@ async function main() {
         subject: seed.subject,
         code,
         text,
-        publish: true,
+        publish: seed.name !== "hh-plant-dead",
       });
-      console.log(`update ${seed.name}`);
+      console.log(`update ${seed.name}${seed.name === "hh-plant-dead" ? " (draft only)" : ""}`);
     }
   }
 

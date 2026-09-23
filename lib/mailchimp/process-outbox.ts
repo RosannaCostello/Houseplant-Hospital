@@ -12,9 +12,10 @@ import { sendHospitalTransactionalEmail } from "@/lib/mailchimp/send-hospital-tr
 import { formatMailchimpOccurredAt, sendMemberEvent } from "@/lib/mailchimp/send-member-event";
 import { MailchimpTransactionalApiError } from "@/lib/mailchimp/transactional-client";
 import {
-  isMailchimpTransactionalConfigured,
-} from "@/lib/mailchimp/transactional-env";
-import { isHospitalTransactionalEvent } from "@/lib/mailchimp/hospital-transactional-events";
+  isHospitalTransactionalEvent,
+  isSuppressedHospitalEmail,
+} from "@/lib/mailchimp/hospital-transactional-events";
+import { isMailchimpTransactionalConfigured } from "@/lib/mailchimp/transactional-env";
 import { upsertListMember } from "@/lib/mailchimp/upsert-list-member";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -262,6 +263,13 @@ async function sendEventWithRetry(
   payload: MailchimpEventPayload,
   options: { occurredAt?: string; toName?: string; firstName?: string } = {},
 ): Promise<void> {
+  if (isSuppressedHospitalEmail(eventName)) {
+    console.info(
+      `[mailchimp] ${eventName}: suppressed (template draft only — no live email)`,
+    );
+    return;
+  }
+
   const useTransactional =
     isHospitalTransactionalEvent(eventName) && isMailchimpTransactionalConfigured();
 
