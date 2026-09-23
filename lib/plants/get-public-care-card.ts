@@ -7,7 +7,6 @@ import {
 } from "@/lib/plants/get-plant-milestone-dates";
 import type { PlantStatus } from "@/lib/plant-status";
 import { PLANT_STATUSES } from "@/lib/plant-status";
-import { formatPlantSizeLabel } from "@/lib/plant-size";
 import { signPhotoPaths } from "@/lib/photos/sign-photo-urls";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -20,7 +19,6 @@ export type CareCardCareTip = {
 export type CareCardPlant = {
   id: string;
   species: string | null;
-  sizeLabel: string;
   status: PlantStatus;
   statusLabel: string;
   statusMessage: string;
@@ -118,7 +116,6 @@ export async function getPublicCareCard(visitId: string): Promise<PublicCareCard
       `
       id,
       species,
-      size,
       status,
       bugs_found,
       pest_type_options (
@@ -243,7 +240,6 @@ export async function getPublicCareCard(visitId: string): Promise<PublicCareCard
     plants.push({
       id,
       species: typeof row.species === "string" ? row.species : null,
-      sizeLabel: formatPlantSizeLabel(typeof row.size === "string" ? row.size : null),
       status,
       statusLabel: customerStatus.label,
       statusMessage: customerStatus.message,
@@ -279,7 +275,6 @@ async function getPublicCareCardWithoutPestType(
       `
       id,
       species,
-      size,
       status,
       bugs_found,
       plant_photos (
@@ -375,7 +370,6 @@ async function getPublicCareCardWithoutPestType(
     plants.push({
       id,
       species: typeof row.species === "string" ? row.species : null,
-      sizeLabel: formatPlantSizeLabel(typeof row.size === "string" ? row.size : null),
       status,
       statusLabel: customerStatus.label,
       statusMessage: customerStatus.message,

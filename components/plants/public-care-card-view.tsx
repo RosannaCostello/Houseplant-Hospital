@@ -218,12 +218,9 @@ function CareCardPlantSection({
 
       <div className="space-y-5 p-5 sm:p-6">
         <div>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-serif text-2xl font-normal text-hilda-heading">
-              {plantTitle(plant)}
-            </h2>
-            <p className="text-sm text-hilda-text-muted">{plant.sizeLabel}</p>
-          </div>
+          <h2 className="font-serif text-2xl font-normal text-hilda-heading">
+            {plantTitle(plant)}
+          </h2>
           {pests ? <p className="mt-2 text-sm font-medium text-hilda-heading">{pests}</p> : null}
         </div>
 
