@@ -175,3 +175,90 @@ export function buildPosCartFromVisitPlants(input: {
     cartNotePrefix: input.cartNotePrefix,
   });
 }
+
+export type PestsSurchargePlantInput = {
+  plantId: string;
+  size: PlantSize;
+};
+
+/**
+ * Balance cart: pests-only delta SKUs for plants that flipped to Yes after standard was paid.
+ * Does not replace full Standard/Pests check-in carts.
+ */
+export function buildPestsSurchargePosCart(input: {
+  plants: PestsSurchargePlantInput[];
+  customer: CheckInCustomer;
+  visitId: string;
+  shopifyCustomerId?: string | null;
+}): BuildPosCartResult {
+  if (input.plants.length === 0) {
+    return { success: false, error: "Add at least one plant for the pests surcharge." };
+  }
+
+  const customerName = `${input.customer.firstName} ${input.customer.lastName}`.trim();
+  const lineItems: PosLineItem[] = [];
+  const summaryCounts = new Map<string, number>();
+
+  for (const plant of input.plants) {
+    const mapping = SHOPIFY_VARIANT_IDS[plant.size];
+    lineItems.push({
+      variantId: mapping.pestsSurchargeVariantId,
+      quantity: 1,
+      properties: [
+        { name: "Size", value: mapping.shopifySizeLabel },
+        { name: "Treatment", value: "Pests surcharge" },
+        { name: "_hh_visit_id", value: input.visitId },
+        { name: "_hh_plant_id", value: plant.plantId },
+      ],
+    });
+    const key = `${plant.size} pests surcharge`;
+    summaryCounts.set(key, (summaryCounts.get(key) ?? 0) + 1);
+  }
+
+  return {
+    success: true,
+    summaryLines: [...summaryCounts.entries()].map(([key, count]) => `${count}× ${key}`),
+    payload: {
+      visitId: input.visitId,
+      customerName,
+      customerEmail: input.customer.email,
+      shopifyCustomerId: input.shopifyCustomerId ?? null,
+      cartNote: `Houseplant Hospital pests surcharge: ${customerName} (${input.visitId})`,
+      lineItems,
+    },
+  };
+}
+
+/** Merge surcharge lines for additional plants into an existing part-paid cart. */
+export function mergePestsSurchargeLineItems(
+  existing: PosCheckoutPayload | null | undefined,
+  next: PosCheckoutPayload,
+): PosCheckoutPayload {
+  if (!existing?.lineItems?.length) {
+    return next;
+  }
+
+  const seenPlantIds = new Set(
+    existing.lineItems
+      .map((line) => line.properties.find((property) => property.name === "_hh_plant_id")?.value)
+      .filter((value): value is string => Boolean(value)),
+  );
+
+  const appended = next.lineItems.filter((line) => {
+    const plantId = line.properties.find((property) => property.name === "_hh_plant_id")?.value;
+    return plantId ? !seenPlantIds.has(plantId) : true;
+  });
+
+  if (appended.length === 0) {
+    return existing;
+  }
+
+  return {
+    ...existing,
+    customerName: next.customerName || existing.customerName,
+    customerEmail: next.customerEmail || existing.customerEmail,
+    shopifyCustomerId: next.shopifyCustomerId ?? existing.shopifyCustomerId,
+    cartNote: next.cartNote || existing.cartNote,
+    lineItems: [...existing.lineItems, ...appended],
+  };
+}

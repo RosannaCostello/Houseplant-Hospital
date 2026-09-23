@@ -188,6 +188,7 @@ export function PlantDetailModalProvider({ children }: { children: ReactNode }) 
                       careTipOptions={payload.careTipOptions}
                       pestTreatmentOptions={payload.pestTreatmentOptions}
                       treatmentNotesPlaceholder={payload.treatmentNotesPlaceholder}
+                      hospitalStaff={payload.hospitalStaff}
                       embeddedInModal
                     />
                   ) : null}

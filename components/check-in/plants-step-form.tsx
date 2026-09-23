@@ -11,7 +11,7 @@ import {
 } from "@/app/actions/pos-checkout";
 import { CheckInStepHeader } from "@/components/check-in/check-in-step-header";
 import { CheckInStepShell } from "@/components/check-in/check-in-step-shell";
-import { SpeciesField } from "@/components/check-in/species-field";
+import { OpenShopifyPosDialog } from "@/components/check-in/open-shopify-pos-dialog";
 import { BugsFoundToggleField } from "@/components/plants/bugs-found-toggle-field";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -23,7 +23,7 @@ import {
   isBugsFoundAnswered,
   type CheckInPlantInput,
 } from "@/lib/check-in/plant-schema";
-import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
+import { hildaLabelClassName } from "@/lib/brand/form-styles";
 import { PLANT_SIZES } from "@/lib/plant-size";
 import type { PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 import { canProceedToPhotosStep } from "@/lib/shopify/pos-checkout-types";
@@ -65,26 +65,43 @@ export function PlantsStepForm({
   initialCheckout,
 }: PlantsStepFormProps) {
   const router = useRouter();
-  const plantSectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const closingToDashboardRef = useRef(false);
   const prevCheckoutStatusRef = useRef(initialCheckout.status);
   const [editedPlants, setEditedPlants] = useState<CheckInPlantInput[] | null>(null);
+  const [activePlantClientId, setActivePlantClientId] = useState<string | null>(null);
   const [checkout, setCheckout] = useState(initialCheckout);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [closingToDashboard, setClosingToDashboard] = useState(false);
+  const [posOpenModalDismissed, setPosOpenModalDismissed] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"pay_at_collection" | "discard" | null>(null);
   const [plantErrors, setPlantErrors] = useState<Record<string, Partial<Record<keyof CheckInPlantInput, string>>>>({});
 
   const plants = editedPlants ?? (initialPlants.length ? initialPlants : [createEmptyPlant()]);
+  const activeClientId = activePlantClientId ?? plants[0]?.clientId ?? null;
+  const activePlantIndex = plants.findIndex((plant) => plant.clientId === activeClientId);
+  const activePlant = activePlantIndex >= 0 ? plants[activePlantIndex] : plants[0];
   const readyForCheckout = plantsReadyForCheckout(plants);
-  const missingBugsCount = plants.filter((plant) => !isBugsFoundAnswered(plant.bugsFound)).length;
   const canContinueToPhotos = canProceedToPhotosStep(checkout.status, posCheckoutRequired);
   const awaitingPosPayment =
     posCheckoutRequired && (checkout.status === "queued" || checkout.status === "loaded");
   const checkoutSettled =
     posCheckoutRequired &&
     (checkout.status === "paid" || checkout.status === "pay_at_collection");
+  const showOpenPosModal = awaitingPosPayment && !posOpenModalDismissed;
+
+  useEffect(() => {
+    if (!plants.some((plant) => plant.clientId === activeClientId)) {
+      setActivePlantClientId(plants[0]?.clientId ?? null);
+    }
+  }, [plants, activeClientId]);
+
+  useEffect(() => {
+    if (!awaitingPosPayment) {
+      setPosOpenModalDismissed(false);
+      return;
+    }
+  }, [awaitingPosPayment]);
 
   useEffect(() => {
     if (!awaitingPosPayment) return;
@@ -105,7 +122,6 @@ export function PlantsStepForm({
     return () => window.clearInterval(interval);
   }, [awaitingPosPayment, draftId]);
 
-  // Auto-return only when checkout newly settles here — not when revisiting after "Back to plants".
   useEffect(() => {
     const previousStatus = prevCheckoutStatusRef.current;
     const justSettled =
@@ -141,20 +157,6 @@ export function PlantsStepForm({
     })();
   }, [checkout.status, checkoutSettled, draftId, plants, router]);
 
-  function scrollToPlant(clientId: string) {
-    requestAnimationFrame(() => {
-      plantSectionRefs.current.get(clientId)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  }
-
-  function setPlantSectionRef(clientId: string, element: HTMLElement | null) {
-    if (element) {
-      plantSectionRefs.current.set(clientId, element);
-    } else {
-      plantSectionRefs.current.delete(clientId);
-    }
-  }
-
   function updatePlants(next: CheckInPlantInput[]) {
     setEditedPlants(next);
     setFormError(null);
@@ -168,12 +170,18 @@ export function PlantsStepForm({
   function addPlant() {
     const newPlant = createEmptyPlant();
     updatePlants([...plants, newPlant]);
-    scrollToPlant(newPlant.clientId);
+    setActivePlantClientId(newPlant.clientId);
   }
 
   function removePlant(clientId: string) {
     if (plants.length === 1) return;
-    updatePlants(plants.filter((plant) => plant.clientId !== clientId));
+    const index = plants.findIndex((plant) => plant.clientId === clientId);
+    const next = plants.filter((plant) => plant.clientId !== clientId);
+    updatePlants(next);
+    if (activeClientId === clientId) {
+      const fallback = next[Math.max(0, index - 1)];
+      setActivePlantClientId(fallback?.clientId ?? next[0]?.clientId ?? null);
+    }
   }
 
   function collectPlantValidationErrors() {
@@ -182,7 +190,7 @@ export function PlantsStepForm({
     if (!parsed.success) {
       const errors: Record<string, Partial<Record<keyof CheckInPlantInput, string>>> = {};
       let rootMessage: string | null = null;
-      let firstErrorIndex: number | null = null;
+      let firstErrorClientId: string | null = null;
 
       for (const issue of parsed.error.issues) {
         const index = issue.path[0];
@@ -192,8 +200,8 @@ export function PlantsStepForm({
           const plant = plants[index];
           if (!plant) continue;
 
-          if (firstErrorIndex === null) {
-            firstErrorIndex = index;
+          if (firstErrorClientId === null) {
+            firstErrorClientId = plant.clientId;
           }
 
           errors[plant.clientId] ??= {};
@@ -205,11 +213,8 @@ export function PlantsStepForm({
         }
       }
 
-      if (firstErrorIndex !== null) {
-        const errorPlant = plants[firstErrorIndex];
-        if (errorPlant) {
-          scrollToPlant(errorPlant.clientId);
-        }
+      if (firstErrorClientId) {
+        setActivePlantClientId(firstErrorClientId);
       }
 
       setPlantErrors(errors);
@@ -272,6 +277,7 @@ export function PlantsStepForm({
       return;
     }
 
+    setPosOpenModalDismissed(false);
     setCheckout({
       status: "queued",
       queuedAt: new Date().toISOString(),
@@ -325,6 +331,8 @@ export function PlantsStepForm({
     setConfirmAction("discard");
   }
 
+  const activeErrors = activePlant ? (plantErrors[activePlant.clientId] ?? {}) : {};
+
   return (
     <CheckInStepShell
       maxWidth="3xl"
@@ -347,28 +355,6 @@ export function PlantsStepForm({
       }
       footer={
         <div className="flex flex-col gap-2">
-          {posCheckoutRequired && awaitingPosPayment ? (
-            <div className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3 text-sm text-hilda-text">
-              <p className="font-medium text-hilda-heading">Open Shopify POS to take payment</p>
-              <p className="mt-1 text-hilda-text-muted">
-                Tap the <strong>Houseplant Hospital</strong> tile, load this check-in, then complete checkout.
-              </p>
-              {checkout.summaryLines.length > 0 ? (
-                <ul className="mt-2 list-inside list-disc text-xs text-hilda-text-muted">
-                  {checkout.summaryLines.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
-
-          {posCheckoutRequired && !readyForCheckout ? (
-            <p className="rounded-hilda border border-hilda-warning-border bg-hilda-warning-bg p-3 text-sm text-hilda-warning-text">
-              Choose Yes, No, or Not sure for {missingBugsCount === 1 ? "the remaining plant" : `all ${missingBugsCount} remaining plants`} before checkout. Yes uses the pests price; No and Not sure use the standard price.
-            </p>
-          ) : null}
-
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
               <Button
@@ -440,108 +426,101 @@ export function PlantsStepForm({
         onSubmit={(event) => void onContinueToPhotos(event)}
         noValidate
       >
-        <div className="flex flex-col gap-3">
-          {plants.map((plant, index) => {
-            const errors = plantErrors[plant.clientId] ?? {};
+        {plants.length > 1 ? (
+          <div
+            className="flex shrink-0 gap-1 overflow-x-auto pb-1"
+            role="tablist"
+            aria-label="Plants"
+          >
+            {plants.map((plant, index) => {
+              const isActive = plant.clientId === activeClientId;
+              const hasError = Boolean(plantErrors[plant.clientId]);
+              return (
+                <button
+                  key={plant.clientId}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={cn(
+                    "min-h-11 shrink-0 rounded-hilda-sm border px-4 py-2 text-sm font-semibold transition-colors",
+                    isActive
+                      ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
+                      : hasError
+                        ? "border-hilda-error-border bg-hilda-error-bg text-hilda-error-text"
+                        : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
+                  )}
+                  onClick={() => setActivePlantClientId(plant.clientId)}
+                >
+                  Plant {index + 1}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
-            return (
-              <section
-                key={plant.clientId}
-                ref={(element) => setPlantSectionRef(plant.clientId, element)}
-                className={cn(
-                  "shrink-0 rounded-hilda border bg-hilda-surface p-3",
-                  posCheckoutRequired && !isBugsFoundAnswered(plant.bugsFound)
-                    ? "border-hilda-warning-border"
-                    : "border-hilda-border/15",
-                )}
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-hilda-heading">Plant {index + 1}</h2>
-                  {plants.length > 1 ? (
+        {activePlant ? (
+          <section
+            className={cn(
+              "shrink-0 rounded-hilda border bg-hilda-surface p-3",
+              posCheckoutRequired && !isBugsFoundAnswered(activePlant.bugsFound)
+                ? "border-hilda-warning-border"
+                : "border-hilda-border/15",
+            )}
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-hilda-heading">
+                Plant {activePlantIndex + 1}
+              </h2>
+              {plants.length > 1 ? (
+                <button
+                  type="button"
+                  className="min-h-11 px-1 text-sm font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
+                  onClick={() => removePlant(activePlant.clientId)}
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+
+            <div className="space-y-3">
+              <fieldset>
+                <legend className={hildaLabelClassName}>Size</legend>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {PLANT_SIZES.map((size) => (
                     <button
+                      key={size}
                       type="button"
-                      className="min-h-11 px-1 text-sm font-medium text-hilda-error-text hover:text-hilda-error-text-strong"
-                      onClick={() => removePlant(plant.clientId)}
+                      className={cn(
+                        "min-h-11 min-w-14 rounded-hilda-sm border px-3 py-2 text-sm font-semibold transition-colors",
+                        activePlant.size === size
+                          ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
+                          : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
+                      )}
+                      onClick={() => updatePlant(activePlant.clientId, { size })}
                     >
-                      Remove
+                      {size}
                     </button>
-                  ) : null}
+                  ))}
                 </div>
+                {activeErrors.size ? (
+                  <span className="mt-1 block text-sm text-hilda-error-text">{activeErrors.size}</span>
+                ) : null}
+              </fieldset>
 
-                <div className="space-y-3">
-                  <fieldset>
-                    <legend className={hildaLabelClassName}>Size</legend>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {PLANT_SIZES.map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          className={cn(
-                            "min-h-11 min-w-14 rounded-hilda-sm border px-3 py-2 text-sm font-semibold transition-colors",
-                            plant.size === size
-                              ? "border-hilda-heading bg-hilda-heading text-hilda-inverse"
-                              : "border-hilda-border/25 bg-hilda-surface text-hilda-heading hover:border-hilda-border/30",
-                          )}
-                          onClick={() => updatePlant(plant.clientId, { size })}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                    {errors.size ? (
-                      <span className="mt-1 block text-sm text-hilda-error-text">{errors.size}</span>
-                    ) : null}
-                  </fieldset>
-
-                  <BugsFoundToggleField
-                    value={plant.bugsFound ?? null}
-                    onChange={(bugsFound) => updatePlant(plant.clientId, { bugsFound })}
-                    question="Any pests visible on this plant?"
-                    ariaLabel="Any pests visible on this plant"
-                  />
-                  {posCheckoutRequired && !isBugsFoundAnswered(plant.bugsFound) ? (
-                    <p className="text-sm text-hilda-warning-text">
-                      Required before checkout — Yes uses the pests price; No and Not sure use the
-                      standard price.
-                    </p>
-                  ) : null}
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <SpeciesField
-                      value={plant.species}
-                      error={errors.species}
-                      onChange={(species) => updatePlant(plant.clientId, { species })}
-                    />
-
-                    <label className={hildaLabelClassName}>
-                      Plant name
-                      <input
-                        className={cn(hildaInputClassName, "min-h-11 py-2.5")}
-                        type="text"
-                        value={plant.name}
-                        onChange={(event) => updatePlant(plant.clientId, { name: event.target.value })}
-                        placeholder="e.g. Monty"
-                      />
-                    </label>
-                  </div>
-
-                  <label className={hildaLabelClassName}>
-                    Internal notes{" "}
-                    <span className="font-normal text-hilda-text-muted">(optional)</span>
-                    <textarea
-                      className={cn(hildaInputClassName, "min-h-[4.5rem] resize-none py-2.5")}
-                      rows={2}
-                      value={plant.notes}
-                      onChange={(event) => updatePlant(plant.clientId, { notes: event.target.value })}
-                      placeholder="Visible issues, pot size, customer concerns…"
-                    />
-                  </label>
-                </div>
-              </section>
-            );
-          })}
-        </div>
+              <BugsFoundToggleField
+                value={activePlant.bugsFound}
+                onChange={(bugsFound) => updatePlant(activePlant.clientId, { bugsFound })}
+                question="Any pests visible on this plant?"
+                ariaLabel="Any pests visible on this plant"
+              />
+            </div>
+          </section>
+        ) : null}
       </form>
+      <OpenShopifyPosDialog
+        open={showOpenPosModal}
+        onDismiss={() => setPosOpenModalDismissed(true)}
+      />
       <ConfirmDialog
         open={confirmAction === "pay_at_collection"}
         title="Pay at collection?"

@@ -10,7 +10,6 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { ensureCareTipOptionFromPlantAction } from "@/app/actions/care-tip-settings";
 import { saveCareTipAction } from "@/app/actions/save-care-tip";
 import { AnchoredPortal } from "@/components/ui/anchored-portal";
 import {
@@ -325,17 +324,9 @@ export function CareTipsSection({
     setError(null);
 
     startTransition(async () => {
-      const ensured = await ensureCareTipOptionFromPlantAction({ category, label });
-      if (!ensured.success) {
-        setStatus("error");
-        setError(ensured.error);
-        return;
-      }
-
       const next = { ...selections, [category]: label };
       setSelections(next);
       setOtherDrafts((current) => ({ ...current, [category]: "" }));
-      router.refresh();
 
       if (!hasMinimumCareTipSelections(next)) {
         setStatus("idle");
@@ -351,6 +342,7 @@ export function CareTipsSection({
       }
       setLegacyNote(null);
       setStatus("saved");
+      router.refresh();
     });
   }
 
@@ -423,8 +415,8 @@ export function CareTipsSection({
         {!compact && !readOnly ? (
           <p className={cn("mt-1 text-sm text-hilda-text")}>
             Advice for the customer when they collect their plant. Choose at least one tip;
-            the others may stay blank. Saves automatically. Other adds a custom tip to the list
-            for next time.
+            the others may stay blank. Saves automatically. Other saves a one-off custom tip for
+            this plant only.
           </p>
         ) : null}
       </div>
