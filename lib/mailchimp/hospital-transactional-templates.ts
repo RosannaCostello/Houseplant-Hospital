@@ -80,9 +80,9 @@ export const HOSPITAL_TRANSACTIONAL_TEMPLATE_SEEDS: readonly HospitalTemplateSee
     subject: "Ready for collection at Hilda",
     headline: "Ready for collection",
     bodyHtml:
-      "Your *|SPECIES|* is ready to pick up from Hilda. View aftercare details on your Care Card before you visit.",
+      "You're all set to collect from Hilda. View aftercare details on your Care Card before you visit.",
     bodyText:
-      "Your *|SPECIES|* is ready to pick up from Hilda. View aftercare details on your Care Card before you visit.",
+      "You're all set to collect from Hilda. View aftercare details on your Care Card before you visit.",
   },
   {
     eventName: MAILCHIMP_EVENT_NAMES.plantOutpatientPartial,
