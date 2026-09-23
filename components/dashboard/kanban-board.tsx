@@ -35,11 +35,16 @@ function matchesSearch(
   query: string,
   name: string,
   email: string,
+  pestTypeLabel?: string | null,
 ): boolean {
   if (!query) return true;
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
-  return name.toLowerCase().includes(needle) || email.toLowerCase().includes(needle);
+  return (
+    name.toLowerCase().includes(needle) ||
+    email.toLowerCase().includes(needle) ||
+    (pestTypeLabel?.toLowerCase().includes(needle) ?? false)
+  );
 }
 
 function groupPlantsByStatus(plants: DashboardPlant[]): Record<PlantStatus, DashboardPlant[]> {
@@ -72,7 +77,12 @@ export function KanbanBoard({
   const filteredPlants = useMemo(
     () =>
       plants.filter((plant) =>
-        matchesSearch(searchQuery, plant.customerName, plant.customerEmail),
+        matchesSearch(
+          searchQuery,
+          plant.customerName,
+          plant.customerEmail,
+          plant.pestTypeLabel,
+        ),
       ),
     [plants, searchQuery],
   );
@@ -125,9 +135,9 @@ export function KanbanBoard({
 
   return (
     <div className="relative flex min-h-0 flex-1 basis-0 flex-col gap-3">
-      <div className="flex shrink-0 items-center gap-2 px-1">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 px-1">
         <label className="sr-only" htmlFor="dashboard-search">
-          Search plants by customer name or email
+          Search plants by customer name, email, or pest type
         </label>
         <input
           id="dashboard-search"
@@ -139,7 +149,7 @@ export function KanbanBoard({
               setSearchQuery("");
             }
           }}
-          placeholder="Search by name or email…"
+          placeholder="Search by name, email, or pest…"
           className="min-w-0 flex-1 max-w-md rounded-hilda border border-hilda-border/20 bg-hilda-surface px-3 py-2 text-sm text-hilda-text placeholder:text-hilda-text-muted focus:border-hilda-border/40 focus:outline-none"
           autoComplete="off"
         />

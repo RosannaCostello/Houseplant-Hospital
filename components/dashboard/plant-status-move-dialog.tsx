@@ -4,10 +4,14 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { checkOutpatientReadinessAction } from "@/app/actions/check-outpatient-readiness";
+import { listOutpatientZonesAction } from "@/app/actions/outpatient-zone-settings";
 import { updatePlantStatusAction } from "@/app/actions/update-plant-status";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { confirmationForStatusMove } from "@/lib/plants/status-move-confirmation";
+import type { OutpatientReadinessMissing } from "@/lib/plants/outpatient-readiness";
 import { canTransitionPlantStatus, type PlantStatus } from "@/lib/plant-status";
+import type { OutpatientZoneOption } from "@/lib/outpatient-zones/types";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
 import { STAFF_OVERLAY_Z } from "@/lib/ui/overlay-z";
 import { cn } from "@/lib/utils";
@@ -28,8 +32,9 @@ type ConfirmStep =
       title: string;
       message: string;
       paidAnotherWay?: boolean;
+      requireZone?: boolean;
     }
-  | { kind: "incomplete"; message: string }
+  | { kind: "incomplete"; message: string; missing: OutpatientReadinessMissing[] }
   | { kind: "unpaid_collect" };
 
 type PlantStatusMoveDialogProps = {
@@ -48,6 +53,8 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
   const [confirmStep, setConfirmStep] = useState<ConfirmStep | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [zoneOptions, setZoneOptions] = useState<OutpatientZoneOption[]>([]);
+  const [selectedZoneId, setSelectedZoneId] = useState("");
   const seededFor = useRef<string | null>(null);
 
   useEffect(() => {
@@ -55,6 +62,7 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
       seededFor.current = null;
       setConfirmStep(null);
       setError(null);
+      setSelectedZoneId("");
       return;
     }
 
@@ -62,6 +70,7 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
     if (seededFor.current === key) return;
     seededFor.current = key;
     setError(null);
+    setSelectedZoneId("");
 
     if (!canTransitionPlantStatus(pending.fromStatus, pending.toStatus)) {
       onDismiss();
@@ -72,9 +81,22 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
       startTransition(async () => {
         const readiness = await checkOutpatientReadinessAction(pending.plantId);
         if (!readiness.ready) {
-          setConfirmStep({ kind: "incomplete", message: readiness.message });
+          plantDetailModal?.openPlantDetail(pending.plantId, {
+            readinessMissing: readiness.missing,
+            readinessMessage: readiness.message,
+          });
+          onDismiss();
           return;
         }
+
+        const zonesResult = await listOutpatientZonesAction();
+        if (zonesResult.success) {
+          setZoneOptions(zonesResult.options);
+        } else {
+          setZoneOptions([]);
+          setError(zonesResult.error);
+        }
+
         const confirm = confirmationForStatusMove(pending.fromStatus, pending.toStatus);
         if (confirm) {
           setConfirmStep({
@@ -82,6 +104,15 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
             targetStatus: pending.toStatus,
             title: confirm.title,
             message: confirm.message,
+            requireZone: true,
+          });
+        } else {
+          setConfirmStep({
+            kind: "status",
+            targetStatus: pending.toStatus,
+            title: "Move to Outpatient?",
+            message: "Choose a zone, then confirm.",
+            requireZone: true,
           });
         }
       });
@@ -133,11 +164,14 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
     };
   }, [onDismiss, pending]);
 
-  function applyStatus(newStatus: PlantStatus, paidAnotherWay = false) {
+  function applyStatus(
+    newStatus: PlantStatus,
+    options: { paidAnotherWay?: boolean; outpatientZoneId?: string } = {},
+  ) {
     if (!pending) return;
     setError(null);
     startTransition(async () => {
-      const result = await updatePlantStatusAction(pending.plantId, newStatus, { paidAnotherWay });
+      const result = await updatePlantStatusAction(pending.plantId, newStatus, options);
       if (!result.success) {
         setError(result.error);
         return;
@@ -148,6 +182,28 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
         plantDetailModal?.openPlantDetail(pending.plantId);
       }
     });
+  }
+
+  const zoneRequired =
+    confirmStep?.kind === "status" &&
+    confirmStep.requireZone === true &&
+    confirmStep.targetStatus === "outpatient";
+  const canConfirmOutpatient = !zoneRequired || Boolean(selectedZoneId);
+
+  function confirmStatusMove(step: Extract<ConfirmStep, { kind: "status" }>) {
+    if (step.requireZone && step.targetStatus === "outpatient") {
+      if (!selectedZoneId) {
+        setError("Select an outpatient zone before confirming.");
+        return;
+      }
+      applyStatus(step.targetStatus, {
+        paidAnotherWay: Boolean(step.paidAnotherWay),
+        outpatientZoneId: selectedZoneId,
+      });
+      return;
+    }
+
+    applyStatus(step.targetStatus, { paidAnotherWay: Boolean(step.paidAnotherWay) });
   }
 
   if (!pending || !confirmStep) {
@@ -202,7 +258,14 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
                 type="button"
                 className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse"
                 onClick={() => {
-                  plantDetailModal?.openPlantDetail(pending.plantId);
+                  if (confirmStep.kind === "incomplete") {
+                    plantDetailModal?.openPlantDetail(pending.plantId, {
+                      readinessMissing: confirmStep.missing,
+                      readinessMessage: confirmStep.message,
+                    });
+                  } else {
+                    plantDetailModal?.openPlantDetail(pending.plantId);
+                  }
                   onDismiss();
                 }}
               >
@@ -266,14 +329,38 @@ export function PlantStatusMoveDialog({ pending, onDismiss }: PlantStatusMoveDia
               </p>
             </div>
             <div className="space-y-2 p-4">
+              {zoneRequired ? (
+                <label className={hildaLabelClassName}>
+                  Outpatient zone
+                  <select
+                    className={`${hildaInputClassName} py-2.5`}
+                    value={selectedZoneId}
+                    disabled={isPending || zoneOptions.length === 0}
+                    onChange={(event) => {
+                      setSelectedZoneId(event.target.value);
+                      setError(null);
+                    }}
+                  >
+                    <option value="">Select zone…</option>
+                    {zoneOptions.map((zone) => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {zoneRequired && zoneOptions.length === 0 ? (
+                <p className="text-sm text-hilda-error-text">
+                  No outpatient zones configured. An admin can add them in Settings.
+                </p>
+              ) : null}
               {error ? <p className="text-sm text-hilda-error-text">{error}</p> : null}
               <button
                 type="button"
                 className="flex min-h-11 w-full items-center justify-center rounded-hilda-sm border border-hilda-bugs bg-hilda-bugs px-4 py-2.5 text-sm font-semibold text-hilda-inverse disabled:opacity-50"
-                disabled={isPending}
-                onClick={() =>
-                  applyStatus(confirmStep.targetStatus, Boolean(confirmStep.paidAnotherWay))
-                }
+                disabled={isPending || !canConfirmOutpatient}
+                onClick={() => confirmStatusMove(confirmStep)}
               >
                 {isPending ? "Updating…" : "Yes"}
               </button>

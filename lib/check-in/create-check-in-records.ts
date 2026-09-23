@@ -43,6 +43,14 @@ function isMissingPlantNotesColumnError(message: string): boolean {
   return lower.includes("notes") && lower.includes("plants");
 }
 
+function isMissingPlantPotConsentColumnError(message: string): boolean {
+  return message.includes("pot_size_change_consent");
+}
+
+function isMissingPestTypeOptionColumnError(message: string): boolean {
+  return message.includes("pest_type_option_id");
+}
+
 export async function createCheckInRecordsWithClient(
   supabase: SupabaseClient,
   input: CreateCheckInInput,
@@ -88,12 +96,48 @@ export async function createCheckInRecordsWithClient(
       const initialStatus: PlantStatus =
         plant.bugsFound === false ? "check_in" : "quarantine";
       const notes = plant.notes.trim() || null;
+      const pestTypeOptionId =
+        plant.bugsFound === true && typeof plant.pestTypeOptionId === "string"
+          ? plant.pestTypeOptionId
+          : null;
       return {
         clientId: plant.clientId,
         status: initialStatus,
+        insertWithPestType: {
+          visit_id: visitRow.id,
+          name: null,
+          species: plant.species.trim() || null,
+          size: plant.size,
+          status: initialStatus,
+          bugs_found: plant.bugsFound ?? null,
+          bugs_found_ever: plant.bugsFound === true,
+          notes,
+          pot_size_change_consent: false,
+          pest_type_option_id: pestTypeOptionId,
+        },
         insertWithNotes: {
           visit_id: visitRow.id,
-          name: plant.name.trim() || null,
+          name: null,
+          species: plant.species.trim() || null,
+          size: plant.size,
+          status: initialStatus,
+          bugs_found: plant.bugsFound ?? null,
+          bugs_found_ever: plant.bugsFound === true,
+          notes,
+          pot_size_change_consent: false,
+        },
+        insertLegacy: {
+          visit_id: visitRow.id,
+          name: null,
+          species: plant.species.trim() || null,
+          size: plant.size,
+          status: initialStatus,
+          bugs_found: plant.bugsFound ?? null,
+          bugs_found_ever: plant.bugsFound === true,
+        },
+        insertWithoutPotConsent: {
+          visit_id: visitRow.id,
+          name: null,
           species: plant.species.trim() || null,
           size: plant.size,
           status: initialStatus,
@@ -101,22 +145,27 @@ export async function createCheckInRecordsWithClient(
           bugs_found_ever: plant.bugsFound === true,
           notes,
         },
-        insertLegacy: {
-          visit_id: visitRow.id,
-          name: plant.name.trim() || null,
-          species: plant.species.trim() || null,
-          size: plant.size,
-          status: initialStatus,
-          bugs_found: plant.bugsFound ?? null,
-          bugs_found_ever: plant.bugsFound === true,
-        },
       };
     });
 
     let { data: insertedPlants, error: plantError } = await supabase
       .from("plants")
-      .insert(plantRows.map((row) => row.insertWithNotes))
+      .insert(plantRows.map((row) => row.insertWithPestType))
       .select("id");
+
+    if (plantError && isMissingPestTypeOptionColumnError(plantError.message)) {
+      ({ data: insertedPlants, error: plantError } = await supabase
+        .from("plants")
+        .insert(plantRows.map((row) => row.insertWithNotes))
+        .select("id"));
+    }
+
+    if (plantError && isMissingPlantPotConsentColumnError(plantError.message)) {
+      ({ data: insertedPlants, error: plantError } = await supabase
+        .from("plants")
+        .insert(plantRows.map((row) => row.insertWithoutPotConsent))
+        .select("id"));
+    }
 
     if (plantError && isMissingPlantNotesColumnError(plantError.message)) {
       const legacyNotes = buildLegacyVisitNotes(plants);

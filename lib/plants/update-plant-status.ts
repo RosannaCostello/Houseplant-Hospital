@@ -21,11 +21,17 @@ import { isPosPaymentStatus, isVisitUnpaid } from "@/lib/shopify/pos-checkout-ty
 export type UpdatePlantStatusOptions = {
   /** Staff confirmed the customer paid outside Shopify POS. */
   paidAnotherWay?: boolean;
+  /** Required when moving to outpatient — zone catalog option id. */
+  outpatientZoneId?: string;
 };
 
 export type UpdatePlantStatusResult =
   | { success: true; previousStatus: PlantStatus; newStatus: PlantStatus }
-  | { success: false; error: string; code?: "OUTPATIENT_INCOMPLETE" | "UNPAID_COLLECTION" };
+  | {
+      success: false;
+      error: string;
+      code?: "OUTPATIENT_INCOMPLETE" | "ZONE_REQUIRED" | "UNPAID_COLLECTION";
+    };
 
 function isPlantStatus(value: string): value is PlantStatus {
   return (PLANT_STATUSES as readonly string[]).includes(value);
@@ -71,6 +77,40 @@ export async function updatePlantStatusWithClient(
   }
 
   if (newStatus === "outpatient") {
+    const outpatientZoneId = options.outpatientZoneId?.trim() ?? "";
+    if (!outpatientZoneId) {
+      return {
+        success: false,
+        code: "ZONE_REQUIRED",
+        error: "Select an outpatient zone before moving this plant to Outpatient.",
+      };
+    }
+
+    const { data: zone, error: zoneError } = await supabase
+      .from("outpatient_zone_options")
+      .select("id, active")
+      .eq("id", outpatientZoneId)
+      .maybeSingle();
+
+    if (zoneError) {
+      if (zoneError.message.includes("outpatient_zone_options")) {
+        return {
+          success: false,
+          code: "ZONE_REQUIRED",
+          error: "Outpatient zones are not available yet. Ask an admin to run the latest migration.",
+        };
+      }
+      return { success: false, error: zoneError.message };
+    }
+
+    if (!zone || zone.active !== true) {
+      return {
+        success: false,
+        code: "ZONE_REQUIRED",
+        error: "Select a valid outpatient zone before moving this plant to Outpatient.",
+      };
+    }
+
     const readiness = await checkOutpatientReadinessWithClient(supabase, plantId);
     if (!readiness.ready) {
       return {
@@ -83,6 +123,22 @@ export async function updatePlantStatusWithClient(
     const cartResult = await ensureVisitPosCartWithClient(supabase, plant.visit_id);
     if (!cartResult.success) {
       return { success: false, error: cartResult.error };
+    }
+
+    const { error: zoneUpdateError } = await supabase
+      .from("plants")
+      .update({ outpatient_zone_id: outpatientZoneId })
+      .eq("id", plantId);
+
+    if (zoneUpdateError) {
+      if (zoneUpdateError.message.includes("outpatient_zone_id")) {
+        return {
+          success: false,
+          code: "ZONE_REQUIRED",
+          error: "Outpatient zones are not available yet. Ask an admin to run the latest migration.",
+        };
+      }
+      return { success: false, error: zoneUpdateError.message };
     }
   }
 

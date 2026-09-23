@@ -8,6 +8,8 @@ export const MAILCHIMP_EVENT_NAMES = {
   plantOutpatient: "plant_outpatient",
   /** Multi-plant visit: this plant is outpatient but siblings still block collection notice. */
   plantOutpatientPartial: "plant_outpatient_partial",
+  /** Cron: still outpatient after 14+ days (repeat every 14d while outpatient). */
+  plantOutpatientReminder: "plant_outpatient_reminder",
   plantCollected: "plant_collected",
   plantDead: "plant_dead",
   plantQuarantined: "plant_quarantined",
@@ -49,6 +51,8 @@ export type MailchimpEventPayload = {
   /** Set by outbox worker (HIL-57) when delivery fails. */
   _deliveryError?: string;
   _failedAt?: string;
+  /** Set when a pending row is claimed (`processing`). Used to reclaim stale locks. */
+  _claimedAt?: string;
 };
 
 /** Map kanban plant status to a Mailchimp event (not used for initial check-in). */
