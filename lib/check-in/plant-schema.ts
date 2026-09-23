@@ -11,6 +11,8 @@ const checkInPlantCoreSchema = {
   species: z.string().trim(),
   /** true = Yes, false = No, null = Not sure. Unanswered uses undefined on the form input. */
   bugsFound: z.union([z.literal(true), z.literal(false), z.null()]),
+  /** Optional pest type when bugsFound === true (HIL-131). */
+  pestTypeOptionId: z.string().uuid().nullable().optional(),
   /** Kept for draft/API compat; pot consent UI removed (HIL-129). */
   potSizeChangeConsent: z.boolean().default(false),
 };
@@ -42,10 +44,11 @@ export const checkInPlantsPhotosStepSchema = z.object({
 export type CheckInPlant = z.infer<typeof checkInPlantSchema>;
 export type CheckInPlantInput = Omit<
   z.input<typeof checkInPlantSchema>,
-  "bugsFound" | "potSizeChangeConsent"
+  "bugsFound" | "potSizeChangeConsent" | "pestTypeOptionId"
 > & {
   bugsFound: boolean | null | undefined;
   potSizeChangeConsent?: boolean;
+  pestTypeOptionId?: string | null;
 };
 
 export function createEmptyPlant(): CheckInPlantInput {
@@ -56,6 +59,7 @@ export function createEmptyPlant(): CheckInPlantInput {
     species: "",
     notes: "",
     bugsFound: undefined,
+    pestTypeOptionId: null,
     potSizeChangeConsent: false,
   };
 }

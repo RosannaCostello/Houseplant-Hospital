@@ -5,6 +5,7 @@ import { default as handler } from "./.open-next/worker.js";
 type CronRoute =
   | "/api/cron/mailchimp-outbox"
   | "/api/cron/shopify-pricing"
+  | "/api/cron/outpatient-reminders"
   | "/api/cron/print-jobs"
   | "/api/cron/pos-checkout-expiry";
 
@@ -35,7 +36,7 @@ function routesForCron(cron: string): CronRoute[] {
   }
 
   if (cron === SHOPIFY_PRICING_CRON) {
-    return ["/api/cron/shopify-pricing"];
+    return ["/api/cron/shopify-pricing", "/api/cron/outpatient-reminders"];
   }
 
   return [];

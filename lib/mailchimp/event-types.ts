@@ -8,6 +8,8 @@ export const MAILCHIMP_EVENT_NAMES = {
   plantOutpatient: "plant_outpatient",
   /** Multi-plant visit: this plant is outpatient but siblings still block collection notice. */
   plantOutpatientPartial: "plant_outpatient_partial",
+  /** Cron: still outpatient after 14+ days (repeat every 14d while outpatient). */
+  plantOutpatientReminder: "plant_outpatient_reminder",
   plantCollected: "plant_collected",
   plantDead: "plant_dead",
   plantQuarantined: "plant_quarantined",

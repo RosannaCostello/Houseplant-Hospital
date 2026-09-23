@@ -4,6 +4,7 @@ import { fetchDraftCheckoutState } from "@/app/actions/pos-checkout";
 import { PlantsStepForm } from "@/components/check-in/plants-step-form";
 import { Button } from "@/components/ui/button";
 import { createEmptyPlant } from "@/lib/check-in/plant-schema";
+import { getPestTypeOptions } from "@/lib/pest-types/get-pest-type-options";
 
 type CheckInPlantsPageProps = {
   searchParams: Promise<{ draft?: string }>;
@@ -38,7 +39,10 @@ export default async function CheckInPlantsPage({ searchParams }: CheckInPlantsP
     );
   }
 
-  const checkoutState = await fetchDraftCheckoutState(draftId);
+  const [checkoutState, pestTypeOptions] = await Promise.all([
+    fetchDraftCheckoutState(draftId),
+    getPestTypeOptions().catch(() => []),
+  ]);
   const checkout = checkoutState ?? {
     status: "not_started" as const,
     queuedAt: null,
@@ -62,6 +66,7 @@ export default async function CheckInPlantsPage({ searchParams }: CheckInPlantsP
         summaryLines: checkout.summaryLines,
       }}
       initialPlants={draft.plants.length ? draft.plants : [createEmptyPlant()]}
+      pestTypeOptions={pestTypeOptions}
     />
   );
 }

@@ -191,6 +191,26 @@ export function PlantCard({
                 iconClassName="h-3 w-3"
               />
             ) : null}
+            {plant.outpatientZoneLabel ? (
+              <span
+                className={cn(
+                  imageOverlayBadgeClass,
+                  "bg-hilda-surface text-[10px] font-semibold uppercase tracking-wide text-hilda-heading",
+                )}
+              >
+                {plant.outpatientZoneLabel}
+              </span>
+            ) : null}
+            {plant.pestTypeLabel ? (
+              <span
+                className={cn(
+                  imageOverlayBadgeClass,
+                  "bg-hilda-bugs/15 text-[10px] font-semibold uppercase tracking-wide text-hilda-bugs",
+                )}
+              >
+                {plant.pestTypeLabel}
+              </span>
+            ) : null}
             <PaymentStatusBadge
               status={plant.paymentStatus}
               shopifyOrderId={plant.shopifyOrderId}

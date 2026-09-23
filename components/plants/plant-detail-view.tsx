@@ -10,6 +10,7 @@ import { CareTipsSection } from "@/components/plants/care-tips-section";
 import { InternalNotesSection } from "@/components/plants/internal-notes-section";
 import { PlantCaseLink } from "@/components/plants/plant-case-link";
 import { PestTreatmentsSection } from "@/components/plants/pest-treatments-section";
+import { PestTypeField } from "@/components/plants/pest-type-field";
 import { useOptionalPlantDetailModal } from "@/components/plants/plant-detail-modal";
 import { PlantIdentityFields } from "@/components/plants/plant-identity-fields";
 import { PlantPhotoGallery } from "@/components/plants/plant-photo-gallery";
@@ -28,6 +29,7 @@ import type { PlantPriceBreakdown } from "@/lib/pricing/types";
 import { formatVisitPlantPosition } from "@/lib/visits/visit-plant-position";
 import type { CareTipOptionsByCategory } from "@/lib/care-tips/types";
 import type { PestTreatmentOption } from "@/lib/pest-treatments/types";
+import type { PestTypeOption } from "@/lib/pest-types/types";
 import { formatPlantMilestoneDate } from "@/lib/plants/get-plant-milestone-dates";
 import type { HospitalStaff } from "@/lib/staff/types";
 
@@ -36,6 +38,7 @@ type PlantDetailViewProps = {
   pricing: PlantPriceBreakdown | null;
   careTipOptions: CareTipOptionsByCategory;
   pestTreatmentOptions: PestTreatmentOption[];
+  pestTypeOptions: PestTypeOption[];
   treatmentNotesPlaceholder: string;
   hospitalStaff?: HospitalStaff[];
   /** When true, omit page bottom-nav padding (modal overlay). */
@@ -61,6 +64,7 @@ export function PlantDetailView({
   pricing,
   careTipOptions,
   pestTreatmentOptions,
+  pestTypeOptions,
   treatmentNotesPlaceholder,
   hospitalStaff = [],
   embeddedInModal = false,
@@ -82,6 +86,11 @@ export function PlantDetailView({
     bugsFound === true ||
     (bugsFoundEver && bugsFound !== false) ||
     (plant.pestTreatments.length > 0 && bugsFound !== false);
+  const showPestType =
+    !isPropagation &&
+    (bugsFound === true ||
+      (bugsFoundEver && bugsFound !== false) ||
+      Boolean(plant.pestTypeOptionId));
   const propagateDisabledReason = plant.hasPropagation
     ? "This plant has already been propagated."
     : undefined;
@@ -137,6 +146,13 @@ export function PlantDetailView({
           plantId={plant.id}
           initialSpecies={plant.species}
         />
+      ) : null}
+
+      {isOutpatient && plant.outpatientZoneLabel ? (
+        <p className="text-sm text-hilda-text">
+          Zone:{" "}
+          <span className="font-medium text-hilda-heading">{plant.outpatientZoneLabel}</span>
+        </p>
       ) : null}
 
       {isOutpatient ? treatmentNotes : null}
@@ -336,15 +352,6 @@ export function PlantDetailView({
         </section>
       ) : null}
 
-      {showPestTreatments ? (
-        <PestTreatmentsSection
-          plantId={plant.id}
-          treatments={plant.pestTreatments}
-          options={pestTreatmentOptions}
-          disabled={isCollected}
-        />
-      ) : null}
-
       {!isPropagation ? (
         <section className="rounded-hilda border border-hilda-border/15 bg-hilda-surface p-3">
           <BugsFoundToggle
@@ -357,6 +364,24 @@ export function PlantDetailView({
             }}
           />
         </section>
+      ) : null}
+
+      {showPestType ? (
+        <PestTypeField
+          plantId={plant.id}
+          options={pestTypeOptions}
+          initialPestTypeOptionId={plant.pestTypeOptionId}
+          readOnly={isCollected}
+        />
+      ) : null}
+
+      {showPestTreatments ? (
+        <PestTreatmentsSection
+          plantId={plant.id}
+          treatments={plant.pestTreatments}
+          options={pestTreatmentOptions}
+          disabled={isCollected}
+        />
       ) : null}
 
       {!isOutpatient ? treatmentNotes : null}

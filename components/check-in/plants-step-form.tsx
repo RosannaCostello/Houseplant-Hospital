@@ -23,8 +23,9 @@ import {
   isBugsFoundAnswered,
   type CheckInPlantInput,
 } from "@/lib/check-in/plant-schema";
-import { hildaLabelClassName } from "@/lib/brand/form-styles";
+import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { PLANT_SIZES } from "@/lib/plant-size";
+import type { PestTypeOption } from "@/lib/pest-types/types";
 import type { PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
 import { canProceedToPhotosStep } from "@/lib/shopify/pos-checkout-types";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ type PlantsStepFormProps = {
   initialPlants: CheckInPlantInput[];
   posCheckoutRequired: boolean;
   initialCheckout: DraftCheckoutState;
+  pestTypeOptions?: PestTypeOption[];
 };
 
 function plantsReadyForCheckout(plants: CheckInPlantInput[]): boolean {
@@ -63,6 +65,7 @@ export function PlantsStepForm({
   initialPlants,
   posCheckoutRequired,
   initialCheckout,
+  pestTypeOptions = [],
 }: PlantsStepFormProps) {
   const router = useRouter();
   const closingToDashboardRef = useRef(false);
@@ -509,10 +512,39 @@ export function PlantsStepForm({
 
               <BugsFoundToggleField
                 value={activePlant.bugsFound}
-                onChange={(bugsFound) => updatePlant(activePlant.clientId, { bugsFound })}
+                onChange={(bugsFound) =>
+                  updatePlant(activePlant.clientId, {
+                    bugsFound,
+                    pestTypeOptionId: bugsFound === true ? activePlant.pestTypeOptionId ?? null : null,
+                  })
+                }
                 question="Any pests visible on this plant?"
                 ariaLabel="Any pests visible on this plant"
               />
+
+              {activePlant.bugsFound === true ? (
+                <label className={hildaLabelClassName}>
+                  Pest type (optional)
+                  <select
+                    className={`${hildaInputClassName} py-2.5`}
+                    value={activePlant.pestTypeOptionId ?? ""}
+                    onChange={(event) =>
+                      updatePlant(activePlant.clientId, {
+                        pestTypeOptionId: event.target.value || null,
+                      })
+                    }
+                  >
+                    <option value="">Select pest type…</option>
+                    {pestTypeOptions
+                      .filter((option) => option.active)
+                      .map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              ) : null}
             </div>
           </section>
         ) : null}

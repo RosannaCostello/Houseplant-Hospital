@@ -205,6 +205,8 @@ Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (usef
 
 **Status and bugs events (HIL-56):** kanban status moves, collection, and enabling **bugs found** queue the matching event to `mailchimp_events` (`plant_in_surgery`, `plant_outpatient`, `plant_collected`, etc.). Enabling bugs found also applies the `bugs_treatment` tag when live Mailchimp is enabled.
 
+**Outpatient reminder (HIL-131):** daily cron `GET /api/cron/outpatient-reminders` (same `0 6 * * *` schedule as Shopify pricing in `custom-worker.ts`) enqueues `plant_outpatient_reminder` for plants still in Outpatient for 14+ days. Deduped via `mailchimp_events` (no new plant columns) so at most one reminder per plant per 14-day window. **Jack builds/activates the Mailchimp journey** on that exact event name.
+
 **Outbox worker (HIL-57):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50), POSTs each event to Mailchimp’s member Events API, and sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Rows left in `processing` for more than **15 minutes** (Worker timeout/deploy mid-send) are reset to `pending` at the start of each run. Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
 
 ```bash
@@ -248,6 +250,7 @@ Expected: `{ health_status: \"Everything's Chimpy!\" }` (or similar).
 | Propagate plant | `plant_propagated` | **Build** HH App - Propagated |
 | Move to Outpatient (visit fully ready) | `plant_outpatient` | **Build** HH App - Outpatient |
 | Move to Outpatient (multi-plant, not last) | `plant_outpatient_partial` | **Build** HH App - Outpatient (partial) |
+| Still outpatient after 14+ days (cron, every 14d) | `plant_outpatient_reminder` | **Build** HH App - Outpatient reminder (Jack) |
 | Collect plant | `plant_collected` | **Build** new flow + email |
 | Move to Dead | `plant_dead` | Shell only — create trigger/flow but **do not activate** yet |
 | Bugs found toggled on | `bugs_found` | Out of scope for HIL-96 |
@@ -311,6 +314,7 @@ Suggested journey names (HIL-96):
 | `plant_propagated` | HH App - Propagated |
 | `plant_outpatient` | HH App - Outpatient |
 | `plant_outpatient_partial` | HH App - Outpatient (partial) |
+| `plant_outpatient_reminder` | HH App - Outpatient reminder |
 | `plant_collected` | HH App - Collected |
 | `plant_dead` | HH App - Dead (inactive shell) |
 
@@ -342,6 +346,7 @@ The worker sends string properties (Mailchimp Events API: max **255** chars each
 | Print jobs drain | `*/5 * * * *` | `/api/cron/print-jobs` |
 | POS checkout expiry (24h unpaid queue) | `*/5 * * * *` | `/api/cron/pos-checkout-expiry` |
 | Shopify pricing | `0 6 * * *` (06:00 UTC daily) | `/api/cron/shopify-pricing` |
+| Outpatient 14d reminder | `0 6 * * *` (same daily cron) | `/api/cron/outpatient-reminders` |
 
 Requires `CRON_SECRET` and `APP_BASE_URL` on the worker. After deploy, check **Cloudflare → houseplanthospital → Settings → Triggers → Cron Triggers**.
 
@@ -362,6 +367,7 @@ Record active journeys here when live (HIL-96):
 | In surgery | `plant_in_surgery` | | HIL-96 |
 | Ready for collection | `plant_outpatient` | | HIL-96 — single plant or final plant |
 | Outpatient (awaiting siblings) | `plant_outpatient_partial` | | HIL-96 — multi-plant, not last yet |
+| Outpatient 14d reminder | `plant_outpatient_reminder` | | HIL-131 — Jack builds journey; daily cron |
 | Aftercare | `plant_collected` | | HIL-96 |
 | Dead | `plant_dead` | Inactive shell | HIL-96 — no email yet |
 | 6-month reminder (marketing) | TBD — tag/time based | | Requires `newsletter` tag; not HIL-96 |

@@ -29,6 +29,10 @@ export type PlantDetail = {
   status: PlantStatus;
   bugsFound: boolean | null;
   bugsFoundEver: boolean;
+  pestTypeOptionId: string | null;
+  pestTypeLabel: string | null;
+  outpatientZoneId: string | null;
+  outpatientZoneLabel: string | null;
   pestTreatments: PlantPestTreatment[];
   plantCategory: PlantCategory;
   sourcePlantId: string | null;
@@ -143,7 +147,15 @@ const PLANT_DETAIL_SELECT = `
       notes,
       pot_size_change_consent,
       surgery_completed_by,
+      pest_type_option_id,
+      outpatient_zone_id,
       created_at,
+      pest_type_options (
+        label
+      ),
+      outpatient_zone_options (
+        label
+      ),
       ${PLANT_DETAIL_RELATIONS}
 `;
 
@@ -164,6 +176,25 @@ const PLANT_DETAIL_SELECT_PRE_OPTIONS = `
       surgery_completed_by,
       created_at,
       ${PLANT_DETAIL_RELATIONS_PRE_OPTIONS}
+`;
+
+const PLANT_DETAIL_SELECT_WITHOUT_ZONE_PEST = `
+      id,
+      name,
+      species,
+      size,
+      status,
+      bugs_found,
+      bugs_found_ever,
+      plant_category,
+      source_plant_id,
+      final_price,
+      collected_at,
+      notes,
+      pot_size_change_consent,
+      surgery_completed_by,
+      created_at,
+      ${PLANT_DETAIL_RELATIONS}
 `;
 
 const PLANT_DETAIL_SELECT_LEGACY = `
@@ -214,6 +245,15 @@ function isMissingPlantNotesColumnError(message: string): boolean {
   return lower.includes("notes") && (lower.includes("plants") || lower.includes("'notes'"));
 }
 
+function isMissingZoneOrPestTypeColumnsError(message: string): boolean {
+  return (
+    message.includes("pest_type_option_id") ||
+    message.includes("outpatient_zone_id") ||
+    message.includes("pest_type_options") ||
+    message.includes("outpatient_zone_options")
+  );
+}
+
 function isMissingPestTreatmentOptionColumnsError(message: string): boolean {
   return message.includes("option_id") || message.includes("option_label");
 }
@@ -246,9 +286,9 @@ function parsePestTreatments(
         option_id?: string | null;
         option_label?: string | null;
       } =>
-        (row.treatment_number === 1 ||
-          row.treatment_number === 2 ||
-          row.treatment_number === 3) &&
+        typeof row.treatment_number === "number" &&
+        Number.isInteger(row.treatment_number) &&
+        row.treatment_number >= 1 &&
         typeof row.treated_at === "string",
     )
     .map((row) => ({
@@ -271,6 +311,14 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     .select(PLANT_DETAIL_SELECT)
     .eq("id", plantId)
     .maybeSingle();
+
+  if (error && isMissingZoneOrPestTypeColumnsError(error.message)) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(PLANT_DETAIL_SELECT_WITHOUT_ZONE_PEST)
+      .eq("id", plantId)
+      .maybeSingle());
+  }
 
   if (error && isMissingPlantNotesColumnError(error.message)) {
     ({ data, error } = await supabase
@@ -339,7 +387,11 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     notes?: string | null;
     pot_size_change_consent?: boolean;
     surgery_completed_by?: string | null;
+    pest_type_option_id?: string | null;
+    outpatient_zone_id?: string | null;
     created_at?: string;
+    pest_type_options?: { label?: string } | { label?: string }[] | null;
+    outpatient_zone_options?: { label?: string } | { label?: string }[] | null;
     plant_pest_treatments?: Array<{
       treatment_number?: number;
       treated_at?: string;
@@ -406,6 +458,8 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
 
   const visit = unwrapRelation(row.visits);
   const customer = visit ? unwrapRelation(visit.customers) : null;
+  const pestType = unwrapRelation(row.pest_type_options);
+  const zone = unwrapRelation(row.outpatient_zone_options);
 
   if (!row.id || !row.size || !row.status || !visit || !customer) {
     return null;
@@ -534,6 +588,16 @@ export async function getPlantDetail(plantId: string): Promise<PlantDetail | nul
     status: row.status,
     bugsFound: row.bugs_found ?? null,
     bugsFoundEver: row.bugs_found_ever === true || row.bugs_found === true,
+    pestTypeOptionId:
+      typeof row.pest_type_option_id === "string" ? row.pest_type_option_id : null,
+    pestTypeLabel:
+      pestType && typeof pestType.label === "string" && pestType.label.trim()
+        ? pestType.label.trim()
+        : null,
+    outpatientZoneId:
+      typeof row.outpatient_zone_id === "string" ? row.outpatient_zone_id : null,
+    outpatientZoneLabel:
+      zone && typeof zone.label === "string" && zone.label.trim() ? zone.label.trim() : null,
     pestTreatments: parsePestTreatments(row.plant_pest_treatments),
     plantCategory,
     sourcePlantId: row.source_plant_id ?? null,

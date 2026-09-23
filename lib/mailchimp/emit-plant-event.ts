@@ -103,7 +103,7 @@ async function queuePlantEvent(
     childPlantId?: string;
     size?: string;
   },
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const adapter = getMailchimpAdapter();
   const result = await adapter.queueEvent({
     eventName,
@@ -123,7 +123,10 @@ async function queuePlantEvent(
 
   if (!result.success) {
     console.error("[mailchimp] queue failed:", eventName, result.error);
+    return { success: false, error: result.error };
   }
+
+  return { success: true };
 }
 
 /**
@@ -242,5 +245,39 @@ export async function emitPlantPropagatedEvent(
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     console.error("[mailchimp] plant_propagated event failed:", message);
+  }
+}
+
+export type EmitPlantOutpatientReminderResult =
+  | { success: true }
+  | { success: false; error: string };
+
+/**
+ * Best-effort `plant_outpatient_reminder` for plants still outpatient after 14+ days.
+ * Used by the daily outpatient-reminders cron. Does not throw.
+ */
+export async function emitPlantOutpatientReminderEvent(
+  supabase: SupabaseClient,
+  plantId: string,
+): Promise<EmitPlantOutpatientReminderResult> {
+  try {
+    const context = await resolvePlantCustomerContext(supabase, plantId);
+    if (!context) {
+      return { success: false, error: "Could not resolve plant customer context." };
+    }
+
+    const queued = await queuePlantEvent(context, MAILCHIMP_EVENT_NAMES.plantOutpatientReminder, {
+      newStatus: "outpatient",
+    });
+
+    if (!queued.success) {
+      return { success: false, error: queued.error ?? "Could not queue outpatient reminder." };
+    }
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error("[mailchimp] plant_outpatient_reminder event failed:", message);
+    return { success: false, error: message };
   }
 }
