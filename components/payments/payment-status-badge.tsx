@@ -14,10 +14,13 @@ export function paymentStatusLabel(
   compact = false,
 ): string {
   if (compact) {
-    return status === "paid" ? "Paid" : "Unpaid";
+    if (status === "paid") return "Paid";
+    if (status === "part_paid") return "Part paid";
+    return "Unpaid";
   }
 
   if (status === "paid") return shopifyOrderId ? "Shopify paid" : "Paid";
+  if (status === "part_paid") return "Part paid — pests balance";
   if (status === "pay_at_collection") return "Pay at collection";
   if (status === "loaded") return "Loaded in POS";
   if (status === "queued") return "Waiting for POS";
@@ -26,6 +29,7 @@ export function paymentStatusLabel(
 
 export function PaymentStatusBadge({ status, shopifyOrderId, compact = false, className }: PaymentStatusBadgeProps) {
   const paid = status === "paid";
+  const partPaid = status === "part_paid";
 
   return (
     <span
@@ -33,7 +37,9 @@ export function PaymentStatusBadge({ status, shopifyOrderId, compact = false, cl
         "inline-flex items-center rounded-hilda-sm px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
         paid
           ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
-          : "bg-hilda-warning-bg text-hilda-warning-text ring-1 ring-hilda-warning-border",
+          : partPaid
+            ? "bg-amber-100 text-amber-950 ring-1 ring-amber-300"
+            : "bg-hilda-warning-bg text-hilda-warning-text ring-1 ring-hilda-warning-border",
         className,
       )}
     >

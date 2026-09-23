@@ -16,6 +16,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const BATCH_SIZE = 50;
 const MAX_SEND_ATTEMPTS = 3;
+/** Reclaim `processing` rows stuck longer than this (Worker kill mid-send). */
+const STALE_PROCESSING_MS = 15 * 60 * 1000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 type MailchimpEventRow = {
@@ -34,6 +36,7 @@ export type ProcessMailchimpOutboxResult = {
   processed: number;
   sent: number;
   failed: number;
+  reclaimed?: number;
   errors: Array<{ eventId: string; eventName: string; error: string }>;
 };
 
@@ -131,9 +134,26 @@ function resolveOccurredAt(row: MailchimpEventRow): string | undefined {
 
 async function claimEventRow(eventId: string): Promise<MailchimpEventRow | null> {
   const supabase = createSupabaseAdminClient();
+  const { data: existing, error: loadError } = await supabase
+    .from("mailchimp_events")
+    .select("id, customer_id, plant_id, event_name, payload, status, created_at")
+    .eq("id", eventId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (loadError || !existing) {
+    return null;
+  }
+
+  const claimedAt = new Date().toISOString();
+  const payload: MailchimpEventPayload = {
+    ...(existing.payload as MailchimpEventPayload),
+    _claimedAt: claimedAt,
+  };
+
   const { data, error } = await supabase
     .from("mailchimp_events")
-    .update({ status: "processing" })
+    .update({ status: "processing", payload })
     .eq("id", eventId)
     .eq("status", "pending")
     .select("id, customer_id, plant_id, event_name, payload, status, created_at")
@@ -144,6 +164,58 @@ async function claimEventRow(eventId: string): Promise<MailchimpEventRow | null>
   }
 
   return data as MailchimpEventRow;
+}
+
+/**
+ * Reset rows left in `processing` after a Worker timeout/deploy mid-send.
+ * Uses payload._claimedAt when present; otherwise falls back to created_at
+ * (legacy stuck rows from before claim timestamps existed).
+ */
+async function reclaimStaleProcessingRows(): Promise<number> {
+  const supabase = createSupabaseAdminClient();
+  const staleBeforeMs = Date.now() - STALE_PROCESSING_MS;
+
+  const { data, error } = await supabase
+    .from("mailchimp_events")
+    .select("id, payload, created_at")
+    .eq("status", "processing")
+    .limit(BATCH_SIZE);
+
+  if (error || !data?.length) {
+    return 0;
+  }
+
+  const staleIds: string[] = [];
+  for (const row of data) {
+    const payload = (row.payload ?? {}) as MailchimpEventPayload;
+    const claimedAtRaw = typeof payload._claimedAt === "string" ? payload._claimedAt : null;
+    const anchorMs = claimedAtRaw
+      ? Date.parse(claimedAtRaw)
+      : Date.parse(row.created_at);
+
+    if (!Number.isFinite(anchorMs) || anchorMs > staleBeforeMs) {
+      continue;
+    }
+    staleIds.push(row.id);
+  }
+
+  if (!staleIds.length) {
+    return 0;
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("mailchimp_events")
+    .update({ status: "pending" })
+    .in("id", staleIds)
+    .eq("status", "processing")
+    .select("id");
+
+  if (updateError) {
+    console.error("[mailchimp] reclaim stale processing failed:", updateError.message);
+    return 0;
+  }
+
+  return updated?.length ?? 0;
 }
 
 async function markEventSent(eventId: string): Promise<void> {
@@ -263,6 +335,7 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
       processed: 0,
       sent: 0,
       failed: 0,
+      reclaimed: 0,
       errors: [],
     };
   }
@@ -274,9 +347,12 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
       processed: 0,
       sent: 0,
       failed: 0,
+      reclaimed: 0,
       errors: [],
     };
   }
+
+  const reclaimed = await reclaimStaleProcessingRows();
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
@@ -292,6 +368,7 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
       processed: 0,
       sent: 0,
       failed: 0,
+      reclaimed,
       errors: [{ eventId: "", eventName: "", error: error.message }],
     };
   }
@@ -326,6 +403,7 @@ export async function processMailchimpOutbox(): Promise<ProcessMailchimpOutboxRe
     processed: rows.length,
     sent,
     failed,
+    reclaimed,
     errors,
   };
 }

@@ -26,6 +26,8 @@ type DashboardPlantRow = {
   size: string;
   status: string;
   bugs_found: boolean | null;
+  outpatient_zone_label: string | null;
+  pest_type_label: string | null;
   plant_category: PlantCategory;
   source_plant_id: string | null;
   created_at: string;
@@ -64,6 +66,8 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     source_plant_id?: string | null;
     created_at?: string;
     collected_at?: string | null;
+    outpatient_zone_options?: { label?: string } | { label?: string }[] | null;
+    pest_type_options?: { label?: string } | { label?: string }[] | null;
     visits?:
       | {
           checkin_date: string;
@@ -84,6 +88,8 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
 
   const visit = unwrapRelation(row.visits);
   const customer = visit ? unwrapRelation(visit.customers) : null;
+  const zone = unwrapRelation(row.outpatient_zone_options);
+  const pestType = unwrapRelation(row.pest_type_options);
 
   if (!row.id || !row.visit_id || !row.size || !row.status || !visit || !customer) {
     return null;
@@ -98,6 +104,13 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     return null;
   }
 
+  const zoneLabel =
+    zone && typeof zone.label === "string" && zone.label.trim() ? zone.label.trim() : null;
+  const pestTypeLabel =
+    pestType && typeof pestType.label === "string" && pestType.label.trim()
+      ? pestType.label.trim()
+      : null;
+
   return {
     id: row.id,
     visit_id: row.visit_id,
@@ -106,6 +119,8 @@ function parseDashboardPlantRow(raw: unknown): DashboardPlantRow | null {
     size: row.size,
     status: row.status,
     bugs_found: row.bugs_found ?? null,
+    outpatient_zone_label: zoneLabel,
+    pest_type_label: pestTypeLabel,
     plant_category: isPlantCategory(row.plant_category) ? row.plant_category : "standard",
     source_plant_id: row.source_plant_id ?? null,
     created_at: row.created_at ?? visit.checkin_date,
@@ -161,6 +176,12 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       source_plant_id,
       created_at,
       collected_at,
+      outpatient_zone_options (
+        label
+      ),
+      pest_type_options (
+        label
+      ),
       visits!inner (
         checkin_date,
         payment_status,
@@ -186,6 +207,50 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
     .limit(3, { foreignTable: "plant_photos" });
   let data: unknown[] | null = initialResult.data;
   let error = initialResult.error;
+
+  if (
+    error &&
+    (error.message.includes("outpatient_zone") ||
+      error.message.includes("pest_type_options") ||
+      error.message.includes("outpatient_zone_options"))
+  ) {
+    ({ data, error } = await supabase
+      .from("plants")
+      .select(
+        `
+        id,
+        visit_id,
+        name,
+        species,
+        size,
+        status,
+        bugs_found,
+        plant_category,
+        source_plant_id,
+        created_at,
+        collected_at,
+        visits!inner (
+          checkin_date,
+          payment_status,
+          shopify_order_id,
+          notes,
+          customers!inner (
+            first_name,
+            last_name,
+            email
+          )
+        ),
+        plant_photos (
+          storage_path,
+          thumbnail_path,
+          created_at
+        )
+      `,
+      )
+      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: false, foreignTable: "plant_photos" })
+      .limit(3, { foreignTable: "plant_photos" }));
+  }
 
   if (
     error &&
@@ -298,6 +363,8 @@ export async function getDashboardPlants(): Promise<DashboardPlant[]> {
       species: row.species,
       size: row.size,
       bugsFound: row.bugs_found ?? null,
+      outpatientZoneLabel: row.outpatient_zone_label,
+      pestTypeLabel: row.pest_type_label,
       plantCategory: row.plant_category,
       hasPropagation: propagatedSourceIds.has(row.id),
       checkedInAt: row.visits.checkin_date,

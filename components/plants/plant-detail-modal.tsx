@@ -24,9 +24,15 @@ import { lockBodyScroll } from "@/lib/ui/body-scroll-lock";
 import { bindKeyboardAvoidance } from "@/lib/ui/keyboard-avoidance";
 import { PLANT_DETAIL_MODAL_Z } from "@/lib/ui/overlay-z";
 import { cn } from "@/lib/utils";
+import type { OutpatientReadinessMissing } from "@/lib/plants/outpatient-readiness";
+
+export type OpenPlantDetailOptions = {
+  readinessMissing?: OutpatientReadinessMissing[];
+  readinessMessage?: string;
+};
 
 type PlantDetailModalContextValue = {
-  openPlantDetail: (plantId: string) => void;
+  openPlantDetail: (plantId: string, options?: OpenPlantDetailOptions) => void;
   closePlantDetail: () => void;
 };
 
@@ -55,11 +61,15 @@ export function PlantDetailModalProvider({ children }: { children: ReactNode }) 
   const [error, setError] = useState<string | null>(null);
   const [closing, setClosing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [readinessMissing, setReadinessMissing] = useState<OutpatientReadinessMissing[]>([]);
+  const [readinessMessage, setReadinessMessage] = useState<string | null>(null);
 
-  const openPlantDetail = useCallback((id: string) => {
+  const openPlantDetail = useCallback((id: string, options?: OpenPlantDetailOptions) => {
     setPlantId(id);
     setPayload(null);
     setError(null);
+    setReadinessMissing(options?.readinessMissing ?? []);
+    setReadinessMessage(options?.readinessMessage ?? null);
     setLoadToken((token) => token + 1);
   }, []);
 
@@ -71,6 +81,8 @@ export function PlantDetailModalProvider({ children }: { children: ReactNode }) 
       setPlantId(null);
       setPayload(null);
       setError(null);
+      setReadinessMissing([]);
+      setReadinessMessage(null);
       router.refresh();
     } finally {
       setClosing(false);
@@ -187,8 +199,13 @@ export function PlantDetailModalProvider({ children }: { children: ReactNode }) 
                       pricing={payload.pricing}
                       careTipOptions={payload.careTipOptions}
                       pestTreatmentOptions={payload.pestTreatmentOptions}
+                      pestTypeOptions={payload.pestTypeOptions}
+                      outpatientZoneOptions={payload.outpatientZoneOptions}
                       treatmentNotesPlaceholder={payload.treatmentNotesPlaceholder}
+                      hospitalStaff={payload.hospitalStaff}
                       embeddedInModal
+                      initialReadinessMissing={readinessMissing}
+                      initialReadinessMessage={readinessMessage}
                     />
                   ) : null}
                 </div>
