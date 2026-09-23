@@ -189,6 +189,7 @@ export function PlantCard({
               <BugsFoundBadge
                 className={cn(imageOverlayBadgeClass, "bg-hilda-bugs py-0")}
                 iconClassName="h-3 w-3"
+                label={plant.pestTypeLabel}
               />
             ) : null}
             {plant.outpatientZoneLabel ? (
@@ -199,16 +200,6 @@ export function PlantCard({
                 )}
               >
                 {plant.outpatientZoneLabel}
-              </span>
-            ) : null}
-            {plant.pestTypeLabel ? (
-              <span
-                className={cn(
-                  imageOverlayBadgeClass,
-                  "bg-hilda-bugs/15 text-[10px] font-semibold uppercase tracking-wide text-hilda-bugs",
-                )}
-              >
-                {plant.pestTypeLabel}
               </span>
             ) : null}
             <PaymentStatusBadge
