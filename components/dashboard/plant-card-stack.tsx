@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useState } from "react";
 import { PlantCard } from "@/components/dashboard/plant-card";
 import type { DashboardPlant } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils";
@@ -10,15 +10,46 @@ type PlantCardStackProps = {
   onSearchCustomer?: (email: string) => void;
 };
 
-const SWIPE_THRESHOLD_PX = 48;
 const MAX_PEEK = 3;
+
+function StackArrowButton({
+  direction,
+  onClick,
+  label,
+}: {
+  direction: "left" | "right";
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className={cn(
+        "absolute top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full",
+        "border border-hilda-border/20 bg-hilda-surface/90 text-hilda-heading shadow-sm",
+        "hover:bg-hilda-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-hilda-gold",
+        direction === "left" ? "left-0 -translate-x-1/2" : "right-0 translate-x-1/2",
+      )}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+        {direction === "left" ? (
+          <path d="M10 3 5 8l5 5" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M6 3l5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+    </button>
+  );
+}
 
 export function PlantCardStack({ plants, onSearchCustomer }: PlantCardStackProps) {
   const [index, setIndex] = useState(0);
-  const pointerStartX = useRef<number | null>(null);
-  const capturing = useRef(false);
-  const dragDx = useRef(0);
-  const [dragOffset, setDragOffset] = useState(0);
 
   if (plants.length === 0) return null;
   if (plants.length === 1) {
@@ -30,58 +61,6 @@ export function PlantCardStack({ plants, onSearchCustomer }: PlantCardStackProps
 
   function go(delta: number) {
     setIndex((current) => current + delta);
-    setDragOffset(0);
-    dragDx.current = 0;
-    capturing.current = false;
-  }
-
-  function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return;
-    const target = event.target as HTMLElement | null;
-    if (target?.closest("button, a, input, textarea, select")) return;
-    pointerStartX.current = event.clientX;
-    dragDx.current = 0;
-    capturing.current = false;
-  }
-
-  function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (pointerStartX.current == null) return;
-    const dx = event.clientX - pointerStartX.current;
-    dragDx.current = dx;
-    if (!capturing.current && Math.abs(dx) > 8) {
-      capturing.current = true;
-      event.currentTarget.setPointerCapture(event.pointerId);
-    }
-    if (capturing.current) {
-      event.preventDefault();
-      setDragOffset(dx);
-    }
-  }
-
-  function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
-    if (pointerStartX.current == null) return;
-    const dx = dragDx.current;
-    const wasCapturing = capturing.current;
-    pointerStartX.current = null;
-    if (wasCapturing) {
-      try {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      } catch {
-        // ignore
-      }
-    }
-    capturing.current = false;
-
-    if (wasCapturing && dx <= -SWIPE_THRESHOLD_PX) {
-      go(1);
-      return;
-    }
-    if (wasCapturing && dx >= SWIPE_THRESHOLD_PX) {
-      go(-1);
-      return;
-    }
-    setDragOffset(0);
-    dragDx.current = 0;
   }
 
   const peekPlants = plants
@@ -90,7 +69,7 @@ export function PlantCardStack({ plants, onSearchCustomer }: PlantCardStackProps
     .slice(0, MAX_PEEK);
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full px-5">
       <div className="mb-1 flex items-center justify-end gap-1.5 px-0.5">
         <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5 text-hilda-bugs" fill="currentColor">
           <rect x="1" y="1" width="6" height="6" rx="1" />
@@ -103,14 +82,18 @@ export function PlantCardStack({ plants, onSearchCustomer }: PlantCardStackProps
         </span>
       </div>
 
-      <div
-        className="relative"
-        style={{ minHeight: "1px", touchAction: capturing.current || dragOffset !== 0 ? "none" : "pan-y" }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
+      <div className="relative">
+        <StackArrowButton
+          direction="left"
+          label="Previous plant in stack"
+          onClick={() => go(-1)}
+        />
+        <StackArrowButton
+          direction="right"
+          label="Next plant in stack"
+          onClick={() => go(1)}
+        />
+
         {peekPlants.map(({ plant }, peekIndex) => {
           const depth = peekIndex + 1;
           const rotate = depth % 2 === 0 ? -4 * depth : 5 * depth;
@@ -131,17 +114,7 @@ export function PlantCardStack({ plants, onSearchCustomer }: PlantCardStackProps
           );
         })}
 
-        <div
-          className={cn(
-            "relative",
-            dragOffset === 0 && "transition-transform duration-200 ease-out",
-          )}
-          style={{
-            zIndex: MAX_PEEK + 1,
-            transform: `translateX(${dragOffset}px) rotate(${dragOffset * 0.04}deg)`,
-          }}
-        >
-          {/* Lane drag disabled in stacks so horizontal swipe works like iMessage photos. */}
+        <div className="relative" style={{ zIndex: MAX_PEEK + 1 }}>
           <PlantCard
             plant={front}
             draggableCard={false}

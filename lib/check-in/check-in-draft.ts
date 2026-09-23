@@ -178,7 +178,9 @@ export async function updateCheckInDraftCustomerWithClient(
 
   const { error } = await supabase
     .from("check_in_drafts")
-    .update({ customer_id: customerResult.id })
+    .update({
+      customer_id: customerResult.id,
+    })
     .eq("id", draftId);
 
   if (error) {

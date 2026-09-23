@@ -8,6 +8,8 @@ export const MAILCHIMP_EVENT_NAMES = {
   plantOutpatient: "plant_outpatient",
   /** Multi-plant visit: this plant is outpatient but siblings still block collection notice. */
   plantOutpatientPartial: "plant_outpatient_partial",
+  /** Cron: still outpatient after 14+ days (repeat every 14d while outpatient). */
+  plantOutpatientReminder: "plant_outpatient_reminder",
   plantCollected: "plant_collected",
   plantDead: "plant_dead",
   plantQuarantined: "plant_quarantined",
@@ -36,11 +38,21 @@ export type MailchimpEventPayload = {
   bugsFound?: boolean;
   /** Sibling plants still blocking ready-to-collect (outpatient partial only). */
   awaitingPlantCount?: number;
-  /** Plant display name for journey email copy (HIL-98). */
-  plantName?: string;
-  /** Latest treatment note content (HIL-98). */
+  /** Plant species for journey / Transactional merge (HIL-129 — no plant name). */
+  species?: string;
+  /**
+   * Absolute Customer Care Card URL for the drop-off (HIL-139).
+   * Prefer deriving from visitId + APP_BASE_URL at send time when omitted.
+   */
+  careCardUrl?: string;
+  /**
+   * @deprecated HIL-139 — aftercare lives on the Care Card; no longer sent to Mailchimp.
+   * Kept optional so old queued rows still deserialize.
+   */
   treatmentNotes?: string;
-  /** Latest care tips content (HIL-98). */
+  /**
+   * @deprecated HIL-139 — aftercare lives on the Care Card; no longer sent to Mailchimp.
+   */
   careTips?: string;
   /** New propagation child plant id (`plant_propagated` only). */
   childPlantId?: string;
@@ -49,6 +61,8 @@ export type MailchimpEventPayload = {
   /** Set by outbox worker (HIL-57) when delivery fails. */
   _deliveryError?: string;
   _failedAt?: string;
+  /** Set when a pending row is claimed (`processing`). Used to reclaim stale locks. */
+  _claimedAt?: string;
 };
 
 /** Map kanban plant status to a Mailchimp event (not used for initial check-in). */

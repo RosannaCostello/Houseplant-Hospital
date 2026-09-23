@@ -11,6 +11,7 @@ const updatePlantStatusSchema = z.object({
   plantId: z.string().uuid(),
   newStatus: z.enum(PLANT_STATUSES),
   paidAnotherWay: z.boolean().optional(),
+  outpatientZoneId: z.string().uuid().optional(),
 });
 
 export type UpdatePlantStatusActionResult = Awaited<
@@ -20,12 +21,13 @@ export type UpdatePlantStatusActionResult = Awaited<
 export async function updatePlantStatusAction(
   plantId: string,
   newStatus: z.infer<typeof updatePlantStatusSchema>["newStatus"],
-  options: { paidAnotherWay?: boolean } = {},
+  options: { paidAnotherWay?: boolean; outpatientZoneId?: string } = {},
 ): Promise<UpdatePlantStatusActionResult> {
   const parsed = updatePlantStatusSchema.safeParse({
     plantId,
     newStatus,
     paidAnotherWay: options.paidAnotherWay,
+    outpatientZoneId: options.outpatientZoneId,
   });
 
   if (!parsed.success) {
@@ -38,7 +40,10 @@ export async function updatePlantStatusAction(
       supabase,
       parsed.data.plantId,
       parsed.data.newStatus,
-      { paidAnotherWay: parsed.data.paidAnotherWay },
+      {
+        paidAnotherWay: parsed.data.paidAnotherWay,
+        outpatientZoneId: parsed.data.outpatientZoneId,
+      },
     );
 
     if (result.success) {

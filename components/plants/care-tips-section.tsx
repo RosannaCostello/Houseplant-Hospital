@@ -10,7 +10,6 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
-import { ensureCareTipOptionFromPlantAction } from "@/app/actions/care-tip-settings";
 import { saveCareTipAction } from "@/app/actions/save-care-tip";
 import { AnchoredPortal } from "@/components/ui/anchored-portal";
 import {
@@ -25,6 +24,7 @@ import {
 import type { CareTipOption, CareTipOptionsByCategory } from "@/lib/care-tips/types";
 import { hildaInputClassName, hildaLabelClassName } from "@/lib/brand/form-styles";
 import { scrollFocusedFieldAboveKeyboard } from "@/lib/ui/keyboard-avoidance";
+import { FIELD_HIGHLIGHT_CLASS } from "@/lib/ui/field-highlight";
 import { cn } from "@/lib/utils";
 
 const OTHER_SENTINEL = "__other__";
@@ -36,6 +36,8 @@ type CareTipsSectionProps = {
   embedded?: boolean;
   compact?: boolean;
   readOnly?: boolean;
+  highlighted?: boolean;
+  onHighlightClear?: () => void;
 };
 
 function emptySelections(): CareTipSelections {
@@ -238,6 +240,8 @@ export function CareTipsSection({
   embedded = false,
   compact = false,
   readOnly = false,
+  highlighted = false,
+  onHighlightClear,
 }: CareTipsSectionProps) {
   const router = useRouter();
   const parsed = useMemo(() => parseCareTip(careTip), [careTip]);
@@ -296,9 +300,10 @@ export function CareTipsSection({
         }
         setLegacyNote(null);
         setStatus("saved");
+        onHighlightClear?.();
       });
     },
-    [plantId],
+    [onHighlightClear, plantId],
   );
 
   function handleChange(category: CareTipCategory, value: string) {
@@ -325,17 +330,9 @@ export function CareTipsSection({
     setError(null);
 
     startTransition(async () => {
-      const ensured = await ensureCareTipOptionFromPlantAction({ category, label });
-      if (!ensured.success) {
-        setStatus("error");
-        setError(ensured.error);
-        return;
-      }
-
       const next = { ...selections, [category]: label };
       setSelections(next);
       setOtherDrafts((current) => ({ ...current, [category]: "" }));
-      router.refresh();
 
       if (!hasMinimumCareTipSelections(next)) {
         setStatus("idle");
@@ -351,6 +348,8 @@ export function CareTipsSection({
       }
       setLegacyNote(null);
       setStatus("saved");
+      onHighlightClear?.();
+      router.refresh();
     });
   }
 
@@ -415,7 +414,10 @@ export function CareTipsSection({
     : "space-y-4 rounded-hilda border border-hilda-border/15 bg-hilda-surface p-5 shadow-sm";
 
   return (
-    <section className={sectionClass}>
+    <section
+      data-readiness-field="care_tips"
+      className={cn(sectionClass, highlighted ? FIELD_HIGHLIGHT_CLASS : null)}
+    >
       <div>
         <h2 className="text-xs font-semibold uppercase tracking-wide text-hilda-text-muted">
           Care tips
@@ -423,8 +425,8 @@ export function CareTipsSection({
         {!compact && !readOnly ? (
           <p className={cn("mt-1 text-sm text-hilda-text")}>
             Advice for the customer when they collect their plant. Choose at least one tip;
-            the others may stay blank. Saves automatically. Other adds a custom tip to the list
-            for next time.
+            the others may stay blank. Saves automatically. Other saves a one-off custom tip for
+            this plant only.
           </p>
         ) : null}
       </div>

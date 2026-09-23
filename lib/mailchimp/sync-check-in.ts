@@ -8,6 +8,7 @@ import { MAILCHIMP_EVENT_NAMES } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
 import { addMemberTags } from "@/lib/mailchimp/update-member-tags";
 import { upsertListMember } from "@/lib/mailchimp/upsert-list-member";
+import { careCardUrlFromEnv } from "@/lib/plants/plant-case-url";
 
 export type SyncCheckInMailchimpInput = {
   supabase: SupabaseClient;
@@ -70,11 +71,12 @@ export async function syncCheckInToMailchimp(
   for (const plant of input.plants) {
     const { data: plantRow } = await input.supabase
       .from("plants")
-      .select("name")
+      .select("species")
       .eq("id", plant.plantId)
       .maybeSingle();
 
-    const plantName = plantRow?.name?.trim() || undefined;
+    const species = plantRow?.species?.trim() || undefined;
+    const careCardUrl = careCardUrlFromEnv(input.visitId) ?? undefined;
 
     const queued = await adapter.queueEvent({
       eventName: MAILCHIMP_EVENT_NAMES.plantCheckedIn,
@@ -85,7 +87,8 @@ export async function syncCheckInToMailchimp(
         visitId: input.visitId,
         customerId: input.customerId,
         plantId: plant.plantId,
-        plantName,
+        species,
+        careCardUrl,
       },
     });
 
