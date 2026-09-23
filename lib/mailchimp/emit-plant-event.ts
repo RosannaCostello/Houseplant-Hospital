@@ -12,6 +12,7 @@ import {
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
 import { shouldEmitPlantInSurgeryEvent } from "@/lib/mailchimp/surgery-event-gate";
 import { addMemberTags } from "@/lib/mailchimp/update-member-tags";
+import { careCardUrlFromEnv } from "@/lib/plants/plant-case-url";
 import { PLANT_STATUSES, type PlantStatus } from "@/lib/plant-status";
 
 function isPlantStatus(value: string): value is PlantStatus {
@@ -24,18 +25,17 @@ type PlantCustomerContext = {
   visitId: string;
   email: string;
   plantName?: string;
-  treatmentNotes?: string;
-  careTips?: string;
+  careCardUrl?: string;
 };
 
-/** Load plant → visit → customer (+ notes) in separate queries (reliable on Cloudflare + RLS). */
+/** Load plant → visit → customer in separate queries (reliable on Cloudflare + RLS). */
 async function resolvePlantCustomerContext(
   supabase: SupabaseClient,
   plantId: string,
 ): Promise<PlantCustomerContext | null> {
   const { data: plant, error: plantError } = await supabase
     .from("plants")
-    .select("id, visit_id, name")
+    .select("id, visit_id, name, species")
     .eq("id", plantId)
     .maybeSingle();
 
@@ -55,31 +55,20 @@ async function resolvePlantCustomerContext(
     return null;
   }
 
-  const [customerResult, treatmentResult, careTipsResult] = await Promise.all([
-    supabase.from("customers").select("email").eq("id", visit.customer_id).maybeSingle(),
-    supabase.from("treatment_notes").select("content").eq("plant_id", plantId).maybeSingle(),
-    supabase.from("care_tips").select("content").eq("plant_id", plantId).maybeSingle(),
-  ]);
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("email")
+    .eq("id", visit.customer_id)
+    .maybeSingle();
 
-  const email = customerResult.data?.email?.trim().toLowerCase();
-  if (customerResult.error || !email) {
-    console.error(
-      "[mailchimp] customer lookup failed:",
-      customerResult.error?.message ?? "no email",
-    );
+  const email = customer?.email?.trim().toLowerCase();
+  if (customerError || !email) {
+    console.error("[mailchimp] customer lookup failed:", customerError?.message ?? "no email");
     return null;
   }
 
-  if (treatmentResult.error) {
-    console.error("[mailchimp] treatment notes lookup failed:", treatmentResult.error.message);
-  }
-  if (careTipsResult.error) {
-    console.error("[mailchimp] care tips lookup failed:", careTipsResult.error.message);
-  }
-
-  const plantName = plant.name?.trim() || undefined;
-  const treatmentNotes = treatmentResult.data?.content?.trim() || undefined;
-  const careTips = careTipsResult.data?.content?.trim() || undefined;
+  const plantName = plant.species?.trim() || plant.name?.trim() || undefined;
+  const careCardUrl = careCardUrlFromEnv(plant.visit_id) ?? undefined;
 
   return {
     plantId: plant.id,
@@ -87,8 +76,7 @@ async function resolvePlantCustomerContext(
     visitId: plant.visit_id,
     email,
     plantName,
-    treatmentNotes,
-    careTips,
+    careCardUrl,
   };
 }
 
@@ -103,7 +91,7 @@ async function queuePlantEvent(
     childPlantId?: string;
     size?: string;
   },
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   const adapter = getMailchimpAdapter();
   const result = await adapter.queueEvent({
     eventName,
@@ -115,15 +103,17 @@ async function queuePlantEvent(
       visitId: context.visitId,
       plantId: context.plantId,
       plantName: context.plantName,
-      treatmentNotes: context.treatmentNotes,
-      careTips: context.careTips,
+      careCardUrl: context.careCardUrl,
       ...payload,
     },
   });
 
   if (!result.success) {
     console.error("[mailchimp] queue failed:", eventName, result.error);
+    return { success: false, error: result.error };
   }
+
+  return { success: true };
 }
 
 /**
@@ -242,5 +232,39 @@ export async function emitPlantPropagatedEvent(
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown error";
     console.error("[mailchimp] plant_propagated event failed:", message);
+  }
+}
+
+export type EmitPlantOutpatientReminderResult =
+  | { success: true }
+  | { success: false; error: string };
+
+/**
+ * Best-effort `plant_outpatient_reminder` for plants still outpatient after 14+ days.
+ * Used by the daily outpatient-reminders cron. Does not throw.
+ */
+export async function emitPlantOutpatientReminderEvent(
+  supabase: SupabaseClient,
+  plantId: string,
+): Promise<EmitPlantOutpatientReminderResult> {
+  try {
+    const context = await resolvePlantCustomerContext(supabase, plantId);
+    if (!context) {
+      return { success: false, error: "Could not resolve plant customer context." };
+    }
+
+    const queued = await queuePlantEvent(context, MAILCHIMP_EVENT_NAMES.plantOutpatientReminder, {
+      newStatus: "outpatient",
+    });
+
+    if (!queued.success) {
+      return { success: false, error: queued.error ?? "Could not queue outpatient reminder." };
+    }
+
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown error";
+    console.error("[mailchimp] plant_outpatient_reminder event failed:", message);
+    return { success: false, error: message };
   }
 }

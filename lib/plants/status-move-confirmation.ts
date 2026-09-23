@@ -23,7 +23,8 @@ export function confirmationForStatusMove(
   if (from === "in_surgery" && to === "dead") {
     return {
       title: "Move to Dead?",
-      message: "Are you sure you want to move to Dead?",
+      message:
+        "Confirm the customer has already been emailed about this plant before moving it to Dead. This cannot be undone from the board.",
     };
   }
   if (from === "in_surgery" && to === "outpatient") {

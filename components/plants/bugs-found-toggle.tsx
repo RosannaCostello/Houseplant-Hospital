@@ -9,12 +9,15 @@ type BugsFoundToggleProps = {
   plantId: string;
   bugsFound: boolean | null;
   disabled?: boolean;
+  /** Called after a successful save so open plant cards can update without close/reopen. */
+  onBugsFoundChange?: (bugsFound: boolean | null) => void;
 };
 
 export function BugsFoundToggle({
   plantId,
   bugsFound,
   disabled = false,
+  onBugsFoundChange,
 }: BugsFoundToggleProps) {
   const router = useRouter();
   const [selection, setSelection] = useState<boolean | null>(bugsFound);
@@ -37,6 +40,7 @@ export function BugsFoundToggle({
       }
 
       setSelection(result.bugsFound);
+      onBugsFoundChange?.(result.bugsFound);
       router.refresh();
     });
   }

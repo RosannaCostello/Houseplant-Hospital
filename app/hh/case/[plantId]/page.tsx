@@ -1,12 +1,12 @@
-import { notFound } from "next/navigation";
-import { PublicPlantCaseView } from "@/components/plants/public-plant-case-view";
-import { getPublicPlantCase } from "@/lib/plants/get-public-plant-case";
+import { notFound, redirect } from "next/navigation";
+import { getVisitIdForPublicPlant } from "@/lib/plants/get-public-care-card";
 import { isValidRouteId } from "@/lib/validation/parse-route-id";
 
 type PublicPlantCasePageProps = {
   params: Promise<{ plantId: string }>;
 };
 
+/** Legacy QR case URL → visit Care Card (optional plant highlight). */
 export default async function PublicPlantCasePage({ params }: PublicPlantCasePageProps) {
   const { plantId } = await params;
 
@@ -14,11 +14,11 @@ export default async function PublicPlantCasePage({ params }: PublicPlantCasePag
     notFound();
   }
 
-  const plant = await getPublicPlantCase(plantId);
+  const visitId = await getVisitIdForPublicPlant(plantId);
 
-  if (!plant) {
+  if (!visitId) {
     notFound();
   }
 
-  return <PublicPlantCaseView plant={plant} />;
+  redirect(`/hh/care/${visitId}?plant=${plantId}`);
 }

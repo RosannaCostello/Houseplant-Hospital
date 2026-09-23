@@ -4,10 +4,13 @@ import { checkInPlantsStepSchema, type CheckInPlant } from "@/lib/check-in/plant
 import {
   buildPosCartFromPlants,
   buildPosCartFromVisitPlants,
+  buildPestsSurchargePosCart,
+  mergePestsSurchargeLineItems,
 } from "@/lib/shopify/build-pos-cart-from-plants";
 import { isShopifyPricingConfigured } from "@/lib/shopify/env";
 import type { PosCheckoutPayload, PosPaymentStatus } from "@/lib/shopify/pos-checkout-types";
-import { isPosPaymentStatus, isVisitUnpaid } from "@/lib/shopify/pos-checkout-types";
+import { isPosPaymentStatus, isVisitFullyPaid, isVisitUnpaid } from "@/lib/shopify/pos-checkout-types";
+import { coercePlantSize } from "@/lib/plant-size";
 import { isPosCheckoutQueueExpired } from "@/lib/shopify/pos-checkout-ttl";
 import { expireStalePosCheckoutsWithClient } from "@/lib/check-in/expire-stale-pos-checkouts";
 import {
@@ -331,12 +334,102 @@ export async function ensureVisitPosCartWithClient(
   return { success: true };
 }
 
+/**
+ * After pests → Yes on a fully paid visit: queue pests-surcharge cart and set part_paid.
+ * Merges additional plant surcharges if the visit is already part_paid.
+ */
+export async function queuePestsSurchargeForPaidVisitWithClient(
+  supabase: SupabaseClient,
+  input: { visitId: string; plantId: string; size: string },
+): Promise<{ success: true } | { success: false; error: string }> {
+  const size = coercePlantSize(input.size);
+  if (!size) {
+    return { success: false, error: "Plant size is invalid for pests surcharge." };
+  }
+
+  const { data: visit, error: visitError } = await supabase
+    .from("visits")
+    .select(
+      "id, payment_status, pos_line_items, customers ( first_name, last_name, email, phone, marketing_consent, shopify_customer_id )",
+    )
+    .eq("id", input.visitId)
+    .maybeSingle();
+
+  if (visitError || !visit) {
+    return { success: false, error: "Visit not found." };
+  }
+
+  const paymentStatus = isPosPaymentStatus(visit.payment_status ?? "")
+    ? visit.payment_status
+    : null;
+
+  if (!isVisitFullyPaid(paymentStatus) && paymentStatus !== "part_paid") {
+    return { success: false, error: "Pests surcharge cart is only for paid or part-paid visits." };
+  }
+
+  const customer = unwrapCustomerRow(visit.customers);
+  if (!customer) {
+    return { success: false, error: "Customer details are missing." };
+  }
+
+  let shopifyCustomerId = shopifyCustomerIdFromRow(visit.customers);
+
+  if (!shopifyCustomerId) {
+    const { data: customerRow } = await supabase
+      .from("visits")
+      .select("customer_id")
+      .eq("id", input.visitId)
+      .maybeSingle();
+
+    if (customerRow?.customer_id) {
+      const synced = await upsertShopifyCustomerByEmail(customer);
+      if (synced.success) {
+        shopifyCustomerId = synced.shopifyCustomerId;
+        await saveShopifyCustomerIdOnRecord(
+          supabase,
+          customerRow.customer_id,
+          synced.shopifyCustomerId,
+        );
+      }
+    }
+  }
+
+  const built = buildPestsSurchargePosCart({
+    plants: [{ plantId: input.plantId, size }],
+    customer,
+    visitId: input.visitId,
+    shopifyCustomerId,
+  });
+
+  if (!built.success) {
+    return built;
+  }
+
+  const existingPayload =
+    paymentStatus === "part_paid" ? (visit.pos_line_items as PosCheckoutPayload | null) : null;
+  const payload = mergePestsSurchargeLineItems(existingPayload, built.payload);
+
+  const { error: updateError } = await supabase
+    .from("visits")
+    .update({
+      payment_status: "part_paid",
+      pos_line_items: payload,
+    })
+    .eq("id", input.visitId);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  return { success: true };
+}
+
 export async function settleVisitPaymentOutsideShopifyWithClient(
   supabase: SupabaseClient,
   visitId: string,
 ): Promise<{ success: true } | { success: false; error: string }> {
   const now = new Date().toISOString();
-  const unpaidStatuses = ["queued", "loaded", "pay_at_collection"] as const;
+  const unpaidStatuses = ["queued", "loaded", "pay_at_collection", "part_paid"] as const;
 
   async function settle(withSettledVia: boolean) {
     return supabase
@@ -453,16 +546,17 @@ export async function listPendingPosCheckoutsWithClient(
     .select(
       "id, pos_line_items, checkin_date, payment_status, customers ( first_name, last_name, email, shopify_customer_id )",
     )
-    .in("payment_status", ["queued", "loaded", "pay_at_collection"])
+    .in("payment_status", ["queued", "loaded", "pay_at_collection", "part_paid"])
     .order("checkin_date", { ascending: true });
 
   for (const visit of visits ?? []) {
     const payload = visit.pos_line_items as PosCheckoutPayload | null;
     if (!payload?.lineItems?.length) continue;
 
-    // pay_at_collection never auto-expires; queued/loaded use check-in age.
+    // pay_at_collection and part_paid never auto-expire; queued/loaded use check-in age.
     if (
       visit.payment_status !== "pay_at_collection" &&
+      visit.payment_status !== "part_paid" &&
       isPosCheckoutQueueExpired(visit.checkin_date, nowMs)
     ) {
       continue;
@@ -504,6 +598,20 @@ export async function markPosCheckoutLoadedWithClient(
       .in("pos_checkout_status", ["queued", "loaded"]);
 
     if (error) return { success: false, error: error.message };
+    return { success: true };
+  }
+
+  const { data: visit, error: fetchError } = await supabase
+    .from("visits")
+    .select("payment_status")
+    .eq("id", input.id)
+    .maybeSingle();
+
+  if (fetchError) return { success: false, error: fetchError.message };
+  if (!visit) return { success: false, error: "Visit not found." };
+
+  // Keep part_paid so the dashboard still shows balance owed after till load.
+  if (visit.payment_status === "part_paid") {
     return { success: true };
   }
 
@@ -550,7 +658,7 @@ export async function markPosCheckoutPaidWithClient(
       })
       .eq("id", input.visitId)
       .or(
-        `payment_status.is.null,payment_status.in.(queued,loaded,pay_at_collection,not_started,paid)`,
+        `payment_status.is.null,payment_status.in.(queued,loaded,pay_at_collection,part_paid,not_started,paid)`,
       );
   }
 }

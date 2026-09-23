@@ -55,8 +55,8 @@ Verify: `npx wrangler tail houseplanthospital` — at each `:00/:05/...` you sho
 If Mailchimp journeys stop firing or Shopify prices go stale, cron is the first thing to check:
 
 1. **Worker secret:** `npx wrangler secret list` should include `CRON_SECRET`. If missing, Mailchimp outbox and Shopify sync never run (`[cron] CRON_SECRET not set` in tail logs).
-2. **HTTP cron routes:** `GET /api/cron/mailchimp-outbox` and `GET /api/cron/shopify-pricing` require `Authorization: Bearer <CRON_SECRET>`.
-3. **Schedule:** `wrangler.jsonc` — Mailchimp every 5 minutes, Shopify daily at 06:00 UTC.
+2. **HTTP cron routes:** `GET /api/cron/mailchimp-outbox`, `GET /api/cron/shopify-pricing`, and `GET /api/cron/outpatient-reminders` require `Authorization: Bearer <CRON_SECRET>`.
+3. **Schedule:** `wrangler.jsonc` — Mailchimp every 5 minutes; Shopify pricing + outpatient reminders daily at 06:00 UTC.
 4. **Manual test:**
 
 ```bash
