@@ -201,32 +201,37 @@ On plant detail (when the plant is in **Quarantine** or has ever had pests):
 2. Use **Retake photo** to replace the latest photo (camera or library).  
 3. **Collected** plants: fullscreen view is allowed; retake is disabled.
 
-### Mailchimp — events, properties, merge fields, and tags
+### Mailchimp — hospital Transactional mail + collection journeys
 
-The app does **not** send finished emails. It upserts the contact, applies tags, and queues **events**. Journeys and email copy live in **Mailchimp**.
+The app queues plant events in `mailchimp_events`. Delivery splits by **Route A** (HIL-140):
 
-Mailchimp only allows **255 characters per event property**, and HTML emails collapse line breaks inside a single property to spaces.
+| Channel | What it sends | Who receives it |
+|---|---|---|
+| **Mailchimp Transactional** (Mandrill) | Hospital service emails: check-in, Quarantine, Surgery, Outpatient (+ partial / reminder), Dead, Propagated, pests found | **Every** hospital customer (marketing opt-in **not** required) |
+| **Marketing Events API → Customer Journey** | **`plant_collected` only** | Used to start **nurture** journeys — gate those journeys to subscribed / `newsletter` |
 
-#### Journey trigger event names
+Hospital Transactional emails are thin status notes with a **View your Care Card** button. Treatment notes and care tips are on the Care Card, not in the email body.
 
-Use these exact names when wiring journeys:
+**Ops:** deactivate Marketing Journeys that used to fire on hospital events (check-in, surgery, outpatient, etc.) so you are not confused by dormant triggers. Keep / build the **`plant_collected`** nurture journey with a consent filter.
 
-| Event name | When the app fires it |
-|---|---|
-| `plant_checked_in` | Check-in completes (one event per plant) |
-| `plant_quarantined` | Plant moves to Quarantine (including pests Yes at check-in) |
-| `plant_in_surgery` | First plant on a drop-off moves to In Surgery (later sibling plants entering Surgery do **not** fire again) |
-| `plant_propagated` | Staff propagates a plant in Surgery (creates a child in Propagation) |
-| `plant_outpatient` | Plant moves to Outpatient **and** the drop-off is fully ready to collect |
-| `plant_outpatient_partial` | Plant moves to Outpatient but sibling plants still block the ready-to-collect notice |
-| `plant_outpatient_reminder` | Daily cron: plant has been Outpatient for 14+ days (repeats every 14 days while still Outpatient) |
-| `plant_collected` | Plant moves to Collected |
-| `plant_dead` | Plant moves to Dead |
-| `bugs_found` | Pests set to Yes on plant detail (after check-in) |
+#### Event names the app still queues
 
-#### Event properties (variables on the event)
+| Event name | Delivery | When the app fires it |
+|---|---|---|
+| `plant_checked_in` | Transactional | Check-in completes (one event per plant) |
+| `plant_quarantined` | Transactional | Plant moves to Quarantine (including pests Yes at check-in) |
+| `plant_in_surgery` | Transactional | First plant on a drop-off moves to In Surgery (later sibling plants entering Surgery do **not** fire again) |
+| `plant_propagated` | Transactional | Staff propagates a plant in Surgery (creates a child in Propagation) |
+| `plant_outpatient` | Transactional | Plant moves to Outpatient **and** the drop-off is fully ready to collect |
+| `plant_outpatient_partial` | Transactional | Plant moves to Outpatient but sibling plants still block the ready-to-collect notice |
+| `plant_outpatient_reminder` | Transactional | Daily cron: plant has been Outpatient for 14+ days (repeats every 14 days while still Outpatient) |
+| `plant_dead` | Transactional | Plant moves to Dead |
+| `bugs_found` | Transactional | Pests set to Yes on plant detail (after check-in) |
+| `plant_collected` | Marketing Journey | Plant moves to Collected |
 
-Properties are only included when the app has a value. Empty / unused properties are omitted.
+#### Event properties (on Marketing Journey events / payload)
+
+Still stored on queued rows and sent with `plant_collected` Journey triggers. Empty / unused properties are omitted.
 
 | Property | Meaning |
 |---|---|
@@ -242,9 +247,9 @@ Properties are only included when the app has a value. Empty / unused properties
 | `child_plant_id` | New propagation plant UUID (`plant_propagated` only) |
 | `size` | Propagation size band Mini/S/M/L/XL (`plant_propagated` only) |
 
-**Thin emails (HIL-139):** hospital journey emails should be short status updates with a button/link to `care_card_url`. Treatment notes and care tips are **not** sent as event properties anymore — customers read them on the Care Card after Outpatient / Collected / Dead.
+**Thin emails (HIL-139):** hospital Transactional emails (Route A) are short status updates with a Care Card button — they do not embed treatment notes / care tips. For the **`plant_collected`** Marketing Journey, use `care_card_url` as a CTA if you include a short service step before nurture; remove any old `treatment_notes_*` / `care_tips_*` blocks.
 
-**Ops:** update each active Mailchimp journey template to use `care_card_url` (and remove any `treatment_notes_*` / `care_tips_*` blocks). Event properties are not always insertable as `*|…|*` merge tags on Essentials — check the journey builder’s event-property / Activity fields for your plan.
+**Ops:** Marketing Journeys for hospital events other than collection should be **off** (Transactional replaced them). Keep collection nurture gated to subscribed / `newsletter`.
 
 #### Audience merge fields (contact profile)
 

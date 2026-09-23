@@ -8,7 +8,13 @@ import {
 } from "@/lib/mailchimp/event-types";
 import { isMailchimpConfigured, isMailchimpOutboxOnly } from "@/lib/mailchimp/env";
 import { payloadToEventProperties } from "@/lib/mailchimp/payload-to-event-properties";
+import { sendHospitalTransactionalEmail } from "@/lib/mailchimp/send-hospital-transactional";
 import { formatMailchimpOccurredAt, sendMemberEvent } from "@/lib/mailchimp/send-member-event";
+import { MailchimpTransactionalApiError } from "@/lib/mailchimp/transactional-client";
+import {
+  isMailchimpTransactionalConfigured,
+} from "@/lib/mailchimp/transactional-env";
+import { isHospitalTransactionalEvent } from "@/lib/mailchimp/hospital-transactional-events";
 import { upsertListMember } from "@/lib/mailchimp/upsert-list-member";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -43,7 +49,9 @@ function sleep(ms: number): Promise<void> {
 }
 
 function isRetryableError(error: unknown): boolean {
-  if (error instanceof MailchimpApiError) {
+  if (error instanceof MailchimpApiError || error instanceof MailchimpTransactionalApiError) {
+    // Mandrill reject_reason responses use status 200 with our wrapper — don't retry those.
+    if (error.status === 200) return false;
     return RETRYABLE_STATUS_CODES.has(error.status);
   }
 
@@ -228,22 +236,55 @@ async function markEventFailed(
     .eq("status", "processing");
 }
 
+async function resolveToNameForEvent(row: MailchimpEventRow): Promise<string | undefined> {
+  if (!row.customer_id) return undefined;
+
+  const supabase = createSupabaseAdminClient();
+  const { data } = await supabase
+    .from("customers")
+    .select("first_name, last_name")
+    .eq("id", row.customer_id)
+    .maybeSingle();
+
+  if (!data) return undefined;
+  const name = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+  return name || undefined;
+}
+
 async function sendEventWithRetry(
   email: string,
   eventName: MailchimpEventName,
   payload: MailchimpEventPayload,
-  occurredAt?: string,
+  options: { occurredAt?: string; toName?: string } = {},
 ): Promise<void> {
+  const useTransactional =
+    isHospitalTransactionalEvent(eventName) && isMailchimpTransactionalConfigured();
+
+  if (isHospitalTransactionalEvent(eventName) && !isMailchimpTransactionalConfigured()) {
+    console.warn(
+      `[mailchimp] ${eventName}: MAILCHIMP_TRANSACTIONAL_API_KEY unset — falling back to Marketing Events API`,
+    );
+  }
+
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
     try {
-      await sendMemberEvent({
-        email,
-        eventName,
-        properties: payloadToEventProperties(payload),
-        occurredAt,
-      });
+      if (useTransactional) {
+        await sendHospitalTransactionalEmail({
+          email,
+          eventName,
+          payload,
+          toName: options.toName,
+        });
+      } else {
+        await sendMemberEvent({
+          email,
+          eventName,
+          properties: payloadToEventProperties(payload),
+          occurredAt: options.occurredAt,
+        });
+      }
       return;
     } catch (error) {
       lastError = error;
@@ -284,12 +325,11 @@ async function processEventRow(row: MailchimpEventRow): Promise<ProcessEventRowR
 
   try {
     await ensureAudienceMember(claimed, email);
-    await sendEventWithRetry(
-      email,
-      claimed.event_name,
-      claimed.payload ?? {},
-      resolveOccurredAt(claimed),
-    );
+    const toName = await resolveToNameForEvent(claimed);
+    await sendEventWithRetry(email, claimed.event_name, claimed.payload ?? {}, {
+      occurredAt: resolveOccurredAt(claimed),
+      toName,
+    });
     await markEventSent(claimed.id);
     return { success: true };
   } catch (error) {

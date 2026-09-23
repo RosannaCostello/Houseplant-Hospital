@@ -198,16 +198,21 @@ Server code lives under `lib/mailchimp/`:
 - `event-types.ts` — event names + payload types (`plant_checked_in`, status changes, etc.)
 - `enqueue-event.ts` — insert `pending` rows into `mailchimp_events`
 - `adapter.ts` — `getMailchimpAdapter()` queues via outbox (no live API from request path)
+- Transactional Route A (HIL-140): `transactional-env.ts`, `transactional-client.ts`, `send-hospital-transactional.ts`, `hospital-transactional-copy.ts`
 
 Set `MAILCHIMP_OUTBOX_ONLY=true` to queue events without calling Mailchimp (useful locally). When Mailchimp env vars are missing, outbox-only is automatic. The worker (HIL-57) processes pending rows when live delivery is enabled.
+
+**Transactional Route A (HIL-140):** hospital plant events (everything except `plant_collected`) send via **Mailchimp Transactional** (Mandrill) using `MAILCHIMP_TRANSACTIONAL_API_KEY` (`md-…`). From address defaults to `hospital@hilda.co` / `Hilda Houseplant Hospital` (`MAILCHIMP_TRANSACTIONAL_FROM_EMAIL` / `_FROM_NAME` override). Domain `hilda.co` must stay verified in Transactional. Emails are app-composed thin HTML with a Care Card CTA (no Mandrill templates required for v1). **`plant_collected`** still uses the Marketing member Events API so Customer Journeys can run nurture (consent-gated).
+
+If the Transactional key is missing, hospital events fall back to the Marketing Events API (legacy behaviour) and a warning is logged.
 
 **Check-in sync (HIL-55 / HIL-126):** on successful check-in, the app queues `plant_checked_in` per plant. When Mailchimp is configured and not outbox-only, it also upserts the contact, applies tags (`houseplant_hospital`, `repeat_hospital_customer`, `newsletter` when consented), and saves `mailchimp_contact_id` on the customer. If marketing consent is on and the existing contact is `unsubscribed` or `transactional`, the upsert attempts `subscribed` (skips cleaned / compliance-blocked). Mailchimp failures do not block check-in.
 
 **Status and bugs events (HIL-56):** kanban status moves, collection, and enabling **bugs found** queue the matching event to `mailchimp_events` (`plant_in_surgery`, `plant_outpatient`, `plant_collected`, etc.). Enabling bugs found also applies the `bugs_treatment` tag when live Mailchimp is enabled.
 
-**Outpatient reminder (HIL-131):** daily cron `GET /api/cron/outpatient-reminders` (same `0 6 * * *` schedule as Shopify pricing in `custom-worker.ts`) enqueues `plant_outpatient_reminder` for plants still in Outpatient for 14+ days. Deduped via `mailchimp_events` (no new plant columns) so at most one reminder per plant per 14-day window. **Jack builds/activates the Mailchimp journey** on that exact event name.
+**Outpatient reminder (HIL-131):** daily cron `GET /api/cron/outpatient-reminders` (same `0 6 * * *` schedule as Shopify pricing in `custom-worker.ts`) enqueues `plant_outpatient_reminder` for plants still in Outpatient for 14+ days. Deduped via `mailchimp_events` (no new plant columns) so at most one reminder per plant per 14-day window. Delivered via Transactional Route A (no Marketing journey required).
 
-**Outbox worker (HIL-57):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50), POSTs each event to Mailchimp’s member Events API, and sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Rows left in `processing` for more than **15 minutes** (Worker timeout/deploy mid-send) are reset to `pending` at the start of each run. Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
+**Outbox worker (HIL-57 / HIL-140):** cron route `GET /api/cron/mailchimp-outbox` processes `pending` rows (oldest first, batch of 50). Hospital events → Transactional API; `plant_collected` → Marketing Events API. Sets `sent` + `sent_at` or `failed` (with `_deliveryError` in payload). Rows left in `processing` for more than **15 minutes** (Worker timeout/deploy mid-send) are reset to `pending` at the start of each run. Requires `CRON_SECRET` (same as Shopify pricing cron). Schedule in Cloudflare Cron Triggers (e.g. every 5 minutes) or call manually after testing:
 
 ```bash
 curl -s -H "Authorization: Bearer $CRON_SECRET" \

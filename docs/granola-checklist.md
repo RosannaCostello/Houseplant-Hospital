@@ -100,8 +100,10 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
   - Hosting / new domain: deferred (current Workers URL).
 - [x] **15b. Thin emails + `care_card_url` on all plant events** — [HIL-139](https://linear.app/hilda-houseplant-hospital/issue/HIL-139)
   - App sends `care_card_url`; stops sending treatment notes / care tips on events.
-  - **Ops:** update Mailchimp journey templates to CTA the Care Card.
-- [ ] **15c. Mailchimp Transactional (Route A)** for hospital events; keep `plant_collected` on Marketing Journeys for nurture.
+  - **Ops:** update Mailchimp journey templates to CTA the Care Card (collection nurture).
+- [x] **15c. Mailchimp Transactional (Route A)** — [HIL-140](https://linear.app/hilda-houseplant-hospital/issue/HIL-140)
+  - Hospital events → Mandrill Transactional; `plant_collected` stays on Marketing Journeys for nurture.
+  - **Ops:** deactivate old hospital Marketing journeys; keep collection nurture consent-gated.
 
 ---
 
@@ -159,4 +161,4 @@ flowchart TD
   pestType --> customerDash
 ```
 
-**Status:** P0 + P1 eng done (or OOS). P2 Care Card page shipped ([HIL-138](https://linear.app/hilda-houseplant-hospital/issue/HIL-138)); email thinning + Transactional still open. Ops: Mailchimp `plant_outpatient_reminder` journey; optional PR merges to `main`. Handbook updates required for any staff-facing ship.
+**Status:** P0 + P1 eng done (or OOS). P2 Care Card + thin emails + Transactional Route A shipped ([HIL-138](https://linear.app/hilda-houseplant-hospital/issue/HIL-138) / [HIL-139](https://linear.app/hilda-houseplant-hospital/issue/HIL-139) / [HIL-140](https://linear.app/hilda-houseplant-hospital/issue/HIL-140)). Ops: deactivate old hospital Marketing journeys; keep `plant_collected` nurture consent-gated; optional PR merges to `main`. Handbook updates required for any staff-facing ship.
