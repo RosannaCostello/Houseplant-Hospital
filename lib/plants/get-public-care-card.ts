@@ -25,6 +25,8 @@ export type CareCardPlant = {
   statusLabel: string;
   statusMessage: string;
   photoUrl: string | null;
+  /** true / false / null (Not sure or unanswered). */
+  bugsFound: boolean | null;
   pestTypeLabel: string | null;
   milestones: PlantMilestoneDates;
   /** Only populated when aftercare is visible for this status. */
@@ -32,6 +34,12 @@ export type CareCardPlant = {
   careTips: CareCardCareTip[];
   showAftercare: boolean;
 };
+
+function bugsFoundFromRow(value: unknown): boolean | null {
+  if (value === true) return true;
+  if (value === false) return false;
+  return null;
+}
 
 export type PublicCareCard = {
   visitId: string;
@@ -182,12 +190,13 @@ export async function getPublicCareCard(visitId: string): Promise<PublicCareCard
           )[0]?.storage_path ?? null
         : null;
 
+    const bugsFound = bugsFoundFromRow(row.bugs_found);
     const pestType = unwrapRelation(
       (row as { pest_type_options?: { label?: string } | { label?: string }[] | null })
         .pest_type_options,
     );
     const pestTypeLabel =
-      row.bugs_found === true &&
+      bugsFound === true &&
       pestType &&
       typeof pestType.label === "string" &&
       pestType.label.trim()
@@ -239,6 +248,7 @@ export async function getPublicCareCard(visitId: string): Promise<PublicCareCard
       statusLabel: customerStatus.label,
       statusMessage: customerStatus.message,
       photoUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
+      bugsFound,
       pestTypeLabel,
       milestones,
       treatmentNote,
@@ -370,6 +380,7 @@ async function getPublicCareCardWithoutPestType(
       statusLabel: customerStatus.label,
       statusMessage: customerStatus.message,
       photoUrl: photoPath ? (signedUrls.get(photoPath) ?? null) : null,
+      bugsFound: bugsFoundFromRow(row.bugs_found),
       pestTypeLabel: null,
       milestones,
       treatmentNote,

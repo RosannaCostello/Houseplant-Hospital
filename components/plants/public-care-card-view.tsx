@@ -31,15 +31,14 @@ type TimelineStep = {
 
 function buildTimeline(plant: CareCardPlant, checkedInAt: string): TimelineStep[] {
   const { milestones, status } = plant;
-  const underCareAt = milestones.quarantinedAt ?? milestones.surgeryAt;
-  const underCareDone =
-    Boolean(underCareAt) ||
-    status === "quarantine" ||
+  const showQuarantine = Boolean(milestones.quarantinedAt) || status === "quarantine";
+  const showSurgery =
+    Boolean(milestones.surgeryAt) ||
+    Boolean(milestones.propagatedAt) ||
     status === "in_surgery" ||
-    status === "propagation" ||
-    status === "outpatient" ||
-    status === "collected" ||
-    status === "dead";
+    status === "propagation";
+  const pastSurgery =
+    status === "outpatient" || status === "collected" || status === "dead";
   const readyAt = milestones.outpatientAt;
   const readyDone =
     Boolean(readyAt) || status === "outpatient" || status === "collected" || status === "dead";
@@ -54,22 +53,46 @@ function buildTimeline(plant: CareCardPlant, checkedInAt: string): TimelineStep[
       done: true,
       current: status === "check_in",
     },
-    {
-      key: "care",
-      label: "In care",
-      at: underCareAt,
-      done: underCareDone,
-      current:
-        status === "quarantine" || status === "in_surgery" || status === "propagation",
-    },
-    {
-      key: "ready",
-      label: status === "dead" ? "Assessment complete" : "Ready for collection",
-      at: readyAt,
-      done: readyDone,
-      current: status === "outpatient" || status === "dead",
-    },
   ];
+
+  if (showQuarantine) {
+    steps.push({
+      key: "quarantine",
+      label: "Quarantine",
+      at: milestones.quarantinedAt,
+      done:
+        Boolean(milestones.quarantinedAt) ||
+        status === "quarantine" ||
+        status === "in_surgery" ||
+        status === "propagation" ||
+        pastSurgery,
+      current: status === "quarantine",
+    });
+  }
+
+  if (showSurgery || pastSurgery) {
+    const surgeryLabel = status === "propagation" ? "Propagation" : "In Surgery";
+    steps.push({
+      key: "surgery",
+      label: surgeryLabel,
+      at: milestones.surgeryAt ?? milestones.propagatedAt,
+      done:
+        Boolean(milestones.surgeryAt) ||
+        Boolean(milestones.propagatedAt) ||
+        status === "in_surgery" ||
+        status === "propagation" ||
+        pastSurgery,
+      current: status === "in_surgery" || status === "propagation",
+    });
+  }
+
+  steps.push({
+    key: "ready",
+    label: status === "dead" ? "Assessment complete" : "Ready for collection",
+    at: readyAt,
+    done: readyDone,
+    current: status === "outpatient" || status === "dead",
+  });
 
   if (isCollected || collectedAt) {
     steps.push({
@@ -82,6 +105,19 @@ function buildTimeline(plant: CareCardPlant, checkedInAt: string): TimelineStep[
   }
 
   return steps;
+}
+
+function pestSummary(plant: CareCardPlant): string | null {
+  if (plant.bugsFound === true) {
+    if (plant.pestTypeLabel) {
+      return `Pests found: ${plant.pestTypeLabel}`;
+    }
+    return "Pests found — our team is treating this plant.";
+  }
+  if (plant.bugsFound === null) {
+    return "Pest check: still being assessed.";
+  }
+  return null;
 }
 
 function PlantTimeline({ plant, checkedInAt }: { plant: CareCardPlant; checkedInAt: string }) {
@@ -146,6 +182,7 @@ function CareCardPlantSection({
   highlight: boolean;
 }) {
   const ready = plant.status === "outpatient";
+  const pests = pestSummary(plant);
 
   return (
     <article
@@ -187,12 +224,7 @@ function CareCardPlantSection({
             </h2>
             <p className="text-sm text-hilda-text-muted">{plant.sizeLabel}</p>
           </div>
-          {plant.pestTypeLabel ? (
-            <p className="mt-2 text-sm text-hilda-text">
-              Pests treated:{" "}
-              <span className="font-medium text-hilda-heading">{plant.pestTypeLabel}</span>
-            </p>
-          ) : null}
+          {pests ? <p className="mt-2 text-sm font-medium text-hilda-heading">{pests}</p> : null}
         </div>
 
         <section>
