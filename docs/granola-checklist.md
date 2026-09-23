@@ -70,10 +70,9 @@ Amendments locked in earlier: outpatient reminder = Mailchimp event only (no sta
 
 ## P1 — Payments / Shopify (mixed ops + light app)
 
-- [x] **12. Shopify “guarantee” 100% discount code** (ops in Shopify) — code **`GUARANTEE26`**. Optional Analytics count later (#13).
-- [ ] **13. Guarantee flow in app**
-  - Prefer Shopify as source of truth; reduce reliance on “paid another way”; Analytics can surface guarantee count from Shopify if useful.
-- [ ] **14. Shopify logins per staff** (ops / Shopify Admin — accountability for discounts; out of app scope unless POS identity is later wired).
+- [x] **12. Shopify “guarantee” 100% discount code** (ops in Shopify) — code **`GUARANTEE26`**.
+- [x] **13. Guarantee flow in app** — **effectively done**: staff use **`GUARANTEE26`** in Shopify POS (handbook); no separate in-app guarantee flow planned.
+- [x] **14. Shopify logins per staff** — **out of scope** (ops / Shopify Admin only; not HHH app work).
 
 ---
 
